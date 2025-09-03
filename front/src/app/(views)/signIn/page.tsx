@@ -1,3 +1,9 @@
-export default function Signin() {
-  return <h1>HOLA SOY EL INGRESO</h1>;
+import LoginForm from "./components/login-form";
+
+export default function SignInPage() {
+  return (
+    <main>
+      <LoginForm />
+    </main>
+  );
 }
