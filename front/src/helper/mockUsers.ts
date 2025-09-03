@@ -1,19 +1,6 @@
-export interface User {
-  user_ID: string;
-  name: string;
-  email: string;
-  password: string;
-  birthDate: string;
-  phone: string;
-  address: string;
-  city: string;
-  zip_code: string;
-  role: "CLIENTE" | "PROFESIONAL";
-  registration_date: string;
-  profileImg: string;
-}
+import { IUser } from "@/types/types";
 
-export const mockUsers: User[] = [
+export const mockUsers: IUser[] = [
   {
     user_ID: "1a2b3c4d",
     name: "Juan Pérez",
