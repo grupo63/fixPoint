@@ -1,3 +1,4 @@
+// front/src/types/types.ts
 export type Role = "CLIENTE" | "PROFESIONAL" | "ADMIN";
 
 export interface IUser {
@@ -10,7 +11,7 @@ export interface IUser {
   address: string;
   city: string;
   zipCode: string;
-  role: "CLIENTE" | "PROFESIONAL";
+  role: Role;                 // ⬅️ antes decía "CLIENTE" | "PROFESIONAL"
   registrationDate: string;
   profileImg: string;
 }
@@ -23,7 +24,7 @@ export interface UserProfile {
   city?: string | null;
   address?: string | null;
   zipCode?: string | null;
-  registrationDate: string; 
+  registrationDate: string;
   profileImg?: string | null;
   role?: Role;
 }
