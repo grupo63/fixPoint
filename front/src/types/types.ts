@@ -11,7 +11,7 @@ export interface IUser {
   city: string;
   zip_code: string;
   role: "CLIENTE" | "PROFESIONAL";
-  registration_date: string; // ISO
+  registration_date: string;
   profileImg: string;
 }
 
