@@ -2,13 +2,24 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation"; // ← agregado useRouter
 import { navLinks } from "./navLinks";
 import { routes } from "@/routes";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter(); // ← instancia del router
+
+  // estado del searchbar
+  const [query, setQuery] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      router.push(`/search?query=${encodeURIComponent(query)}`); // ← navegación SPA
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -23,26 +34,39 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Center: Links */}
-        <ul className="hidden md:flex items-center gap-8">
-          {navLinks.map((l) => {
-            const active = pathname === l.href;
-            return (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  className={`text-sm transition-colors ${
-                    active
-                      ? "text-blue-600 font-medium"
-                      : "text-gray-600 hover:text-blue-600"
-                  }`}
-                >
-                  {l.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {/* Center: Links + Search */}
+        <div className="hidden md:flex items-center gap-6 flex-1 justify-center">
+          <ul className="flex items-center gap-6">
+            {navLinks.map((l) => {
+              const active = pathname === l.href;
+              return (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    className={`text-sm transition-colors ${
+                      active
+                        ? "text-blue-600 font-medium"
+                        : "text-gray-600 hover:text-blue-600"
+                    }`}
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Searchbar */}
+          <form onSubmit={handleSearch} className="ml-4">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar Profesional…"
+              className="w-40 lg:w-64 rounded-md border border-gray-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </form>
+        </div>
 
         {/* Right: acciones */}
         <div className="hidden md:flex items-center gap-4">
@@ -108,7 +132,9 @@ export default function Navbar() {
                 href={routes.signin}
                 onClick={() => setOpen(false)}
                 className="flex-1 rounded-md px-3 py-2 text-center text-sm text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
-              ></Link>
+              >
+                Ingresar
+              </Link>
               <Link
                 href={routes.register}
                 onClick={() => setOpen(false)}
