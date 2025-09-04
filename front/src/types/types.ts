@@ -1,7 +1,7 @@
 export type Role = "CLIENTE" | "PROFESIONAL" | "ADMIN";
 
 export interface IUser {
-  user_ID: string;
+  userId: string;
   name: string;
   email: string;
   password: string;
@@ -9,21 +9,21 @@ export interface IUser {
   phone: string;
   address: string;
   city: string;
-  zip_code: string;
+  zipCode: string;
   role: "CLIENTE" | "PROFESIONAL";
-  registration_date: string;
+  registrationDate: string;
   profileImg: string;
 }
 
 export interface UserProfile {
-  user_ID: string;
+  userId: string;
   name: string;
   email: string;
   phone?: string | null;
   city?: string | null;
   address?: string | null;
-  zip_code?: string | null;
-  registration_date: string; // ISO
+  zipCode?: string | null;
+  registrationDate: string; 
   profileImg?: string | null;
   role?: Role;
 }
