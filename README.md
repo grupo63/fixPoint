@@ -1,7 +1,3 @@
-Perfecto 🚀, aquí te dejo un **README más llamativo**, con más emojis, mejor estructura y dejando claro que el proyecto **está en desarrollo**:
-
----
-
 # ⚒️ FixPoint
 
 ✨ **FixPoint** es una plataforma de servicios que conecta a **usuarios** con **profesionales y trabajadores de oficios** de manera **segura, transparente y confiable**.
