@@ -1,4 +1,7 @@
+import { Key } from "react";
+
 export type Professional = {
+  
   pId: string;
   userId: string;
   speciality: string;
