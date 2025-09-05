@@ -13,7 +13,7 @@
 export const routes = {
   // Público
   home: "/",
-  signin: "/signin",                 // 👈 lowercase
+  signin: "/signIn",                 // 👈 lowercase
   register: "/register",
   profesionales: "/profesionales",
   profesionalDetail: (id: string) => `/profesionales/${id}`, // 👈 función para dinámicas

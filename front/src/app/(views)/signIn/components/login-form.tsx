@@ -1,15 +1,29 @@
 "use client";
-
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { login } = useAuth();
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login con:", { email, password });
-    // TODO: conectar con tu endpoint de login (fetch/axios)
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      await login(email, password);
+      router.push("/dashboard"); // ✅ redirección post-login
+    } catch (error: any) {
+      setErrorMsg(error.message || "Credenciales inválidas");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -18,10 +32,8 @@ export default function LoginForm() {
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md space-y-6"
       >
-        <h2 className="text-2xl font-bold text-center text-gray-800">Iniciar sesión</h2>
-
         <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <label className="block text-sm font-medium text-gray-700">Correo electrónico</label>
           <input
             type="email"
             value={email}
@@ -44,11 +56,16 @@ export default function LoginForm() {
           />
         </div>
 
+        {errorMsg && (
+          <p className="text-red-600 text-sm text-center">{errorMsg}</p>
+        )}
+
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
-          Entrar
+          {loading ? "Entrando..." : "Entrar"}
         </button>
       </form>
     </div>
