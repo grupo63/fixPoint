@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import typeOrmConfig from './config/typeorm';
 import { DataSourceOptions } from 'typeorm';
 import { ProfessionalModule } from './professional/professional.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ProfessionalModule } from './professional/professional.module';
     }),
 
     ProfessionalModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
