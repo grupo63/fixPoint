@@ -1,4 +1,4 @@
-// front/src/helper/mockUsers.ts
+
 import type { IUser } from "@/types/types";
 
 export const mockUsers: IUser[] = [
@@ -59,3 +59,11 @@ export const mockUsers: IUser[] = [
     profileImg: "https://randomuser.me/api/portraits/men/22.jpg",
   },
 ];
+
+
+export default async function fetchUsers(delayMs = 0): Promise<IUser[]> {
+  if (delayMs > 0) {
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return mockUsers.map((u) => ({ ...u }));
+}
