@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Professional } from './entity/professional.entity';
@@ -15,5 +15,28 @@ export class ProfessionalRepository {
       take: limit,
       where: { isActive: true },
     });
+  }
+  async getProfessionalById(id: string) {
+    const professionalId = await this.professionalRepo.findOne({
+      where: { id },
+      relations: {
+        reservation: {
+          reviews: true,
+        },
+        professionalImg: true,
+        service: true,
+      },
+    });
+    if (!professionalId) {
+      throw new NotFoundException('professional not found');
+    }
+    const reviews = professionalId.reservation
+      .map((r) => r.review)
+      .filter(Boolean);
+
+    return {
+      ...professionalId,
+      reviews,
+    };
   }
 }

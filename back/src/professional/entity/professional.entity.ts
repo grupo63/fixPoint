@@ -1,3 +1,5 @@
+import { Available } from 'src/available/entity/available.entity';
+import { User } from 'src/users/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
@@ -76,8 +78,8 @@ export class Professional {
   })
   user: User;
 
-  @OneToMany(() => ProfImage, (profImage) => profImage.professional)
-  profImage: ProfImage[]; //recordar explicitar esta relacion en la tabla de profImage
+  @OneToMany(() => ProfessionalImg, (profImage) => ProfessionalImg.professional)
+  professionalImg: ProfessionalImg[]; //recordar explicitar esta relacion en la tabla de profImage
 
   @OneToMany(() => Reservation, (reservation) => reservation.professional)
   reservation: Reservation[];

@@ -1,4 +1,5 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { ProfessionalService } from './professional.service';
 
 @Controller('professional')
 export class ProfessionalController {
@@ -11,5 +12,10 @@ export class ProfessionalController {
     const pageNumber = Number(page) || 1;
     const limitNumber = Number(limit) || 12;
     return this.professionalService.getProfessional(pageNumber, limitNumber);
+  }
+
+  @Get(':id')
+  getProfessionalById(@Param('id', ParseUUIDPipe) id: string) {
+    return this.professionalService.getProfessionalById(id);
   }
 }
