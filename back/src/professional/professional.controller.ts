@@ -1,5 +1,14 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ProfessionalService } from './professional.service';
+import { CreateProfessionalDto } from './dto/createProfessional.dto';
 
 @Controller('professional')
 export class ProfessionalController {
@@ -17,5 +26,13 @@ export class ProfessionalController {
   @Get(':id')
   getProfessionalById(@Param('id', ParseUUIDPipe) id: string) {
     return this.professionalService.getProfessionalById(id);
+  }
+
+  @Post(':userId')
+  async createProfessional(
+    @Param('userId') userId: string,
+    @Body() professional: CreateProfessionalDto,
+  ) {
+    return this.professionalService.createProfessional(userId, professional);
   }
 }

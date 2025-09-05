@@ -26,22 +26,25 @@ export class Professional {
 
   @Column({
     type: 'text',
+    nullable: true,
   })
-  aboutMe: string;
+  aboutMe?: string;
 
   @Column({
     type: 'decimal',
     precision: 9,
     scale: 6,
+    nullable: true,
   })
-  longitud: number;
+  longitud?: number;
 
   @Column({
     type: 'decimal',
     precision: 9,
     scale: 6,
+    nullable: true,
   })
-  latitude: number;
+  latitude?: number;
 
   @Column({
     type: 'integer',
@@ -78,15 +81,15 @@ export class Professional {
   })
   user: User;
 
-  @OneToMany(() => ProfessionalImg, (profImage) => ProfessionalImg.professional)
-  professionalImg: ProfessionalImg[]; //recordar explicitar esta relacion en la tabla de profImage
+  // @OneToMany(() => ProfessionalImg, (profImage) => ProfessionalImg.professional)
+  // professionalImg: ProfessionalImg[]; //recordar explicitar esta relacion en la tabla de profImage
 
-  @OneToMany(() => Reservation, (reservation) => reservation.professional)
-  reservation: Reservation[];
+  // @OneToMany(() => Reservation, (reservation) => reservation.professional)
+  // reservation: Reservation[];
 
   @OneToMany(() => Available, (available) => available.professional)
   available: Available[];
 
-  @OneToMany(() => Service, (service) => service.professional)
-  service: Service[];
+  // @OneToMany(() => Service, (service) => service.professional)
+  // service: Service[];
 }
