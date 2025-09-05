@@ -8,7 +8,7 @@ export class PublicProfessionalDto {
   location: string;
   profileImg: string;
 
-  services: ServiceDto[];
-  profImage: ProfessionalImageDto[];
-  reviews: ReviewDto[];
+  // services: ServiceDto[];
+  // profImage: ProfessionalImageDto[];
+  // reviews: ReviewDto[];
 }

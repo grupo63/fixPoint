@@ -14,20 +14,23 @@ export class CreateProfessionalDto {
   speciality: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(255)
-  aboutMe: string;
+  aboutMe?: string;
 
+  @IsOptional()
   @IsNumber()
-  longitude: number;
+  longitude?: number;
 
+  @IsOptional()
   @IsNumber()
-  latitude: number;
+  latitude?: number;
 
   @IsNumber()
   working_radius: number;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(100)
   location: string;
 
