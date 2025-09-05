@@ -11,7 +11,7 @@ export interface IUser {
   address: string;
   city: string;
   zipCode: string;
-  role: Role;                 // ⬅️ antes decía "CLIENTE" | "PROFESIONAL"
+  role: Role;                 
   registrationDate: string;
   profileImg: string;
 }
