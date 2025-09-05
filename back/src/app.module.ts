@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import typeOrmConfig from './config/typeorm';
 import { DataSourceOptions } from 'typeorm';
+import { ProfessionalModule } from './professional/professional.module';
 
 @Module({
   imports: [
@@ -19,6 +20,8 @@ import { DataSourceOptions } from 'typeorm';
         return configService.get<DataSourceOptions>('typeorm')!;
       },
     }),
+
+    ProfessionalModule,
   ],
   controllers: [AppController],
   providers: [AppService],
