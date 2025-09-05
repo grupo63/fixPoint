@@ -1,7 +1,5 @@
-import ProfesionalCard from "@/components/profesionalCard/ProfesionalCard";
-import fetchProfessionals from "@/helper/mockProfesionales"
-
-
+import { ProfesionalCard } from "@/components/profesionalCard/ProfesionalCard";
+import fetchProfessionals from "@/helper/mockProfesionales";
 
 export default async function ProfessionalsPage() {
   const pros = await fetchProfessionals();
@@ -12,7 +10,7 @@ export default async function ProfessionalsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {pros.map((p) => (
-          <ProfesionalCard key={p.p_ID} pro={p} />
+          <ProfesionalCard key={p.pId} pro={p} />
         ))}
       </div>
     </main>
