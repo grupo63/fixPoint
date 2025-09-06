@@ -1,4 +1,5 @@
 import { Available } from 'src/available/entity/available.entity';
+import { Service } from 'src/service/entities/service.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
   Column,
@@ -90,6 +91,6 @@ export class Professional {
   @OneToMany(() => Available, (available) => available.professional)
   available: Available[];
 
-  // @OneToMany(() => Service, (service) => service.professional)
-  // service: Service[];
+  @OneToMany(() => Service, (service) => service.professional)
+  service: Service[];
 }

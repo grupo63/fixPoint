@@ -11,15 +11,21 @@ import { Professional } from '../professional/entity/professional.entity';
 export class ServiceRepository {
   constructor(
     @InjectRepository(Service) private readonly repo: Repository<Service>,
-    @InjectRepository(Category) private readonly categories: Repository<Category>,
-    @InjectRepository(Professional) private readonly professionals: Repository<Professional>,
+    @InjectRepository(Category)
+    private readonly categories: Repository<Category>,
+    @InjectRepository(Professional)
+    private readonly professionals: Repository<Professional>,
   ) {}
 
   async createOne(dto: CreateServiceDto) {
-    const category = await this.categories.findOne({ where: { id: dto.categoryId } });
+    const category = await this.categories.findOne({
+      where: { id: dto.categoryId },
+    });
     if (!category) throw new NotFoundException('Category not found');
 
-    const professional = await this.professionals.findOne({ where: { id: dto.professionalId } });
+    const professional = await this.professionals.findOne({
+      where: { id: dto.professionalId },
+    });
     if (!professional) throw new NotFoundException('Professional not found');
 
     const entity = this.repo.create({
@@ -28,7 +34,7 @@ export class ServiceRepository {
       category,
       categoryId: category.id,
       professional,
-      professionalId: professional.id,
+      // professionalId: professional.id,
     });
     return this.repo.save(entity);
   }
@@ -53,17 +59,21 @@ export class ServiceRepository {
     const service = await this.findOne(id);
 
     if (dto.categoryId) {
-      const category = await this.categories.findOne({ where: { id: dto.categoryId } });
+      const category = await this.categories.findOne({
+        where: { id: dto.categoryId },
+      });
       if (!category) throw new NotFoundException('Category not found');
       service.category = category;
       service.categoryId = category.id;
     }
 
     if (dto.professionalId) {
-      const professional = await this.professionals.findOne({ where: { id: dto.professionalId } });
+      const professional = await this.professionals.findOne({
+        where: { id: dto.professionalId },
+      });
       if (!professional) throw new NotFoundException('Professional not found');
       service.professional = professional;
-      service.professionalId = professional.id;
+      // service.professionalId = professional.id;
     }
 
     if (dto.title !== undefined) service.title = dto.title;
