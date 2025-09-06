@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Category } from '../../category/entities/category.entity';
 import { Professional } from '../../professional/entity/professional.entity';
 
@@ -29,5 +35,4 @@ export class Service {
   })
   @JoinColumn({ name: 'professionalId' })
   professional: Professional;
-
 }
