@@ -9,6 +9,8 @@ import { ProfessionalModule } from './professional/professional.module';
 import { UsersModule } from './users/users.module';
 import { AvailableModule } from './available/available.module';
 import { ServiceModule } from './service/service.module';
+import { AuthModule } from './auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -28,6 +30,12 @@ import { ServiceModule } from './service/service.module';
     UsersModule,
     AvailableModule,
     ServiceModule,
+    AuthModule,
+    JwtModule.register({
+      global: true,
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '60m' },
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
