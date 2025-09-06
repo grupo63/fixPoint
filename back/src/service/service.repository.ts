@@ -34,7 +34,6 @@ export class ServiceRepository {
       category,
       categoryId: category.id,
       professional,
-      // professionalId: professional.id,
     });
     return this.repo.save(entity);
   }
@@ -73,7 +72,6 @@ export class ServiceRepository {
       });
       if (!professional) throw new NotFoundException('Professional not found');
       service.professional = professional;
-      // service.professionalId = professional.id;
     }
 
     if (dto.title !== undefined) service.title = dto.title;
