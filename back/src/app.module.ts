@@ -8,6 +8,7 @@ import { DataSourceOptions } from 'typeorm';
 import { ProfessionalModule } from './professional/professional.module';
 import { UsersModule } from './users/users.module';
 import { AvailableModule } from './available/available.module';
+import { ServiceModule } from './service/service.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AvailableModule } from './available/available.module';
     ProfessionalModule,
     UsersModule,
     AvailableModule,
+    ServiceModule,
   ],
   controllers: [AppController],
   providers: [AppService],
