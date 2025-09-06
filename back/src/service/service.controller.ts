@@ -40,7 +40,7 @@ export class ServiceController {
   @ApiParam({ name: 'id', description: 'Service UUID' })
   @ApiResponse({ status: 200, description: 'Service found', type: ServiceEntity })
   @ApiResponse({ status: 404, description: 'Service not found' })
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.findOne(id);
   }
 
@@ -54,7 +54,7 @@ export class ServiceController {
   @ApiBody({ type: UpdateServiceDto })
   @ApiResponse({ status: 200, description: 'Service updated', type: ServiceEntity })
   @ApiResponse({ status: 404, description: 'Service not found / Category not found / Professional not found' })
-  update(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateServiceDto) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateServiceDto) {
     return this.service.update(id, dto);
   }
 
@@ -66,7 +66,7 @@ export class ServiceController {
   @ApiParam({ name: 'id', description: 'Service UUID' })
   @ApiResponse({ status: 200, description: 'Service deleted' })
   @ApiResponse({ status: 404, description: 'Service not found' })
-  remove(@Param('id', new ParseUUIDPipe()) id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.remove(id);
   }
 }

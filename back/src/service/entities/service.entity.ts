@@ -23,7 +23,6 @@ export class Service {
   @Column()
   categoryId: string;
 
-  // En Professional la propiedad es `service: Service[]`
   @ManyToOne(() => Professional, (prof) => prof.service, {
     nullable: false,
     onDelete: 'CASCADE',
@@ -31,6 +30,4 @@ export class Service {
   @JoinColumn({ name: 'professionalId' })
   professional: Professional;
 
-  @Column()
-  professionalId: string;
 }
