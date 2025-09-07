@@ -1,4 +1,6 @@
 import { Available } from 'src/available/entity/available.entity';
+import { Reservation } from 'src/reservation/entities/reservation.entity';
+import { reservationStatus, Review } from 'src/reviews/entities/review.entity';
 import { Service } from 'src/service/entities/service.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
@@ -18,6 +20,10 @@ import {
 export class Professional {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  //Relacion con review
+  // @OneToMany(() => Review, (rewiew) => rewiew.user)
+  // reviews: Review[];
 
   @Column({
     type: 'varchar',
@@ -93,4 +99,7 @@ export class Professional {
 
   @OneToMany(() => Service, (service) => service.professional)
   service: Service[];
+
+  // @OneToMany(() => reservationStatus, (reservation) => reservation.professional)
+  // reservations: Reservation[];
 }

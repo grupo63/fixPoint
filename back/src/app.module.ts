@@ -8,9 +8,13 @@ import { DataSourceOptions } from 'typeorm';
 import { ProfessionalModule } from './professional/professional.module';
 import { UsersModule } from './users/users.module';
 import { AvailableModule } from './available/available.module';
+import { CategoryModule } from './category/category.module';
+import { ReservationModule } from './reservation/reservation.module';
 import { ServiceModule } from './service/service.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
+import { UploadImgModule } from './upload-img/upload-img.module';
+
 
 @Module({
   imports: [
@@ -18,17 +22,17 @@ import { JwtModule } from '@nestjs/jwt';
       isGlobal: true,
       load: [typeOrmConfig],
     }),
-
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService): DataSourceOptions => {
         return configService.get<DataSourceOptions>('typeorm')!;
       },
     }),
-
     ProfessionalModule,
     UsersModule,
     AvailableModule,
+    CategoryModule,
+    ReservationModule,
     ServiceModule,
     AuthModule,
     JwtModule.register({
@@ -36,6 +40,7 @@ import { JwtModule } from '@nestjs/jwt';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '60m' },
     }),
+    UploadImgModule,
   ],
   controllers: [AppController],
   providers: [AppService],
