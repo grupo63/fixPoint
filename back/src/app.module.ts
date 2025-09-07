@@ -17,14 +17,12 @@ import { ServiceModule } from './service/service.module';
       isGlobal: true,
       load: [typeOrmConfig],
     }),
-
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService): DataSourceOptions => {
         return configService.get<DataSourceOptions>('typeorm')!;
       },
     }),
-
     ProfessionalModule,
     UsersModule,
     AvailableModule,
