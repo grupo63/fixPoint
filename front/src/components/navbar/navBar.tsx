@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation"; 
 import { navLinks } from "./navLinks";
 import { routes } from "@/routes";
+import SearchBar from "../searchBar/SearchBar";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -60,7 +61,12 @@ export default function Navbar() {
           </ul>
 
           {/* Searchbar */}
-          <form onSubmit={handleSearch} className="ml-4">
+
+          <SearchBar/>
+
+
+
+          {/* <form onSubmit={handleSearch} className="ml-4">
             <input
               type="search"
               value={query}
@@ -68,7 +74,7 @@ export default function Navbar() {
               placeholder="Buscar Profesional…"
               className="w-40 lg:w-64 rounded-md border border-gray-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </form>
+          </form> */}
         </div>
 
         {/* Right: acciones */}
