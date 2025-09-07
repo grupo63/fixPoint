@@ -1,6 +1,13 @@
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { TemporaryRole } from '../types/temporary-role';
 import { Professional } from 'src/professional/entity/professional.entity';
+import { Review } from 'src/reviews/entities/review.entity';
 
 @Entity({
   name: 'USERS',
@@ -8,6 +15,10 @@ import { Professional } from 'src/professional/entity/professional.entity';
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  //Relacion con review
+  @OneToMany(() => Review, (rewiew) => rewiew.user)
+  reviews: Review[];
 
   @Column({
     type: 'varchar',
