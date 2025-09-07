@@ -9,6 +9,7 @@ import { ProfessionalModule } from './professional/professional.module';
 import { UsersModule } from './users/users.module';
 import { AvailableModule } from './available/available.module';
 import { ServiceModule } from './service/service.module';
+import { UploadImgModule } from './upload-img/upload-img.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ServiceModule } from './service/service.module';
     UsersModule,
     AvailableModule,
     ServiceModule,
+    UploadImgModule,
   ],
   controllers: [AppController],
   providers: [AppService],
