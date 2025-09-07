@@ -2,22 +2,25 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation"; // ← agregado useRouter
+import { usePathname, useRouter } from "next/navigation"; 
 import { navLinks } from "./navLinks";
 import { routes } from "@/routes";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter(); // ← instancia del router
+  const router = useRouter();
 
-  // estado del searchbar
+  
   const [query, setQuery] = useState("");
+
+
+  
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      router.push(`/search?query=${encodeURIComponent(query)}`); // ← navegación SPA
+      router.push(`/search?query=${encodeURIComponent(query)}`);
     }
   };
 
