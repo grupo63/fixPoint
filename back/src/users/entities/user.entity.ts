@@ -7,7 +7,11 @@ import {
 } from 'typeorm';
 import { TemporaryRole } from '../types/temporary-role';
 import { Professional } from 'src/professional/entity/professional.entity';
+<<<<<<< Updated upstream
 import { Review } from 'src/reviews/entities/review.entity';
+=======
+import { UserStatus } from '../types/userStatus';
+>>>>>>> Stashed changes
 
 @Entity({
   name: 'USERS',
@@ -37,38 +41,42 @@ export class User {
 
   @Column({
     type: 'varchar',
-    length: 15,
+    length: 100,
     nullable: false,
   })
   password: string;
 
-  //identificar mayoria de edad
   @Column({
     type: 'date',
+    nullable: true,
   })
-  birthDate: Date;
+  birthDate?: Date;
 
   @Column({
     type: 'int',
+    nullable: true,
   })
-  phone: number;
+  phone?: number;
 
   @Column({
     type: 'varchar',
+    nullable: true,
   })
-  adress: string;
+  address?: string;
 
   @Column({
     type: 'varchar',
     length: 50,
+    nullable: true,
   })
-  city: string;
+  city?: string;
 
   @Column({
     type: 'varchar',
     length: 10,
+    nullable: true,
   })
-  zipCode: string;
+  zipCode?: string;
 
   @Column({
     type: 'enum',
@@ -80,8 +88,10 @@ export class User {
   @Column({
     type: 'varchar',
     length: 255,
+    nullable: true,
+    default: null,
   })
-  profileImage: string;
+  profileImage?: string | null;
 
   @Column({
     type: 'timestamp',
@@ -90,10 +100,11 @@ export class User {
   createdAt: Date;
 
   @Column({
-    type: 'boolean',
-    default: true,
+    type: 'enum',
+    enum: UserStatus,
+    default: UserStatus.ACTIVE,
   })
-  isActive: boolean;
+  active: UserStatus;
 
   @OneToOne(() => Professional, (professional) => professional.user)
   professional: Professional;
