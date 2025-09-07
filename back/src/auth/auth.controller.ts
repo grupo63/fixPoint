@@ -22,7 +22,7 @@ export class AuthController {
   @Post('signin')
   @ApiOperation({
     summary: 'User login',
-    description: 'Validates credentials and returns a JWT.',
+    description: 'Validates user credentials and returns a JWT.',
   })
   @ApiResponse({
     status: 200,
