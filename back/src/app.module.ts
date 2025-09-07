@@ -11,6 +11,7 @@ import { AvailableModule } from './available/available.module';
 import { CategoryModule } from './category/category.module';
 import { ReservationModule } from './reservation/reservation.module';
 import { ServiceModule } from './service/service.module';
+import { UploadImgModule } from './upload-img/upload-img.module';
 
 
 @Module({
@@ -31,7 +32,7 @@ import { ServiceModule } from './service/service.module';
     CategoryModule,
     ReservationModule,
     ServiceModule,
-
+    UploadImgModule,
   ],
   controllers: [AppController],
   providers: [AppService],
