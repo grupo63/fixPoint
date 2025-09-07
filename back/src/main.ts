@@ -33,6 +33,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api', app, document);
 
+  // ✅ Levantar el servidor
   // Elimina usuarios con password null antes de migrar
   const dataSource = app.get(DataSource);
   await dataSource.query(`DELETE FROM "USERS" WHERE "password" IS NULL`);

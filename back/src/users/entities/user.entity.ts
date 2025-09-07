@@ -7,11 +7,8 @@ import {
 } from 'typeorm';
 import { TemporaryRole } from '../types/temporary-role';
 import { Professional } from 'src/professional/entity/professional.entity';
-<<<<<<< Updated upstream
 import { Review } from 'src/reviews/entities/review.entity';
-=======
 import { UserStatus } from '../types/userStatus';
->>>>>>> Stashed changes
 
 @Entity({
   name: 'USERS',
@@ -21,8 +18,8 @@ export class User {
   id: string;
 
   //Relacion con review
-  @OneToMany(() => Review, (rewiew) => rewiew.user)
-  reviews: Review[];
+  // @OneToMany(() => Review, (rewiew) => rewiew.user)
+  // reviews: Review[];
 
   @Column({
     type: 'varchar',

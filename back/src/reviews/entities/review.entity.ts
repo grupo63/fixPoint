@@ -1,4 +1,3 @@
-import { Professional } from 'src/professional/entity/professional.entity';
 import {
   Column,
   CreateDateColumn,
@@ -19,13 +18,13 @@ export class Review {
   @PrimaryGeneratedColumn('uuid')
   reviewId: string;
 
-  @ManyToOne(() => UserActivation, (User) => User.isActive)
-  @JoinColumn({ name: 'userId' })
-  user: UserActivation;
+  // @ManyToOne(() => UserActivation, (User) => User.isActive)
+  // @JoinColumn({ name: 'userId' })
+  // user: UserActivation;
 
-  @ManyToOne(() => Professional, (Professional) => Professional.isActive)
-  @JoinColumn({ name: 'professionalId' })
-  professional: Professional;
+  // @ManyToOne(() => Professional, (Professional) => Professional.isActive)
+  // @JoinColumn({ name: 'professionalId' })
+  // professional: Professional;
 
   @Column({ type: 'int' })
   rate: number;
