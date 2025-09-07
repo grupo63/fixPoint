@@ -9,7 +9,9 @@ import { ProfessionalModule } from './professional/professional.module';
 import { UsersModule } from './users/users.module';
 import { AvailableModule } from './available/available.module';
 import { CategoryModule } from './category/category.module';
+import { ReservationModule } from './reservation/reservation.module';
 import { ServiceModule } from './service/service.module';
+
 
 @Module({
   imports: [
@@ -27,7 +29,9 @@ import { ServiceModule } from './service/service.module';
     UsersModule,
     AvailableModule,
     CategoryModule,
+    ReservationModule,
     ServiceModule,
+
   ],
   controllers: [AppController],
   providers: [AppService],
