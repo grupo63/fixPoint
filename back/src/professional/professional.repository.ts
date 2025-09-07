@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { Professional } from './entity/professional.entity';
 import { User } from 'src/users/entities/user.entity';
 import { CreateProfessionalDto } from './dto/createProfessional.dto';
+import { UpdateProfessionalDto } from './dto/updateProfessional.dto';
 
 @Injectable()
 export class ProfessionalRepository {
@@ -64,5 +65,27 @@ export class ProfessionalRepository {
       user,
     });
     return this.professionalRepo.save(newProfessional);
+  }
+
+  async updateProfessional(id: string, dto: UpdateProfessionalDto) {
+    const professional = await this.professionalRepo.findOne({
+      where: { id },
+    });
+    if (!professional) {
+      throw new NotFoundException('professional not found');
+    }
+    Object.assign(professional, dto);
+    return this.professionalRepo.save(professional);
+  }
+  async deactivateProfessional(id: string) {
+    const professional = await this.professionalRepo.findOne({ where: { id } });
+
+    if (!professional) {
+      throw new NotFoundException(`Professional with id ${id} not found`);
+    }
+
+    professional.isActive = false;
+
+    return this.professionalRepo.save(professional);
   }
 }
