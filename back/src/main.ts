@@ -23,7 +23,7 @@ async function bootstrap() {
   
 });
 
-  // ✅ Configuración Swagger
+  // ✅ Configuración de Swagger
   const swaggerConfig = new DocumentBuilder()
     .setTitle('fixpoint')
     .setDescription('Built with nest.js')
