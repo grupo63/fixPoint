@@ -1,4 +1,4 @@
-import type { Professional } from "@/types/profesionalTypes";
+// import type { Professional } from "@/types/profesionalTypes";
 
 
 
