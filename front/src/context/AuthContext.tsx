@@ -1,129 +1,64 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-
-type Role = "CLIENTE" | "PROFESIONAL";
-
-export type AuthUser = {
-  user_ID: string;
-  name: string;
-  email: string;
-  role: Role;
-  profileImg?: string;
-};
-
-type AuthState = {
-  user: AuthUser | null;
-  accessToken: string | null;
-  refreshToken: string | null;
-  isLoading: boolean;
-};
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 type AuthContextType = {
-  user: AuthUser | null;
-  accessToken: string | null;
-  isLoading: boolean;
+  token: string | null;
+  isAuthenticated: boolean;
+  isReady: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  setSession: (data: { user: AuthUser; accessToken: string; refreshToken: string }) => void;
-  updateAccessToken: (accessToken: string) => void;
+  logout: () => void;
 };
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType>({
+  token: null,
+  isAuthenticated: false,
+  isReady: false,
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  login: async () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  logout: () => {},
+});
 
-const STORAGE_KEY = "fixpoint_auth";
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [token, setToken] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    accessToken: null,
-    refreshToken: null,
-    isLoading: true,
-  });
-
-  // Hydrate desde localStorage
   useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setState({ ...parsed, isLoading: false });
-      } else {
-        setState((s) => ({ ...s, isLoading: false }));
-      }
-    } catch {
-      setState((s) => ({ ...s, isLoading: false }));
-    }
+    const t = localStorage.getItem("token");
+    if (t) setToken(t);
+    setIsReady(true);
   }, []);
 
-  // Persistir en localStorage
-  useEffect(() => {
-    if (!state.isLoading) {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          user: state.user,
-          accessToken: state.accessToken,
-          refreshToken: state.refreshToken,
-          isLoading: false,
-        }),
-      );
-    }
-  }, [state.user, state.accessToken, state.refreshToken, state.isLoading]);
-
-  const setSession: AuthContextType["setSession"] = ({ user, accessToken, refreshToken }) => {
-    setState({ user, accessToken, refreshToken, isLoading: false });
-  };
-
-  const updateAccessToken: AuthContextType["updateAccessToken"] = (accessToken) => {
-    setState((s) => ({ ...s, accessToken }));
-  };
-
-  const login: AuthContextType["login"] = async (email, password) => {
-    const res = await fetch("/api/auth/login", {
+  const login = async (email: string, password: string) => {
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/auth/signin`;
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err?.message || "Credenciales inválidas");
-    }
+    if (!res.ok) throw new Error((await res.text()) || "Credenciales inválidas");
+
     const data = await res.json();
-    setSession({
-      user: data.user,
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-    });
+    const receivedToken = data?.access_token || data?.token;
+    if (!receivedToken) throw new Error("No se recibió token del servidor.");
+
+    localStorage.setItem("token", receivedToken);
+    setToken(receivedToken);
   };
 
-  const logout: AuthContextType["logout"] = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } finally {
-      setState({ user: null, accessToken: null, refreshToken: null, isLoading: false });
-      localStorage.removeItem(STORAGE_KEY);
-    }
+  const logout = () => {
+    localStorage.removeItem("token");
+    setToken(null);
   };
 
-  const value = useMemo(
-    () => ({
-      user: state.user,
-      accessToken: state.accessToken,
-      isLoading: state.isLoading,
-      login,
-      logout,
-      setSession,
-      updateAccessToken,
-    }),
-    [state.user, state.accessToken, state.isLoading],
+  return (
+    <AuthContext.Provider
+      value={{ token, isAuthenticated: !!token, isReady, login, logout }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
+};
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth debe usarse dentro de <AuthProvider>");
-  return ctx;
-}
+export const useAuth = () => useContext(AuthContext);

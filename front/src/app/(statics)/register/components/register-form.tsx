@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function RegisterForm({
   onBack,
@@ -12,11 +13,8 @@ export default function RegisterForm({
   showOAuth?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
-  const [state, setState] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
+  const [state, setState] = useState({ name: "", email: "", password: "" });
+  const router = useRouter();
 
   const handle =
     (k: keyof typeof state) =>
@@ -37,20 +35,24 @@ export default function RegisterForm({
         password: state.password,
       };
 
-      // ⚡ Ajustado a tu back NestJS
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/signup`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(payload),
-});
-
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/auth/signup`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.message || "No se pudo registrar");
+        const text = await res.text().catch(() => "");
+        console.error("Signup FAIL:", { url, status: res.status, text });
+        throw new Error(text || `No se pudo registrar (${res.status})`);
       }
-         alert("✅ Usuario creado con éxito");
-      onSuccess?.(); // ej: router.push("/signIn")
+
+      alert("✅ Usuario creado con éxito");
+
+      // Redirección segura a /signin (minúsculas)
+      if (onSuccess) onSuccess();
+      else router.push("/signin");
     } catch (err: any) {
       alert(err?.message ?? "Error inesperado al registrar");
     } finally {
@@ -74,26 +76,9 @@ export default function RegisterForm({
       </div>
 
       <div className="grid grid-cols-1 gap-5">
-        <Field
-          label="Nombre"
-          value={state.name}
-          onChange={handle("name")}
-          placeholder="Juan Pérez"
-        />
-        <Field
-          label="Email"
-          type="email"
-          value={state.email}
-          onChange={handle("email")}
-          placeholder="correo@ejemplo.com"
-        />
-        <Field
-          label="Contraseña"
-          type="password"
-          value={state.password}
-          onChange={handle("password")}
-          placeholder="••••••••"
-        />
+        <Field label="Nombre" value={state.name} onChange={handle("name")} placeholder="Juan Pérez" />
+        <Field label="Email" type="email" value={state.email} onChange={handle("email")} placeholder="correo@ejemplo.com" />
+        <Field label="Contraseña" type="password" value={state.password} onChange={handle("password")} placeholder="••••••••" />
       </div>
 
       <button

@@ -18,7 +18,7 @@ export default function LoginForm() {
     setLoading(true);
     try {
       await login(email, password);
-      router.push("/dashboard"); // ✅ redirección post-login
+      router.push("/"); // ✅ redirección post-login
     } catch (error: any) {
       setErrorMsg(error.message || "Credenciales inválidas");
     } finally {

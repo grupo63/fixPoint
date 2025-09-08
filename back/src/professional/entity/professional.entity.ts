@@ -54,7 +54,8 @@ export class Professional {
   latitude?: number;
 
   @Column({
-    type: 'integer',
+    type: 'int',
+    default: 10,
   })
   workingRadius: number;
 
