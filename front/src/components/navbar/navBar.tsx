@@ -12,7 +12,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // estado del searchbar
+  
   const [query, setQuery] = useState("");
 
   // auth
@@ -61,8 +61,10 @@ export default function Navbar() {
             })}
           </ul>
 
-          {/* Searchbar */}
-          <form onSubmit={handleSearch} className="ml-4">
+     
+
+
+          {/* <form onSubmit={handleSearch} className="ml-4">
             <input
               type="search"
               value={query}
@@ -70,7 +72,7 @@ export default function Navbar() {
               placeholder="Buscar Profesional…"
               className="w-40 lg:w-64 rounded-md border border-gray-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </form>
+          </form> */}
         </div>
 
         {/* Right: acciones (desktop) */}

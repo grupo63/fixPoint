@@ -65,31 +65,23 @@ export class ProfessionalController {
 
   @Get(':id')
   @ApiOperation({
-    summary: 'Create a professional profile',
+    summary: 'Get professional profile by ID',
     description:
-      'Creates a new professional profile associated with an existing user. The professional profile includes details such as specialty, location, and other attributes defined in the CreateProfessionalDto.',
+      'Retrieves the professional profile associated with the given professional ID. Returns details such as specialty, location, and other attributes.',
   })
   @ApiParam({
-    name: 'userId',
-    description: 'UUID of the user who owns the professional profile',
+    name: 'id',
+    description: 'UUID of the professional to retrieve',
     type: String,
   })
-  @ApiBody({
-    type: CreateProfessionalDto,
-    description: 'Payload with the professional profile information',
-  })
   @ApiResponse({
-    status: 201,
-    description: 'Professional profile created successfully',
+    status: 200,
+    description: 'Professional profile retrieved successfully',
     type: Professional,
   })
   @ApiResponse({
     status: 404,
-    description: 'User not found',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid data provided',
+    description: 'Professional not found',
   })
   getProfessionalById(@Param('id', ParseUUIDPipe) id: string) {
     return this.professionalService.getProfessionalById(id);

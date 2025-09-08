@@ -10,6 +10,17 @@ export class UserRepository {
     private userRepository: Repository<User>,
   ) {}
 
+  async signUp(user: Partial<User>) {
+    const newUser = await this.userRepository.save(user);
+
+    const dbUser = await this.userRepository.findOneBy({ id: newUser.id });
+    if (!dbUser) throw new NotFoundException('User not found');
+
+    //Para no mostrar la contraseña del usuario
+    const { password, ...filteredData } = dbUser;
+    return filteredData;
+  }
+
   async getUsers(page: number, limit: number) {
     const skip = (page - 1) * limit;
     const users = await this.userRepository.find({
@@ -45,8 +56,13 @@ export class UserRepository {
   async deleteUser(id: string) {
     const foundUser = await this.userRepository.findOneBy({ id });
     if (!foundUser) throw new NotFoundException(`User whit id ${id} not found`);
+    await this.userRepository.delete(id);
 
     const { password, role, ...filteredUserData } = foundUser;
     return filteredUserData;
   }
+
+  // async getUserByEmailAuth(email: string) {
+  //   return this.userRepository.findOneBy({ email });
+  // }
 }

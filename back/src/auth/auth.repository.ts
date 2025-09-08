@@ -5,7 +5,6 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class AuthRepository {
-  authRepository: any;
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -14,14 +13,27 @@ export class AuthRepository {
   async createUser(user: Partial<User>) {
     const newUser = await this.userRepository.save(user);
     const dataBase = await this.userRepository.findOneBy({ id: newUser.id });
-    if (!dataBase) {
-      throw new Error('User not found after creation');
-    }
+    if (!dataBase) throw new Error('User not found after creation');
     const { password, ...userWithoutPassword } = newUser;
     return userWithoutPassword;
   }
 
+  // [CHANGE] Trae también password para que signIn pueda comparar con bcrypt
   async findByEmail(email: string) {
-    return await this.userRepository.findOneBy({ email });
+    return this.userRepository
+      .createQueryBuilder('u')
+      .addSelect('u.password')
+      .where('u.email = :email', { email })
+      .getOne();
+  }
+
+  // [ADD] buscar por providerId (para OAuth)
+  async findByProviderId(providerId: string) {
+    return this.userRepository.findOne({ where: { providerId } });
+  }
+
+  // [ADD] guardar cambios (enlace de cuentas, etc.)
+  async save(user: User) {
+    return this.userRepository.save(user);
   }
 }

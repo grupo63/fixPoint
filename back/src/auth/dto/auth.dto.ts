@@ -1,53 +1,46 @@
 import {
-  IsDateString,
   IsEmail,
   IsNotEmpty,
-  IsNumber,
-  IsOptional,
   IsString,
   IsStrongPassword,
   MaxLength,
   MinLength,
-  IsUrl,
-  Validate,
 } from 'class-validator';
-import { ApiHideProperty } from '@nestjs/swagger';
-import { Professional } from 'src/professional/entity/professional.entity';
-import { TemporaryRole } from 'src/users/types/temporary-role';
-import { MatchPassword } from '../decorators/matchPassword.decorators';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserDto {
-  /**
-   * Must be a string between 3 and 50 characters
-   * @example 'Test User'
-   */
+  @ApiProperty({
+    description: 'Must be a string between 3 and 50 characters',
+    example: 'Test User',
+    minLength: 3,
+    maxLength: 50,
+  })
   @IsNotEmpty()
   @IsString()
   @MinLength(3)
   @MaxLength(50)
   name: string;
 
-  /**
-   * Must be a valid email format with a maximum of 50 characters
-   * @example 'test.user@example.com'
-   */
+  @ApiProperty({
+    description: 'Must be a valid email format with a maximum of 50 characters',
+    example: 'test.user@example.com',
+    maxLength: 50,
+  })
   @IsNotEmpty()
   @MaxLength(50)
   @IsEmail()
   email: string;
 
-  /**
-   * Must contain at least one lowercase, one uppercase, one number, and one symbol
-   * @example 'Password123!'
-   */
+  @ApiProperty({
+    description:
+      'Must contain at least one lowercase, one uppercase, one number, and one symbol',
+    example: 'Password123!',
+    minLength: 8,
+    maxLength: 20,
+  })
   @IsNotEmpty()
   @IsStrongPassword(
-    {
-      minLowercase: 1,
-      minUppercase: 1,
-      minNumbers: 1,
-      minSymbols: 1,
-    },
+    { minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 },
     {
       message:
         'La contraseña debe tener al menos una minúscula, una mayúscula, un número y un simbolo (@, _, -, !).',
@@ -59,26 +52,23 @@ export class CreateUserDto {
 }
 
 export class LoginUserDto {
-  /**
-   * Must be a valid email format with a maximum of 50 characters
-   * @example 'test.user@example.com'
-   */
-
-  @IsNotEmpty({
-    message: 'El email es obligatorio.',
+  @ApiProperty({
+    description: 'Must be a valid email format with a maximum of 50 characters',
+    example: 'test.user@example.com',
+    maxLength: 50,
   })
+  @IsNotEmpty({ message: 'El email es obligatorio.' })
   @MaxLength(50)
   @IsEmail()
   email: string;
 
-  /**
-   * Must contain at least one lowercase, one uppercase, one number, and one symbol
-   * @example 'Password123!'
-   */
-
-  @IsNotEmpty({
-    message: 'La contraseña es obligatoria.',
+  @ApiProperty({
+    description: 'Must contain at least one lowercase, one uppercase, one number, and one symbol',
+    example: 'Password123!',
+    minLength: 8,
+    maxLength: 20,
   })
+  @IsNotEmpty({ message: 'La contraseña es obligatoria.' })
   @MinLength(8)
   @MaxLength(20)
   @IsStrongPassword(

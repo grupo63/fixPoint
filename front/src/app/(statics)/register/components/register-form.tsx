@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 export default function RegisterForm({
   onBack,
   onSuccess,
-  showOAuth = false,
+  showOAuth = true,
 }: {
   onBack?: () => void;
   onSuccess?: () => void;
@@ -14,6 +14,7 @@ export default function RegisterForm({
 }) {
   const [loading, setLoading] = useState(false);
   const [state, setState] = useState({ name: "", email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false); // 👁️ nuevo estado
   const router = useRouter();
 
   const handle =
@@ -50,7 +51,6 @@ export default function RegisterForm({
 
       alert("✅ Usuario creado con éxito");
 
-      // Redirección segura a /signin (minúsculas)
       if (onSuccess) onSuccess();
       else router.push("/signin");
     } catch (err: any) {
@@ -76,28 +76,72 @@ export default function RegisterForm({
       </div>
 
       <div className="grid grid-cols-1 gap-5">
-        <Field label="Nombre" value={state.name} onChange={handle("name")} placeholder="Juan Pérez" />
-        <Field label="Email" type="email" value={state.email} onChange={handle("email")} placeholder="correo@ejemplo.com" />
-        <Field label="Contraseña" type="password" value={state.password} onChange={handle("password")} placeholder="••••••••" />
+        <Field
+          label="Nombre"
+          value={state.name}
+          onChange={handle("name")}
+          placeholder="Juan Pérez"
+        />
+        <Field
+          label="Email"
+          type="email"
+          value={state.email}
+          onChange={handle("email")}
+          placeholder="correo@ejemplo.com"
+        />
+        {/* Campo de contraseña con botón de ojo */}
+        <div>
+          <label className="text-sm font-medium">Contraseña</label>
+          <div className="mt-1 relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={state.password}
+              onChange={handle("password")}
+              placeholder="••••••••"
+              className="w-full rounded-lg border px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </button>
+          </div>
+        </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full md:w-auto rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-      >
-        {loading ? "Creando cuenta..." : "Registrarme"}
-      </button>
+      <div className="flex justify-center">
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full md:w-auto rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+        >
+          {loading ? "Creando cuenta..." : "Registrarme"}
+        </button>
+      </div>
 
       {showOAuth && (
-        <div className="pt-2">
-          <button
+        <div className="pt-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="flex-grow h-px bg-gray-300"></div>
+            <span className="text-sm text-gray-500">o</span>
+            <div className="flex-grow h-px bg-gray-300"></div>
+          </div>
+            <button
             type="button"
-            onClick={() => (window.location.href = "/api/auth/oauth/google")}
-            className="w-full md:w-auto rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-50"
-          >
+            onClick={() =>
+              (window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`)
+            }
+            className="w-full flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-50"
+            >
+            <img
+    src="/google.jpg"  // ✅ corregido
+    alt="Google"
+    className="h-5 w-5 flex-shrink-0 object-contain"
+  />
             Continuar con Google
-          </button>
+            </button>
         </div>
       )}
     </form>
