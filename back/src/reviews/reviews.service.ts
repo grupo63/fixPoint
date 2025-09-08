@@ -28,7 +28,7 @@ export class ReviewService {
     );
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (reservation.status !== ReservationStatus.CONFIRMED) {
+    if (reservation.status !== ReservationStatus.COMPLETED) {
       throw new BadRequestException(
         'A review can only be created for a completed reservation.',
       );
