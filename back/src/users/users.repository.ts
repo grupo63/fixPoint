@@ -62,7 +62,7 @@ export class UserRepository {
     return filteredUserData;
   }
 
-  async getUserByEmailAuth(email: string) {
-    return this.userRepository.findOneBy({ email });
-  }
+  // async getUserByEmailAuth(email: string) {
+  //   return this.userRepository.findOneBy({ email });
+  // }
 }

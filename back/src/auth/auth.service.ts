@@ -22,21 +22,17 @@ export class AuthService {
       throw new BadRequestException('Email and password are required');
     }
 
-    // email único
     const exists = await this.authRepository.findByEmail(email);
     if (exists) throw new ConflictException('Email already registered');
 
-    // hash
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // crear usuario
     const created = await this.authRepository.createUser({
       email,
       password: passwordHash,
       ...rest,
     });
 
-    // nunca devolver password
     return created;
   }
 

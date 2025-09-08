@@ -11,8 +11,10 @@ import { AvailableModule } from './available/available.module';
 import { CategoryModule } from './category/category.module';
 import { ReservationModule } from './reservation/reservation.module';
 import { ServiceModule } from './service/service.module';
+import { AuthModule } from './auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
 import { UploadImgModule } from './upload-img/upload-img.module';
-
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -32,7 +34,14 @@ import { UploadImgModule } from './upload-img/upload-img.module';
     CategoryModule,
     ReservationModule,
     ServiceModule,
+    AuthModule,
+    JwtModule.register({
+      global: true,
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '60m' },
+    }),
     UploadImgModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -14,10 +14,11 @@ const config = {
   autoLoadEntities: true,
   synchronize: true, // dejar true en desarrollo
   logging: false,
-  entities: ['dist/**/*.entity{.ts,.js}'],
+  entities: ['dist/*/.entity{.ts,.js}'],
   migrations: ['dist/migrations/*{.js,.ts}'],
 };
 
 export default registerAs('typeorm', () => config);
 
 export const connectionSource = new DataSource(config as DataSourceOptions);
+

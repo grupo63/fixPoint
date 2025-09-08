@@ -12,8 +12,8 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDTO } from './dto/users.dto';
-import { CreateUserDTO } from './dto/createUser.dto';
-import { LoginUserDto } from './dto/signIn.dto';
+// import { CreateUserDTO } from './dto/createUser.dto';
+// import { LoginUserDto } from './dto/signIn.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guards';
 
@@ -21,26 +21,6 @@ import { JwtAuthGuard } from 'src/auth/guards/auth.guards';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
-
-  @Post('signup')
-  @ApiOperation({
-    summary: 'User Registration',
-    description: 'Register a new user with the provided details.',
-  })
-  signUp(@Body() user: CreateUserDTO) {
-    return this.usersService.signUp(user);
-  }
-
-  @Post('signin')
-  @ApiOperation({
-    summary: 'User Login',
-    description: 'Authenticate a user and return a JWT token.',
-  })
-  signIn(@Body() credentials: LoginUserDto) {
-    const { email, password } = credentials;
-
-    return this.usersService.signIn(email, password);
-  }
 
   @ApiBearerAuth()
   @ApiOperation({

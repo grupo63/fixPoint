@@ -34,7 +34,8 @@ export const routes = {
   signin: "/signin",
   register: "/register",
   profesionales: "/profesionales",
-  profesionalDetail: (id: string) => `/profesionales/${id}`,
+  profile: "/profile",
+  profesionalDetail: (id: string) => `/profesionales/${id}`, // 👈 función para dinámicas
   como_funciona: "/como-funciona",
   ayuda: "/ayuda",
   contacto: "/contact", 
