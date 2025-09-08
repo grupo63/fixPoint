@@ -9,6 +9,7 @@ import { ProfessionalModule } from './professional/professional.module';
 import { UsersModule } from './users/users.module';
 import { AvailableModule } from './available/available.module';
 import { ServiceModule } from './service/service.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { ServiceModule } from './service/service.module';
         return configService.get<DataSourceOptions>('typeorm')!;
       },
     }),
-
+    AuthModule,
     ProfessionalModule,
     UsersModule,
     AvailableModule,

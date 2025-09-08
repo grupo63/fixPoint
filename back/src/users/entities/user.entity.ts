@@ -26,38 +26,26 @@ export class User {
 
   @Column({
     type: 'varchar',
-    length: 15,
+    length: 255,
     nullable: false,
   })
   password: string;
 
   //identificar mayoria de edad
-  @Column({
-    type: 'date',
-  })
-  birthDate: Date;
+  @Column({ type: 'date', nullable: true, default: null })
+  birthDate?: Date | null;
 
-  @Column({
-    type: 'int',
-  })
-  phone: number;
+  @Column({ type: 'integer', nullable: true, default: null })
+  phone?: number | null;
 
-  @Column({
-    type: 'varchar',
-  })
-  adress: string;
+  @Column({ name: 'adress', type: 'varchar', nullable: true, default: null })
+  address?: string | null;
 
-  @Column({
-    type: 'varchar',
-    length: 50,
-  })
-  city: string;
+  @Column({ type: 'varchar', length: 50, nullable: true, default: null })
+  city?: string | null;
 
-  @Column({
-    type: 'varchar',
-    length: 10,
-  })
-  zipCode: string;
+  @Column({ type: 'varchar', length: 10, nullable: true, default: null })
+  zipCode?: string | null;
 
   @Column({
     type: 'enum',
@@ -66,11 +54,8 @@ export class User {
   })
   role: TemporaryRole;
 
-  @Column({
-    type: 'varchar',
-    length: 255,
-  })
-  profileImage: string;
+  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
+  profileImage?: string | null;
 
   @Column({
     type: 'timestamp',
