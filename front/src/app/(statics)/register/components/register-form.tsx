@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+type Role = "user" | "professional";
+
 export default function RegisterForm({
   onBack,
   onSuccess,
@@ -12,10 +14,17 @@ export default function RegisterForm({
   onSuccess?: () => void;
   showOAuth?: boolean;
 }) {
-  const [loading, setLoading] = useState(false);
-  const [state, setState] = useState({ name: "", email: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false); // 👁️ nuevo estado
   const router = useRouter();
+
+  const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState<Role>("user");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [state, setState] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
 
   const handle =
     (k: keyof typeof state) =>
@@ -24,36 +33,69 @@ export default function RegisterForm({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!state.name || !state.email || !state.password) {
       alert("Completá nombre, email y contraseña.");
       return;
     }
+
     setLoading(true);
     try {
+      // 1) Construimos payload
       const payload = {
-        name: state.name,
-        email: state.email,
+        name: state.name.trim(),
+        email: state.email.trim(),
         password: state.password,
+        role, // "user" | "professional"
       };
 
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/auth/signup`;
+      // 2) Construimos URL con saneo de barra final
+      const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+      const url = `${base}/auth/signup`;
+
+      // 3) Logs de depuración
+      console.log("➡️ Signup URL:", url);
+      console.log("➡️ Payload:", payload);
+
+      // 4) Hacemos la request
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
+      // 5) Si falla, intentamos leer JSON o texto para mostrar mensaje útil
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        console.error("Signup FAIL:", { url, status: res.status, text });
-        throw new Error(text || `No se pudo registrar (${res.status})`);
+        let body: any = null;
+        try {
+          body = await res.json();
+        } catch {
+          body = await res.text().catch(() => "");
+        }
+
+        const backendMsg =
+          (typeof body === "string" && body) ||
+          body?.message ||
+          body?.error ||
+          JSON.stringify(body || {});
+
+        console.error("❌ Signup FAIL", {
+          url,
+          status: res.status,
+          statusText: res.statusText,
+          response: body,
+        });
+
+        alert(`Error ${res.status} ${res.statusText}\n${backendMsg}`);
+        return; // importante: cortar el flujo
       }
 
-      alert("✅ Usuario creado con éxito");
-
-      if (onSuccess) onSuccess();
-      else router.push("/signin");
+      // 6) OK
+      console.log("✅ Signup OK");
+      alert("✅ Cuenta creada con éxito");
+      onSuccess ? onSuccess() : router.push("/signin");
     } catch (err: any) {
+      console.error("🔥 Signup EXCEPTION", err);
       alert(err?.message ?? "Error inesperado al registrar");
     } finally {
       setLoading(false);
@@ -75,6 +117,29 @@ export default function RegisterForm({
         )}
       </div>
 
+      {/* Selector de rol */}
+      <div className="grid grid-cols-2 gap-2 rounded-xl p-1 bg-gray-100">
+        <button
+          type="button"
+          onClick={() => setRole("user")}
+          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+            role === "user" ? "bg-white shadow border" : "text-gray-600"
+          }`}
+        >
+          Usuario
+        </button>
+        <button
+          type="button"
+          onClick={() => setRole("professional")}
+          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+            role === "professional" ? "bg-white shadow border" : "text-gray-600"
+          }`}
+        >
+          Profesional
+        </button>
+      </div>
+
+      {/* Campos comunes */}
       <div className="grid grid-cols-1 gap-5">
         <Field
           label="Nombre"
@@ -89,7 +154,8 @@ export default function RegisterForm({
           onChange={handle("email")}
           placeholder="correo@ejemplo.com"
         />
-        {/* Campo de contraseña con botón de ojo */}
+
+        {/* Contraseña con ojo */}
         <div>
           <label className="text-sm font-medium">Contraseña</label>
           <div className="mt-1 relative">
@@ -104,6 +170,7 @@ export default function RegisterForm({
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
               {showPassword ? "🙈" : "👁️"}
             </button>
@@ -128,20 +195,21 @@ export default function RegisterForm({
             <span className="text-sm text-gray-500">o</span>
             <div className="flex-grow h-px bg-gray-300"></div>
           </div>
-            <button
+          {/* Botón Google (intacto) */}
+          <button
             type="button"
             onClick={() =>
               (window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`)
             }
             className="w-full flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-50"
-            >
+          >
             <img
-    src="/google.jpg"  // ✅ corregido
-    alt="Google"
-    className="h-5 w-5 flex-shrink-0 object-contain"
-  />
+              src="/google.jpg"
+              alt="Google"
+              className="h-5 w-5 flex-shrink-0 object-contain"
+            />
             Continuar con Google
-            </button>
+          </button>
         </div>
       )}
     </form>
