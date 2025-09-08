@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation"; 
 import { navLinks } from "./navLinks";
 import { routes } from "@/routes";
-import SearchBar from "../searchBar/SearchBar";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -60,10 +59,7 @@ export default function Navbar() {
             })}
           </ul>
 
-          {/* Searchbar */}
-
-          <SearchBar/>
-
+     
 
 
           {/* <form onSubmit={handleSearch} className="ml-4">
