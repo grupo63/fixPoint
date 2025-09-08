@@ -16,6 +16,7 @@ export const routes = {
   signin: "/signin",                 // 👈 lowercase
   register: "/register",
   profesionales: "/profesionales",
+  profile: "/profile",
   profesionalDetail: (id: string) => `/profesionales/${id}`, // 👈 función para dinámicas
   como_funciona: "/como-funciona",
   ayuda: "/ayuda",
