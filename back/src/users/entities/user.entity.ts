@@ -1,108 +1,74 @@
 import {
-  Column,
   Entity,
-  OneToMany,
-  OneToOne,
   PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
-import { TemporaryRole } from '../types/temporary-role';
 import { Professional } from 'src/professional/entity/professional.entity';
-import { Review } from 'src/reviews/entities/review.entity';
-import { UserStatus } from '../types/userStatus';
 
-@Entity({
-  name: 'USERS',
-})
+@Entity({ name: 'users' })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  //Relacion con review
-  // @OneToMany(() => Review, (rewiew) => rewiew.user)
-  // reviews: Review[];
-
-  @Column({
-    type: 'varchar',
-    length: 50,
-    nullable: false,
-  })
-  name: string;
-
-  @Column({
-    type: 'varchar',
-    length: 50,
-    nullable: false,
-    unique: true,
-  })
+  @Column({ type: 'varchar', length: 150, unique: true })
   email: string;
 
-  @Column({
-    type: 'varchar',
-    length: 100,
-    nullable: false,
-  })
-  password: string;
+  // [CHANGE] permitir cuentas OAuth sin password y no seleccionarlo por defecto
+  @Column({ type: 'varchar', length: 255, nullable: true, select: false })
+  password: string | null;
 
-  @Column({
-    type: 'date',
-    nullable: true,
-  })
+  // [CHANGE] proveedor de autenticación
+  @Column({ type: 'varchar', length: 20, default: 'local' })
+  provider: 'local' | 'google' | 'github';
+
+  // [CHANGE] id del proveedor externo (opcional y único)
+  @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
+  providerId: string | null;
+
+  // [CHANGE] rol básico (arregla foundUser.role)
+  @Column({ type: 'varchar', length: 10, default: 'user' })
+  role: 'user' | 'admin';
+
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  firstName?: string;
+
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  lastName?: string;
+
+  @Column({ type: 'date', nullable: true })
   birthDate?: Date;
 
-  @Column({
-    type: 'int',
-    nullable: true,
-  })
-  phone?: number;
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  phone?: string;
 
-  @Column({
-    type: 'varchar',
-    nullable: true,
-  })
+  @Column({ type: 'varchar', length: 120, nullable: true })
   address?: string;
 
-  @Column({
-    type: 'varchar',
-    length: 50,
-    nullable: true,
-  })
+  @Column({ type: 'varchar', length: 80, nullable: true })
   city?: string;
 
-  @Column({
-    type: 'varchar',
-    length: 10,
-    nullable: true,
-  })
+  @Column({ type: 'varchar', length: 15, nullable: true })
   zipCode?: string;
 
-  @Column({
-    type: 'enum',
-    enum: TemporaryRole,
-    default: TemporaryRole.USER,
-  })
-  role: TemporaryRole;
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
 
-  @Column({
-    type: 'varchar',
-    length: 255,
-    nullable: true,
-    default: null,
-  })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   profileImage?: string | null;
 
-  @Column({
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
+  @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
-  @Column({
-    type: 'enum',
-    enum: UserStatus,
-    default: UserStatus.ACTIVE,
-  })
-  active: UserStatus;
+  @UpdateDateColumn({ type: 'timestamp with time zone' })
+  updatedAt: Date;
 
-  @OneToOne(() => Professional, (professional) => professional.user)
-  professional: Professional;
+  @OneToOne(() => Professional, (professional) => professional.user, {
+    nullable: true,
+  })
+  @JoinColumn()
+  professional?: Professional | null;
 }
