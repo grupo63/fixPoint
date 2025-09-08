@@ -1,16 +1,31 @@
-
-"use client";
+"use cliente"
 
 import * as React from "react";
-import fetchUsers from "@/helper/mockUsers";               
-import fetchProfessionals from "@/helper/mockProfesionales"; 
+import Image from "next/image";
+import { apiFetch } from "@/lib/api-client";
 import type { IUser } from "@/types/types";
 import type { Professional } from "@/types/profesionalTypes";
 import { ProfileSummary } from "@/components/profileView/profileSummary";
 import { DashboardCard } from "@/components/profesionalProfile/dashboardCard";
 
-// ⚠️ Placeholder: reemplazá por el userId real cuando tengas auth
-const LOGGED_USER_ID = "u4perez";
+type MeResponse = {
+  id: string;
+  email: string;
+  name?: string;
+  avatar?: string;
+  // agrega acá cualquier otro campo que devuelva tu back (/auth/me)
+};
+
+function mapMeToIUser(me: MeResponse): IUser {
+  // Ajustá este mapeo a tu modelo de IUser
+  return {
+    userId: me.id,
+    email: me.email,
+    name: me.name ?? "",
+    avatarUrl: me.avatar ?? "",
+    // completa campos requeridos por tu IUser
+  } as unknown as IUser;
+}
 
 function formatSince(iso?: string) {
   if (!iso) return "-";
@@ -23,21 +38,33 @@ export default function ProfilePage() {
   const [user, setUser] = React.useState<IUser | null>(null);
   const [pro, setPro] = React.useState<Professional | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let mounted = true;
+
     (async () => {
       try {
-        const [users, pros] = await Promise.all([fetchUsers(), fetchProfessionals()]);
-        const u = users.find((x) => x.userId === LOGGED_USER_ID) ?? users[0] ?? null;
-        const p = u ? pros.find((x) => x.userId === u.userId) ?? null : null;
+        // 1) Trae el perfil autenticado (usa Authorization: Bearer <token> automáticamente)
+        const me = (await apiFetch("http://localhost:3001/auth/me")) as MeResponse;
+
+        // 2) Mapear a tu IUser (ajustá el mapeo arriba)
+        const u = mapMeToIUser(me);
+
+        // 3) (Opcional) si tenés endpoint para profesional, descomenta:
+        // const prof = await apiFetch(`http://localhost:3001/professionals/${u.userId}`);
+
         if (!mounted) return;
         setUser(u);
-        setPro(p);
+        // setPro(prof as Professional); // si lo usás
+      } catch (e: any) {
+        if (!mounted) return;
+        setError(e?.message || "No se pudo cargar el perfil");
       } finally {
         if (mounted) setLoading(false);
       }
     })();
+
     return () => {
       mounted = false;
     };
@@ -48,6 +75,15 @@ export default function ProfilePage() {
       <main className="p-6">
         <h1 className="text-2xl font-semibold">Mi perfil</h1>
         <p className="text-sm text-gray-500 mt-2">Cargando…</p>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="p-6">
+        <h1 className="text-2xl font-semibold">Mi perfil</h1>
+        <p className="text-sm text-red-600 mt-2">{error}</p>
       </main>
     );
   }
@@ -65,13 +101,29 @@ export default function ProfilePage() {
     <main className="p-6 space-y-4">
       <h1 className="text-2xl font-semibold">Mi perfil</h1>
 
-      {/* Perfil base (tu componente actual) */}
+      {/* Si tu ProfileSummary espera avatar/name/email dentro de IUser, ya está */}
+      <div className="flex items-center gap-4">
+        {user?.avatarUrl ? (
+          <Image
+            src={user.avatarUrl}
+            alt={user.name || user.email || "avatar"}
+            width={64}
+            height={64}
+            className="rounded-full"
+          />
+        ) : (
+          <div className="w-16 h-16 rounded-full bg-gray-200" />
+        )}
+        <div>
+          <p className="font-medium">{user.name || "Sin nombre"}</p>
+          <p className="text-sm text-gray-600">{user.email}</p>
+        </div>
+      </div>
+
       <ProfileSummary user={user} />
 
-      {/* Bloque extra solo si también es profesional */}
       {pro && (
         <DashboardCard title="Información profesional">
-          {/* usar <div> en lugar de <p> anidados para evitar hydration errors */}
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
               <span className="font-medium">Especialidad:</span> {pro.speciality}
