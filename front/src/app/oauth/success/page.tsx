@@ -20,7 +20,7 @@ export default function OAuthSuccessPage() {
     // (Opcional) también guardo en localStorage para cliente
     try { localStorage.setItem("token", token); } catch {}
 
-    router.replace("/dashboard");
+    router.replace("/");
   }, [params, router]);
 
   return <p className="p-6">Autenticando…</p>;
