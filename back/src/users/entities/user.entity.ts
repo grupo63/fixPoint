@@ -66,9 +66,6 @@ export class User {
   @UpdateDateColumn({ type: 'timestamp with time zone' })
   updatedAt: Date;
 
-  @OneToOne(() => Professional, (professional) => professional.user, {
-    nullable: true,
-  })
-  @JoinColumn()
-  professional?: Professional | null;
+  @OneToOne(() => Professional, (professional) => professional.user)
+  professional?: Professional;
 }
