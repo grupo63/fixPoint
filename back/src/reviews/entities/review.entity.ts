@@ -2,16 +2,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-
-export enum reservationStatus {
-  PENDING = 'pending',
-  COMPLETED = 'completed',
-  CANCELED = 'canceled',
-}
 
 @Entity('reviews')
 export class Review {

@@ -2,7 +2,7 @@ import { IsUUID, IsDateString, IsEnum, IsNotEmpty } from 'class-validator';
 
 export enum ReservationStatus {
   PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
+  CONFIRMED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
 }
 
