@@ -8,6 +8,7 @@ import {
   Matches,
   IsOptional,
   IsInt,
+  IsIn,
   IsStrongPassword,
 } from 'class-validator';
 
@@ -51,4 +52,10 @@ export class CreateUserDTO {
   @MinLength(8)
   @MaxLength(20)
   password: string;
+
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['user', 'professional'], { message: 'invalid role' })
+  role?: string;
 }
