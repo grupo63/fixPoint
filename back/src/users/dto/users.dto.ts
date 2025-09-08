@@ -55,12 +55,15 @@ export class UpdateUserDTO {
 
   @ApiProperty({
     description: 'User phone number',
-    example: 123456789,
+    example: '123456789',
     required: false,
+    maxLength: 20,
   })
   @IsOptional()
-  @IsInt()
-  phone?: number;
+  @IsString()
+  @MaxLength(20)
+  @Matches(/^\d+$/, { message: 'El teléfono debe contener solo dígitos' })
+  phone?: string;
 
   @ApiProperty({
     description: 'User adress',

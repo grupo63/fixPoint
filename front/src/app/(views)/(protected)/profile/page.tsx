@@ -3,14 +3,15 @@
 
 import * as React from "react";
 import fetchUsers from "@/helper/mockUsers";               
-import fetchProfessionals from "@/helper/mockProfesionales"; 
 import type { IUser } from "@/types/types";
 import type { Professional } from "@/types/profesionalTypes";
 import { ProfileSummary } from "@/components/profileView/profileSummary";
 import { DashboardCard } from "@/components/profesionalProfile/dashboardCard";
+import { useAuth } from "@/context/AuthContext";
 
 // ⚠️ Placeholder: reemplazá por el userId real cuando tengas auth
 const LOGGED_USER_ID = "u4perez";
+
 
 function formatSince(iso?: string) {
   if (!iso) return "-";
@@ -28,9 +29,11 @@ export default function ProfilePage() {
     let mounted = true;
     (async () => {
       try {
-        const [users, pros] = await Promise.all([fetchUsers(), fetchProfessionals()]);
-        const u = users.find((x) => x.userId === LOGGED_USER_ID) ?? users[0] ?? null;
-        const p = u ? pros.find((x) => x.userId === u.userId) ?? null : null;
+        const users: IUser[] = await fetchUsers();
+        // TODO: Replace with real fetch for professionals
+        const pros: Professional[] = []; // Placeholder, replace with real data
+        const u = users.find((x: IUser) => x.userId === LOGGED_USER_ID) ?? users[0] ?? null;
+        const p = u ? pros.find((x: Professional) => x.userId === u.userId) ?? null : null;
         if (!mounted) return;
         setUser(u);
         setPro(p);

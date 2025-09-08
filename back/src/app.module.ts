@@ -20,6 +20,7 @@ import { ReviewsModule } from './reviews/reviews.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
       load: [typeOrmConfig],
     }),
     TypeOrmModule.forRootAsync({
