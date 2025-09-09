@@ -7,7 +7,6 @@ import { UserRepository } from './users.repository';
 import { JwtModule } from '@nestjs/jwt';
 import { config as dotenvConfig } from 'dotenv';
 
-
 dotenvConfig({ path: '.env' });
 
 @Module({
@@ -20,6 +19,5 @@ dotenvConfig({ path: '.env' });
   ],
   controllers: [UsersController],
   providers: [UsersService, UserRepository],
-  exports: [UsersService],
 })
 export class UsersModule {}

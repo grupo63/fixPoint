@@ -36,7 +36,7 @@ async function bootstrap() {
   // ✅ Levantar el servidor
   // Elimina usuarios con password null antes de migrar
   const dataSource = app.get(DataSource);
-  // await dataSource.query(`DELETE FROM "USERS" WHERE "password" IS NULL`);
+  await dataSource.query(`DELETE FROM "USERS" WHERE "password" IS NULL`);
 
   await app.listen(process.env.PORT ?? 3001);
 }

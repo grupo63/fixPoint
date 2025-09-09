@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
-import { UsersModule } from '../users/users.module';
+
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthRepository } from './auth.repository';
@@ -14,7 +14,6 @@ import { GoogleStrategy } from './strategies/google.strategy';
   imports: [
     TypeOrmModule.forFeature([User]),
     ConfigModule,
-      UsersModule,   
     PassportModule.register({ session: false }), // [ADD]
     JwtModule.registerAsync({
       imports: [ConfigModule],

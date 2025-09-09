@@ -15,6 +15,28 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  // async signUp(user: Partial<User>) {
+  //   const { role, email, password, ...rest } = user;
+
+  //   if (!email || !password) {
+  //     throw new BadRequestException('Email and password are required');
+  //   }
+
+  //   const exists = await this.authRepository.findByEmail(email);
+  //   if (exists) throw new ConflictException('Email already registered');
+
+  //   const passwordHash = await bcrypt.hash(password, 12);
+
+  //   const created = await this.authRepository.createUser({
+  //     role,
+  //     email,
+  //     password: passwordHash,
+  //     ...rest,
+  //   });
+
+  //   return created;
+  // }
+
   async signUp(user: Partial<User>) {
     // [SAFE ROLE PATCH] aceptar 'role' pero ignorarlo
     const { email, password, role: _ignoredRole, ...rest } = user as any;
@@ -44,7 +66,6 @@ export class AuthService {
       throw new BadRequestException('Email and password are required');
     }
 
-    // [CHANGE] asegúrate de traer password para poder comparar
     const foundUser = await this.authRepository.findByEmail(email);
     if (!foundUser) {
       throw new BadRequestException('Invalid email or password');
@@ -56,7 +77,7 @@ export class AuthService {
     }
 
     const payload = {
-      sub: foundUser.id,
+      id: foundUser.id,
       email: foundUser.email,
       role: (foundUser as any).role,
     };
