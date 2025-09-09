@@ -9,11 +9,10 @@ import {
   Put,
   Post,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDTO } from './dto/users.dto';
-// import { CreateUserDTO } from './dto/createUser.dto';
-// import { LoginUserDto } from './dto/signIn.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guards';
 
@@ -64,12 +63,23 @@ export class UsersController {
 
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Delete a user',
-    description: 'Delete a user from the system by their unique ID.',
+    summary: 'Deactivate user',
+    description: 'Deactivate a user from the system by their unique ID.',
   })
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.deleteUser(id);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Reactivate user',
+    description: 'Reactivate a previously deactivated user by their unique ID.',
+  })
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/reactivate')
+  reactivateUser(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usersService.reactivateUser(id);
   }
 }
