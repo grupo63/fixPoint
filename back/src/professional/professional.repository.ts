@@ -25,26 +25,19 @@ export class ProfessionalRepository {
       where: { isActive: true },
     });
   }
-  async getProfessionalById(id: string) {
-    const professionalId = await this.professionalRepo.findOne({
-      where: { id },
-      // relations: {
-      //   reservation: {
-      //     reviews: true,
-      //   },
-    });
-    if (!professionalId) {
-      throw new NotFoundException('professional not found');
-    }
-    // const reviews = professionalId.reservation
-    //   .map((r) => r.review)
-    //   .filter(Boolean);
+async getProfessionalById(id: string) {
+  const professionalId = await this.professionalRepo.findOne({
+    where: { id },
+    relations: ['user'],
+  });
 
-    // return {
-    //   ...professionalId,
-    //   reviews,
-    // };
+  if (!professionalId) {
+    throw new NotFoundException('professional not found');
   }
+
+  return professionalId;
+}
+
 
   async createProfessional(
     userId: string,
