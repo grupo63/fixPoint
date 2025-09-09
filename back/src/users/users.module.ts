@@ -19,5 +19,6 @@ dotenvConfig({ path: '.env' });
   ],
   controllers: [UsersController],
   providers: [UsersService, UserRepository],
+  exports: [UsersService, TypeOrmModule],
 })
 export class UsersModule {}
