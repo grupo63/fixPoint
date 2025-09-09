@@ -1,7 +1,7 @@
 
 // import type { IUser } from "@/types/types";
 
-import { IUser } from "@/types/types";
+// import { IUser } from "@/types/types";
 
 // export const mockUsers: IUser[] = [
 //   {
@@ -69,25 +69,3 @@ import { IUser } from "@/types/types";
 //   }
 //   return mockUsers.map((u) => ({ ...u }));
 // }
-export default async function fetchCurrentUser(token: string): Promise<IUser | null> {
-  try {
-    const res = await fetch("http://localhost:3001/auth/me", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // ⬅️ Importante
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch current user");
-    }
-
-    const user = await res.json();
-    return user as IUser;
-  } catch (error) {
-    console.error("Error fetching current user:", error);
-    return null;
-  }
-}
-

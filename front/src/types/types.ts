@@ -1,46 +1,49 @@
 import { StaticImport } from "next/dist/shared/lib/get-img-props";
 
-// front/src/types/types.ts
 export type Role = "CLIENTE" | "PROFESIONAL" | "ADMIN";
 
-export interface IUser {
-  [x: string]: string | StaticImport;
-  userId: string;
-  name: string;
-  email: string;
-  password: string;
-  birthDate: string;
-  phone: string;
-  address: string;
-  city: string;
-  zipCode: string;
-  role: Role;                 
-  registrationDate: string;
-  profileImg: string;
-}
 
-export interface UserProfile {
-  userId: string;
+export type IUser = {
+  id: string;
   name: string;
   email: string;
+  role: Role;
   phone?: string | null;
   city?: string | null;
   address?: string | null;
   zipCode?: string | null;
-  registrationDate: string;
+  registrationDate?: string | null; 
   profileImg?: string | null;
-  role?: Role;
-}
+};
+
+export type MeResponse = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  phone?: string | null;
+  city?: string | null;
+  address?: string | null;
+  zipCode?: string | null;
+  registrationDate?: string | null; 
+  profileImg?: string | null;
+};
+
+export type UserProfile = {
+  userId: string;
+  name: string;
+  email: string;
+  role: Role;
+  phone?: string | null;
+  city?: string | null;
+  address?: string | null;
+  zipCode?: string | null;
+  registrationDate?: string | null;
+  profileImg?: string | null;
+};
 
 
-// export interface LoginServiceResponse {
-//   message: string;
-//   data?: LoginResponse;
-//   errors?: any;
-// }
-
-// export interface LoginResponse {
-//   login: boolean;
-//   user: IUser;
-//   token: string;
-// }
+export type AuthCredentials = {
+  email: string;
+  password: string;
+};
