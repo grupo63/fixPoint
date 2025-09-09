@@ -15,8 +15,31 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  // async signUp(user: Partial<User>) {
+  //   const { role, email, password, ...rest } = user;
+
+  //   if (!email || !password) {
+  //     throw new BadRequestException('Email and password are required');
+  //   }
+
+  //   const exists = await this.authRepository.findByEmail(email);
+  //   if (exists) throw new ConflictException('Email already registered');
+
+  //   const passwordHash = await bcrypt.hash(password, 12);
+
+  //   const created = await this.authRepository.createUser({
+  //     role,
+  //     email,
+  //     password: passwordHash,
+  //     ...rest,
+  //   });
+
+  //   return created;
+  // }
+
   async signUp(user: Partial<User>) {
-    const { email, password, ...rest } = user;
+    // [SAFE ROLE PATCH] aceptar 'role' pero ignorarlo
+    const { email, password, role: _ignoredRole, ...rest } = user as any;
 
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
@@ -27,38 +50,16 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
+    // [SAFE ROLE PATCH] forzar rol seguro por backend
     const created = await this.authRepository.createUser({
       email,
       password: passwordHash,
+      role: 'user', // nunca confiamos en el body
       ...rest,
     });
 
     return created;
   }
-
-  // // async signUp(user: Partial<User>) {
-  // //   // [SAFE ROLE PATCH] aceptar 'role' pero ignorarlo
-  // //   const { email, password, role: _ignoredRole, ...rest } = user as any;
-
-  // //   if (!email || !password) {
-  // //     throw new BadRequestException('Email and password are required');
-  // //   }
-
-  // //   const exists = await this.authRepository.findByEmail(email);
-  // //   if (exists) throw new ConflictException('Email already registered');
-
-  // //   const passwordHash = await bcrypt.hash(password, 12);
-
-  // //   // [SAFE ROLE PATCH] forzar rol seguro por backend
-  // //   const created = await this.authRepository.createUser({
-  // //     email,
-  // //     password: passwordHash,
-  // //     role: 'user', // nunca confiamos en el body
-  // //     ...rest,
-  // //   });
-
-  // //   return created;
-  // // }
 
   async signIn(email: string, password: string) {
     if (!email || !password) {
