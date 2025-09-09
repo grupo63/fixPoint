@@ -9,6 +9,8 @@ import { AuthService } from './auth.service';
 import { AuthRepository } from './auth.repository';
 import { User } from 'src/users/entities/user.entity';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { UsersService } from 'src/users/users.service';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
         signOptions: { expiresIn: cfg.get<string>('JWT_EXPIRES_IN') ?? '1d' },
       }),
     }),
+    UsersModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthRepository, GoogleStrategy], // [ADD]

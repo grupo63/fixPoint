@@ -135,7 +135,9 @@ export class AuthService {
       (toCreate as any).firstName = firstName || null;
       (toCreate as any).lastName = lastName || null;
 
-      user = (await this.authRepository.createUser(toCreate)) as unknown as User;
+      user = (await this.authRepository.createUser(
+        toCreate,
+      )) as unknown as User;
     }
 
     // 4) emite tu JWT estándar
