@@ -1,6 +1,7 @@
 import { Key } from "react";
 
 export type Professional = {
+  name: string;
   
   pId: string;
   userId: string;
