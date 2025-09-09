@@ -16,8 +16,7 @@ export class AuthService {
   ) {}
 
   async signUp(user: Partial<User>) {
-    // [SAFE ROLE PATCH] aceptar 'role' pero ignorarlo
-    const { email, password, role: _ignoredRole, ...rest } = user as any;
+    const { email, password, ...rest } = user;
 
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
@@ -28,23 +27,44 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // [SAFE ROLE PATCH] forzar rol seguro por backend
     const created = await this.authRepository.createUser({
       email,
       password: passwordHash,
-      role: 'user', // nunca confiamos en el body
       ...rest,
     });
 
     return created;
   }
 
+  // // async signUp(user: Partial<User>) {
+  // //   // [SAFE ROLE PATCH] aceptar 'role' pero ignorarlo
+  // //   const { email, password, role: _ignoredRole, ...rest } = user as any;
+
+  // //   if (!email || !password) {
+  // //     throw new BadRequestException('Email and password are required');
+  // //   }
+
+  // //   const exists = await this.authRepository.findByEmail(email);
+  // //   if (exists) throw new ConflictException('Email already registered');
+
+  // //   const passwordHash = await bcrypt.hash(password, 12);
+
+  // //   // [SAFE ROLE PATCH] forzar rol seguro por backend
+  // //   const created = await this.authRepository.createUser({
+  // //     email,
+  // //     password: passwordHash,
+  // //     role: 'user', // nunca confiamos en el body
+  // //     ...rest,
+  // //   });
+
+  // //   return created;
+  // // }
+
   async signIn(email: string, password: string) {
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
     }
 
-    // [CHANGE] asegúrate de traer password para poder comparar
     const foundUser = await this.authRepository.findByEmail(email);
     if (!foundUser) {
       throw new BadRequestException('Invalid email or password');
@@ -56,7 +76,7 @@ export class AuthService {
     }
 
     const payload = {
-      sub: foundUser.id,
+      id: foundUser.id,
       email: foundUser.email,
       role: (foundUser as any).role,
     };
