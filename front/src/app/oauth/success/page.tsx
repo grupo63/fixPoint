@@ -4,39 +4,24 @@ import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function OAuthSuccessPage() {
+  const params = useSearchParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const token = searchParams.get("token");
-
+    const token = params.get("token");
     if (!token) {
-      // sin token → volvé al signin con un error
-      router.replace("/signin?error=missing_token");
+      router.replace("/login?error=missing_token");
       return;
     }
 
-    try {
-      // Guarda el token para tu app (ajustá a tu estrategia)
-      localStorage.setItem("token", token);
+    // Cookie para poder leer en server/middleware (7 días)
+    document.cookie = `token=${token}; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`;
 
-      // Opcional: si tenés un endpoint que setea cookie httpOnly en el back,
-      // podrías pedirlo acá y luego redirigir:
-      // fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/session`, {
-      //   method: "POST",
-      //   headers: { Authorization: `Bearer ${token}` },
-      //   credentials: "include",
-      // });
+    // (Opcional) también guardo en localStorage para cliente
+    try { localStorage.setItem("token", token); } catch {}
 
-    } finally {
-      // Redirigí adonde quieras (home, dashboard, etc.)
-      router.replace("/");
-    }
-  }, [router, searchParams]);
+    router.replace("/");
+  }, [params, router]);
 
-  return (
-    <main className="min-h-[60vh] flex items-center justify-center">
-      <p className="text-gray-600">Iniciando sesión con Google…</p>
-    </main>
-  );
+  return <p className="p-6">Autenticando…</p>;
 }

@@ -1,7 +1,10 @@
+import { StaticImport } from "next/dist/shared/lib/get-img-props";
+
 // front/src/types/types.ts
 export type Role = "CLIENTE" | "PROFESIONAL" | "ADMIN";
 
 export interface IUser {
+  [x: string]: string | StaticImport;
   userId: string;
   name: string;
   email: string;
@@ -30,14 +33,14 @@ export interface UserProfile {
 }
 
 
-export interface LoginServiceResponse {
-  message: string;
-  data?: LoginResponse;
-  errors?: any;
-}
+// export interface LoginServiceResponse {
+//   message: string;
+//   data?: LoginResponse;
+//   errors?: any;
+// }
 
-export interface LoginResponse {
-  login: boolean;
-  user: IUser;
-  token: string;
-}
+// export interface LoginResponse {
+//   login: boolean;
+//   user: IUser;
+//   token: string;
+// }
