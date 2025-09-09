@@ -31,4 +31,8 @@ export class UsersService {
   deleteUser(id: string) {
     return this.userRepository.deleteUser(id);
   }
+
+  reactivateUser(id: string) {
+    return this.userRepository.reactivateUser(id);
+  }
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
@@ -55,11 +59,44 @@ export class UserRepository {
 
   async deleteUser(id: string) {
     const foundUser = await this.userRepository.findOneBy({ id });
-    if (!foundUser) throw new NotFoundException(`User whit id ${id} not found`);
-    await this.userRepository.delete(id);
+    if (!foundUser)
+      throw new NotFoundException(`User whith id ${id} not found`);
 
-    const { password, role, ...filteredUserData } = foundUser;
+    if (!foundUser.isActive)
+      throw new BadRequestException(`User whith id ${id} is already inactive`);
+
+    //Soft delete: marca como inactivo en lugar de eliminar
+    await this.userRepository.update(id, {
+      isActive: false,
+      updatedAt: new Date(),
+    });
+
+    const updatedUser = await this.userRepository.findOneBy({ id });
+    if (!updatedUser)
+      throw new NotFoundException(`User whit id ${id} not found after update`);
+
+    const { password, role, ...filteredUserData } = updatedUser;
     return filteredUserData;
+  }
+
+  async reactivateUser(id: string) {
+    const foundUser = await this.userRepository.findOneBy({ id });
+    if (!foundUser)
+      throw new NotFoundException(`User whith id ${id} not found`);
+    if (foundUser.isActive)
+      throw new BadRequestException(`User whit id ${id} is already active`);
+
+    await this.userRepository.update(id, {
+      isActive: true,
+      updatedAt: new Date(),
+    });
+
+    const updatedUser = await this.userRepository.findOneBy({ id });
+    if (!updatedUser)
+      throw new NotFoundException(`User whit id ${id} not found after update`);
+
+    const { password, role, ...filteredData } = updatedUser;
+    return filteredData;
   }
 
   // async getUserByEmailAuth(email: string) {
