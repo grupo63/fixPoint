@@ -16,7 +16,8 @@ export class AuthService {
   ) {}
 
   async signUp(user: Partial<User>) {
-    const { email, password, ...rest } = user;
+    // [SAFE ROLE PATCH] aceptar 'role' pero ignorarlo
+    const { email, password, role: _ignoredRole, ...rest } = user as any;
 
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
@@ -27,9 +28,11 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
+    // [SAFE ROLE PATCH] forzar rol seguro por backend
     const created = await this.authRepository.createUser({
       email,
       password: passwordHash,
+      role: 'user', // nunca confiamos en el body
       ...rest,
     });
 
@@ -104,13 +107,16 @@ export class AuthService {
         password: null, // usuarios OAuth no necesitan password
         provider: oauthUser.provider,
         providerId: oauthUser.providerId,
+        role: 'user', // [SAFE ROLE PATCH] rol seguro por defecto también en OAuth
       };
 
       // añadir nombres si existen (tu entidad los tiene como opcionales)
       (toCreate as any).firstName = firstName || null;
       (toCreate as any).lastName = lastName || null;
 
-      user = (await this.authRepository.createUser(toCreate)) as unknown as User;
+      user = (await this.authRepository.createUser(
+        toCreate,
+      )) as unknown as User;
     }
 
     // 4) emite tu JWT estándar
