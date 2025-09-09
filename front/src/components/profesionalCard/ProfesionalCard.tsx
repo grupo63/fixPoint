@@ -3,13 +3,16 @@
 import React from "react";
 import Link from "next/link";
 import { Professional } from "@/types/profesionalTypes";
+import { routes } from "@/routes";
 
-type Props = {
+
+type Props  = {
   pro: Professional;
 };
 
 export function ProfessionalCard({ pro }: Props) {
 
+  console.log(pro)
   return (
     <article className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
       <div className="flex items-center gap-4">
@@ -37,13 +40,16 @@ export function ProfessionalCard({ pro }: Props) {
 
       {/* 👉 Botón "Ver" */}
       <div className="mt-4 flex justify-end">
+        
         <Link
-          href={`/profesionales/${pro.pId }`}
-          
-          className="text-sm text-white bg-blue-600 hover:bg-blue-700 px-4 py-1 rounded"
-        >
-          Ver
-        </Link>
+        
+  href={routes.profesionalDetail(pro.userId)}
+  className="text-sm text-white bg-blue-600 hover:bg-blue-700 px-4 py-1 rounded"
+>
+  Ver
+  
+</Link >
+
       </div>
     </article>
   );

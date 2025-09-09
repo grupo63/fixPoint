@@ -33,9 +33,9 @@ export const routes = {
   home: "/",
   signin: "/signin",
   register: "/register",
-  profesionales: "/profesionales",
+  profesionales: "/professionals",
   profile: "/profile",
-  profesionalDetail: (id: string) => `/profesionales/${id}`, // 👈 función para dinámicas
+  profesionalDetail: (id: string) => `/professionalDetail/${id}`,
   como_funciona: "/como-funciona",
   ayuda: "/ayuda",
   contacto: "/contact", 

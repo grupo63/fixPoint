@@ -1,5 +1,6 @@
 import { ProfessionalCard } from "@/components/profesionalCard/ProfesionalCard";
 import fetchProfessionals from "@/services/professionals";
+import { Professional } from "@/types/profesionalTypes";
 
 export default async function ProfessionalsPage() {
   const pros = await fetchProfessionals();
@@ -18,8 +19,8 @@ export default async function ProfessionalsPage() {
 
       {/* GRID DE PROFESIONALES */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {pros.map((p:any) => (
-          <ProfessionalCard key={p.pId} pro={p} />
+        {pros.map((p: Professional) => (
+          <ProfessionalCard key={p.userId} pro={p} />
         ))}
       </div>
     </main>
