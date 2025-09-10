@@ -6,11 +6,13 @@ import { Professional } from "@/types/profesionalTypes";
 import { routes } from "@/routes";
 
 
+
 type Props  = {
   pro: Professional;
+  
 };
 
-export function ProfessionalCard({ pro }: Props) {
+export function ProfessionalCard({ pro,  }: Props) {
 
   console.log(pro)
   return (
@@ -18,11 +20,12 @@ export function ProfessionalCard({ pro }: Props) {
       <div className="flex items-center gap-4">
         <img
           src={pro.profileImg ?? "/placeholder.png"}
-          alt={pro.name ?? "Profesional"}
+          alt={pro.user.name ?? "Profesional"}
           className="h-16 w-16 rounded-full object-cover"
         />
         <div>
-          <h2 className="text-lg font-bold text-blue-900">{pro.name}</h2>
+         <h2 className="text-lg font-bold text-blue-900">{pro.name
+          }</h2>
           <p className="text-sm text-blue-700">{pro.speciality}</p>
           <p className="text-xs text-blue-600">{pro.location ?? "Ubicación no disponible"}</p>
         </div>

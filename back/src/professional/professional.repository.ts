@@ -23,6 +23,7 @@ export class ProfessionalRepository {
       skip: (page - 1) * limit,
       take: limit,
       where: { isActive: true },
+        relations: ['user'], //BORRAR ESTOO Y AVISAR AL BACK
     });
   }
 async getProfessionalById(id: string) {

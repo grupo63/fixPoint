@@ -4,7 +4,7 @@ import { Professional } from "@/types/profesionalTypes";
 
 export default async function ProfessionalsPage() {
   const profesionals = await fetchProfessionals();
-
+console.log(profesionals)
   return (
     <main className="p-6 space-y-8">
       {/* CABECERA ESTILIZADA */}
@@ -20,7 +20,7 @@ export default async function ProfessionalsPage() {
       {/* GRID DE PROFESIONALES */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {profesionals.map((p: Professional) => (
-          <ProfessionalCard  key={profesionals.id} pro={p} />
+         <ProfessionalCard key={profesionals.id} pro={p} />
         ))}
       </div>
     </main>
