@@ -25,13 +25,6 @@ export class AuthRepository {
     return userWithoutPassword;
   }
 
-  // async createUser(user: Partial<User>) {
-  //   const newUser = await this.userRepository.save(user);
-  //   const dataBase = await this.userRepository.findOneBy({ id: newUser.id });
-  //   if (!dataBase) throw new Error('User not found after creation');
-  //   const { password, ...userWithoutPassword } = newUser;
-  //   return userWithoutPassword;
-  // }
   async findByEmail(email: string) {
     return this.userRepository
       .createQueryBuilder('u')
