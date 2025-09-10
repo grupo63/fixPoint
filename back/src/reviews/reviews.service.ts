@@ -5,11 +5,11 @@ import {
 } from '@nestjs/common';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { Review } from './entities/review.entity';
-import { ReservationStatus } from 'src/reservation/dto/create-reservation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReservationService } from 'src/reservation/reservation.service';
 import { ReviewDto } from './dto/review.dto';
+import { ReservationStatusEnum } from './entities/reviewStatus.entity';
 
 @Injectable()
 export class ReviewService {
@@ -28,7 +28,7 @@ export class ReviewService {
     );
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (reservation.status !== ReservationStatus.COMPLETED) {
+    if (reservation.status !== ReservationStatusEnum.CANCELED) {
       throw new BadRequestException(
         'A review can only be created for a completed reservation.',
       );
