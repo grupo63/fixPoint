@@ -2,57 +2,66 @@
 
 import React from 'react';
 import { compressImage } from '@/lib/imageCompression';
-import { fetchSignature, uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadProfessionalProfileImageXHR } from '@/lib/backendUploads';
 import type { UploaderProps, UploadState, UploadedFile } from '@/types/upload';
 
-interface LocalItem {
+type LocalItem = {
   id: string;
   file: File;
   previewUrl: string;
-  state: UploadState;
-  progress: number; // 0..100
+  state: UploadState; // 'queued' | 'compressing' | 'uploading' | 'processing' | 'done' | 'error' | 'canceled'
+  progress: number;   // 0..100
   error?: string;
   controller?: AbortController;
   result?: UploadedFile;
-}
+};
 
 const defaultAccepted = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
-export default function Uploader({
-  folder,
-  multiple = true,
-  acceptedTypes = defaultAccepted,
-  maxSizeMB = 5,
-  enableCompression = true,
-  targetMB = 1.5,
-  maxDimension = 1600,
-  quality = 0.8,
-  onSuccess,
-}: UploaderProps) {
+export default function Uploader(
+  {
+    folder, // (no se usa en el back, pero lo dejo por compatibilidad)
+    multiple = true,
+    acceptedTypes = defaultAccepted,
+    maxSizeMB = 5,
+    enableCompression = true,
+    targetMB = 1.5,
+    maxDimension = 1600,
+    quality = 0.8,
+    onSuccess,
+    // si viene este id, se sube al backend /upload-img/{id}/profile-image
+    backendProfessionalId,
+    // opcional: Authorization: Bearer <token>
+    bearerToken,
+    // opcional: si Multer espera otro nombre (por defecto 'file')
+    fileFieldName = 'file',
+  }: UploaderProps & { backendProfessionalId?: string; bearerToken?: string; fileFieldName?: string }
+) {
   const [items, setItems] = React.useState<LocalItem[]>([]);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
-  const dropRef = React.useRef<HTMLDivElement | null>(null);
 
-  const queueFiles = React.useCallback((files: FileList | null) => {
+  const queueFiles = (files: FileList | null) => {
     if (!files) return;
     const list = Array.from(files);
+
     const next = list
-      .filter((f) => acceptedTypes.includes(f.type))
-      .filter((f) => f.size <= maxSizeMB * 1024 * 1024)
+      .filter((f) => {
+        const okType = acceptedTypes.includes(f.type);
+        const okSize = f.size <= maxSizeMB * 1024 * 1024;
+        if (!okType) console.warn(`Tipo no permitido: ${f.type}`);
+        if (!okSize) console.warn(`Archivo demasiado grande: ${f.name}`);
+        return okType && okSize;
+      })
       .map<LocalItem>((f) => ({
-        id: crypto.randomUUID(),
+        id: (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`),
         file: f,
         previewUrl: URL.createObjectURL(f),
         state: 'queued',
         progress: 0,
       }));
 
-    if (next.length !== list.length) {
-      // podrías mostrar toast por archivos inválidos
-      console.warn('Algunos archivos fueron descartados por tipo/tamaño.');
-    }
-    setItems((prev) => (multiple ? [...prev, ...next] : [...next.slice(0, 1)]));
-  }, [acceptedTypes, maxSizeMB, multiple]);
+    setItems((prev) => (multiple ? [...prev, ...next] : next.slice(0, 1)));
+  };
 
   const removeItem = (id: string) => {
     setItems((prev) => {
@@ -62,11 +71,17 @@ export default function Uploader({
     });
   };
 
-  const startUpload = async () => {
-    // Firma única por carpeta / transformación (suficiente para varios archivos)
-    let signature = await fetchSignature({ folder });
+  const cancelUpload = (id: string) => {
+    setItems((prev) => {
+      const it = prev.find((x) => x.id === id);
+      if (it?.controller) it.controller.abort();
+      return prev.map((p) => (p.id === id ? { ...p, state: 'canceled' } : p));
+    });
+  };
 
+  const startUpload = async () => {
     const updated: LocalItem[] = [];
+
     for (const item of items) {
       let current = { ...item };
       try {
@@ -77,35 +92,42 @@ export default function Uploader({
           current.file = await compressImage(current.file, { targetMB, maxDimension, quality });
         }
 
-        // 2) Subida
+        // 2) Subida SIEMPRE AL BACKEND
+        if (!backendProfessionalId) {
+          throw new Error('Falta backendProfessionalId para subir al backend');
+        }
+
         current.state = 'uploading';
         current.progress = 0;
         const controller = new AbortController();
         current.controller = controller;
         setItems((prev) => prev.map((p) => (p.id === current.id ? current : p)));
 
-        const res = await uploadToCloudinary({
+        const res = await uploadProfessionalProfileImageXHR({
+          professionalId: backendProfessionalId,
           file: current.file,
-          folder,
-          signature,
           signal: controller.signal,
-          onProgress: (pct) => {
-            setItems((prev) =>
-              prev.map((p) => (p.id === current.id ? { ...p, progress: pct } : p))
-            );
-          },
+          bearerToken,
+          fileFieldName, // 'file' por defecto
+          onProgress: (pct) =>
+            setItems((prev) => prev.map((p) => (p.id === current.id ? { ...p, progress: pct } : p))),
         });
 
-        // 3) Resultado
+        // 3) Normalizamos la respuesta del back
+        const url = res?.profileImg || res?.avatarUrl || res?.secure_url || res?.url;
+        const publicId = res?.public_id || res?.avatarPublicId || res?.cloudinaryPublicId || '';
+        if (!url) throw new Error('El backend no devolvió URL (profileImg/url/secure_url)');
+
         current.state = 'done';
         current.progress = 100;
         current.result = {
-          url: res.secure_url,
-          public_id: res.public_id,
-          width: res.width,
-          height: res.height,
-          format: res.format,
+          url,
+          public_id: publicId,
+          width: res?.width,
+          height: res?.height,
+          format: res?.format,
         };
+
         setItems((prev) => prev.map((p) => (p.id === current.id ? current : p)));
         updated.push(current);
       } catch (err: any) {
@@ -119,45 +141,29 @@ export default function Uploader({
     if (done.length && onSuccess) onSuccess(done);
   };
 
-  const cancelUpload = (id: string) => {
-    setItems((prev) => {
-      const it = prev.find((x) => x.id === id);
-      if (it?.controller) it.controller.abort();
-      return prev.map((p) => (p.id === id ? { ...p, state: 'canceled' } : p));
-    });
-  };
-
-  // Drag & Drop wiring
-  React.useEffect(() => {
-    const el = dropRef.current;
-    if (!el) return;
-    const prevent = (e: DragEvent) => { e.preventDefault(); e.stopPropagation(); };
-    const onDrop = (e: DragEvent) => {
-      prevent(e);
-      const dt = e.dataTransfer;
-      queueFiles(dt?.files || null);
-    };
-    el.addEventListener('dragenter', prevent);
-    el.addEventListener('dragover', prevent);
-    el.addEventListener('drop', onDrop);
-    return () => {
-      el.removeEventListener('dragenter', prevent);
-      el.removeEventListener('dragover', prevent);
-      el.removeEventListener('drop', onDrop);
-    };
-  }, [queueFiles]);
-
   const disableActions = items.some((i) => i.state === 'uploading' || i.state === 'compressing');
+
+  // Limpieza de objectURLs al desmontar
+  React.useEffect(() => {
+    return () => {
+      items.forEach((it) => URL.revokeObjectURL(it.previewUrl));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="w-full space-y-4">
       {/* Dropzone */}
       <div
-        ref={dropRef}
         role="button"
         tabIndex={0}
         onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click() }
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onDrop={(e) => {
+          e.preventDefault(); e.stopPropagation();
+          queueFiles(e.dataTransfer?.files || null);
+        }}
         className="flex h-40 w-full cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-center hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
       >
         <div>
@@ -182,34 +188,30 @@ export default function Uploader({
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3">
           {items.map((it) => (
             <li key={it.id} className="relative overflow-hidden rounded-xl border bg-white p-2 shadow-sm">
-              <img
-                src={it.previewUrl}
-                alt={it.file.name}
-                className="h-40 w-full rounded-lg object-cover"
-              />
+              <img src={it.previewUrl} alt={it.file.name} className="h-40 w-full rounded-lg object-cover" />
+
               <div className="mt-2 flex items-center justify-between">
                 <span className="truncate text-xs">{it.file.name}</span>
+
                 {it.state === 'queued' && (
-                  <button
-                    onClick={() => removeItem(it.id)}
-                    className="text-xs text-red-600 hover:underline"
-                  >
+                  <button onClick={() => removeItem(it.id)} className="text-xs text-red-600 hover:underline">
                     Quitar
                   </button>
                 )}
+
                 {it.state === 'uploading' && (
-                  <button
-                    onClick={() => cancelUpload(it.id)}
-                    className="text-xs text-gray-700 hover:underline"
-                  >
+                  <button onClick={() => cancelUpload(it.id)} className="text-xs text-gray-700 hover:underline">
                     Cancelar
                   </button>
                 )}
+
                 {it.state === 'error' && (
                   <button
                     onClick={() =>
                       setItems((prev) =>
-                        prev.map((p) => (p.id === it.id ? { ...p, state: 'queued', error: undefined, progress: 0 } : p))
+                        prev.map((p) =>
+                          p.id === it.id ? { ...p, state: 'queued', error: undefined, progress: 0 } : p
+                        )
                       )
                     }
                     className="text-xs text-indigo-600 hover:underline"
@@ -223,10 +225,7 @@ export default function Uploader({
               {['compressing', 'uploading'].includes(it.state) && (
                 <div className="mt-2 w-full">
                   <div className="h-2 w-full rounded bg-gray-200">
-                    <div
-                      className="h-2 rounded bg-indigo-500 transition-all"
-                      style={{ width: `${it.progress}%` }}
-                    />
+                    <div className="h-2 rounded bg-indigo-500 transition-all" style={{ width: `${it.progress}%` }} />
                   </div>
                   <p className="mt-1 text-[11px] text-gray-500">
                     {it.state === 'compressing' ? 'Comprimiendo…' : `Subiendo… ${it.progress}%`}
@@ -257,8 +256,12 @@ export default function Uploader({
         >
           Subir {items.length > 0 ? `(${items.length})` : ''}
         </button>
+
         <button
-          onClick={() => setItems([])}
+          onClick={() => {
+            items.forEach((it) => URL.revokeObjectURL(it.previewUrl));
+            setItems([]);
+          }}
           disabled={disableActions || items.length === 0}
           className="rounded-xl border px-4 py-2 text-sm"
         >

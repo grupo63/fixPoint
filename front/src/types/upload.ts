@@ -13,13 +13,19 @@ export interface UploaderResult {
 }
 
 export interface UploaderProps {
-  folder: string;               // Carpeta Cloudinary
-  multiple?: boolean;           // default true
-  acceptedTypes?: string[];     // default imágenes
-  maxSizeMB?: number;           // default 5
-  enableCompression?: boolean;  // default true
-  targetMB?: number;            // default 1.5
-  maxDimension?: number;        // default 1600
-  quality?: number;             // default 0.8
+  folder: string;
+  multiple?: boolean;
+  acceptedTypes?: string[];
+  maxSizeMB?: number;
+  enableCompression?: boolean;
+  targetMB?: number;
+  maxDimension?: number;
+  quality?: number;
   onSuccess?: (files: UploadedFile[]) => void;
+
+  // NUEVO: si pasás el id, el uploader manda el archivo al BACK en vez de a Cloudinary unsigned
+  backendProfessionalId?: string;
+  // opcional: si tu back usa Authorization: Bearer <token>
+  bearerToken?: string;
 }
+
