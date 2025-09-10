@@ -10,7 +10,7 @@ export class Reservation {
   @ManyToOne(() => User, (user) => user.id, { eager: true })
   user: User;
 
-  @ManyToOne(() => Professional, (Professional) => Professional.id, {
+  @ManyToOne(() => Professional, (Professional) => Professional.reservation, {
     eager: true,
   })
   professional: Professional;
@@ -20,4 +20,7 @@ export class Reservation {
     enum: ['PENDING', 'CONFIRMED', 'CANCELLED'],
   })
   status: string;
+
+  @Column({ default: false })
+  wasReviewed: boolean;
 }

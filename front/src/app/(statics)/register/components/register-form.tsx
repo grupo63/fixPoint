@@ -24,6 +24,7 @@ export default function RegisterForm({
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
 
   const handle =
@@ -34,37 +35,37 @@ export default function RegisterForm({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!state.name || !state.email || !state.password) {
-      alert("Completá nombre, email y contraseña.");
+    if (!state.name || !state.email || !state.password || !state.confirmPassword) {
+      alert("Completá todos los campos.");
+      return;
+    }
+
+    if (state.password !== state.confirmPassword) {
+      alert("Las contraseñas no coinciden.");
       return;
     }
 
     setLoading(true);
     try {
-      // 1) Construimos payload
       const payload = {
         name: state.name.trim(),
         email: state.email.trim(),
         password: state.password,
-        role, // "user" | "professional"
+        role,
       };
 
-      // 2) Construimos URL con saneo de barra final
       const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
       const url = `${base}/auth/signup`;
 
-      // 3) Logs de depuración
       console.log("➡️ Signup URL:", url);
       console.log("➡️ Payload:", payload);
 
-      // 4) Hacemos la request
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      // 5) Si falla, intentamos leer JSON o texto para mostrar mensaje útil
       if (!res.ok) {
         let body: any = null;
         try {
@@ -87,10 +88,9 @@ export default function RegisterForm({
         });
 
         alert(`Error ${res.status} ${res.statusText}\n${backendMsg}`);
-        return; // importante: cortar el flujo
+        return;
       }
 
-      // 6) OK
       console.log("✅ Signup OK");
       alert("✅ Cuenta creada con éxito");
       onSuccess ? onSuccess() : router.push("/signin");
@@ -155,7 +155,7 @@ export default function RegisterForm({
           placeholder="correo@ejemplo.com"
         />
 
-        {/* Contraseña con ojo */}
+        {/* Contraseña */}
         <div>
           <label className="text-sm font-medium">Contraseña</label>
           <div className="mt-1 relative">
@@ -176,6 +176,15 @@ export default function RegisterForm({
             </button>
           </div>
         </div>
+
+        {/* Confirmar contraseña */}
+        <Field
+          label="Confirmar contraseña"
+          type={showPassword ? "text" : "password"}
+          value={state.confirmPassword}
+          onChange={handle("confirmPassword")}
+          placeholder="••••••••"
+        />
       </div>
 
       <div className="flex justify-center">
@@ -195,7 +204,6 @@ export default function RegisterForm({
             <span className="text-sm text-gray-500">o</span>
             <div className="flex-grow h-px bg-gray-300"></div>
           </div>
-          {/* Botón Google (intacto) */}
           <button
             type="button"
             onClick={() =>

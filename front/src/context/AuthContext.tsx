@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!res.ok) throw new Error((await res.text()) || "Credenciales inválidas");
 
     const data = await res.json();
+    console.log("DATAAAAAAAA", data)
     const receivedToken = data?.access_token || data?.token;
     if (!receivedToken) throw new Error("No se recibió token del servidor.");
 

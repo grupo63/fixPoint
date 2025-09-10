@@ -1,7 +1,12 @@
+import { Professional } from 'src/professional/entity/professional.entity';
+import { Reservation } from 'src/reservation/entities/reservation.entity';
+import { User } from 'src/users/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
@@ -10,13 +15,13 @@ export class Review {
   @PrimaryGeneratedColumn('uuid')
   reviewId: string;
 
-  // @ManyToOne(() => UserActivation, (User) => User.isActive)
-  // @JoinColumn({ name: 'userId' })
-  // user: UserActivation;
+  @ManyToOne(() => User, (user) => user.reviews, { nullable: false })
+  @JoinColumn({ name: 'userId' })
+  user: User;
 
-  // @ManyToOne(() => Professional, (Professional) => Professional.isActive)
-  // @JoinColumn({ name: 'professionalId' })
-  // professional: Professional;
+  @ManyToOne(() => Professional, (Professional) => Professional.isActive)
+  @JoinColumn({ name: 'professionalId' })
+  professional: Professional;
 
   @Column({ type: 'int' })
   rate: number;
@@ -26,4 +31,8 @@ export class Review {
 
   @CreateDateColumn({ type: 'timestamp' })
   date: Date;
+
+  @ManyToOne(() => Reservation, { nullable: false })
+  @JoinColumn({ name: 'reservationId' })
+  reservation: Reservation;
 }

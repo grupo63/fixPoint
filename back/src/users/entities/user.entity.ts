@@ -6,8 +6,11 @@ import {
   UpdateDateColumn,
   OneToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Professional } from 'src/professional/entity/professional.entity';
+import { Review } from 'src/reviews/entities/review.entity';
+import { TemporaryRole } from '../types/temporary-role';
 
 @Entity({ name: 'users' })
 export class User {
@@ -31,7 +34,7 @@ export class User {
 
   // [CHANGE] rol básico (arregla foundUser.role)
   @Column({ type: 'varchar', length: 20, default: 'user' })
-  role: 'user' | 'professional';
+  role: 'user' | 'professional' | 'admin';
 
   @Column({ type: 'varchar', length: 60, nullable: true })
   firstName?: string;
@@ -68,4 +71,8 @@ export class User {
 
   @OneToOne(() => Professional, (professional) => professional.user)
   professional?: Professional;
+
+  //conecction of reviews and user
+  @OneToMany(() => Review, (review) => review.user)
+  reviews: Review[];
 }

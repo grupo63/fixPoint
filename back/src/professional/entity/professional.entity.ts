@@ -1,6 +1,6 @@
-import { Available } from 'src/available/entity/available.entity';
+import {} from 'src/reservation/dto/create-reservation.dto';
 import { Reservation } from 'src/reservation/entities/reservation.entity';
-// import { reservationStatus, Review } from 'src/reviews/entities/review.entity';
+import { Review } from 'src/reviews/entities/review.entity';
 import { Service } from 'src/service/entities/service.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
@@ -20,10 +20,6 @@ import {
 export class Professional {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  //Relacion con review
-  // @OneToMany(() => Review, (rewiew) => rewiew.user)
-  // reviews: Review[];
 
   @Column({
     type: 'varchar',
@@ -95,15 +91,16 @@ export class Professional {
   // @OneToMany(() => ProfessionalImg, (profImage) => ProfessionalImg.professional)
   // professionalImg: ProfessionalImg[]; //recordar explicitar esta relacion en la tabla de profImage
 
-  // @OneToMany(() => Reservation, (reservation) => reservation.professional)
-  // reservation: Reservation[];
-
   // @OneToMany(() => Available, (available) => available.professional)
   // available: Available[];
 
   @OneToMany(() => Service, (service) => service.professional)
   service: Service[];
 
-  // @OneToMany(() => reservationStatus, (reservation) => reservation.professional)
-  // reservations: Reservation[];
+  // Relacion con entity review
+  @OneToMany(() => Review, (rewiew) => rewiew.professional)
+  reviews: Review[];
+
+  @OneToMany(() => Reservation, (reservation) => reservation.professional)
+  reservation: Reservation[];
 }
