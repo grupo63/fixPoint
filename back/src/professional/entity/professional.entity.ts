@@ -28,6 +28,7 @@ export class Professional {
   @Column({
     type: 'varchar',
     length: 50,
+    nullable: true,
   })
   speciality: string;
 
@@ -56,6 +57,7 @@ export class Professional {
   @Column({
     type: 'int',
     default: 10,
+    nullable: false,
   })
   workingRadius: number;
 
@@ -63,6 +65,7 @@ export class Professional {
   @Column({
     type: 'varchar',
     length: 100,
+    nullable: true,
   })
   location: string;
 
