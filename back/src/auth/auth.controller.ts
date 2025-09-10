@@ -18,6 +18,8 @@ import { Request } from '@nestjs/common';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
+
+
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UsersService,
@@ -49,39 +51,4 @@ export class AuthController {
     return this.authService.signIn(email, password);
   }
 
-  // // ▼▼▼ Google OAuth
-  // @Get('google')
-  // @UseGuards(AuthGuard('google'))
-  // @ApiOperation({
-  //   summary: 'Login with Google',
-  //   description: 'Redirects the user to Google OAuth login page.',
-  // })
-  // @ApiResponse({ status: 302, description: 'Redirects to Google login page.' })
-  // async googleLogin() {
-  //   // Passport redirige a Google automáticamente
-  //   return;
-  // }
-
-  // @Get('google/callback')
-  // @UseGuards(AuthGuard('google'))
-  // @ApiOperation({
-  //   summary: 'Google OAuth callback',
-  //   description:
-  //     'Handles the callback from Google, issues a JWT and redirects to the frontend.',
-  // })
-  // @ApiResponse({
-  //   status: 302,
-  //   description: 'Redirects to frontend with JWT token in query param.',
-  // })
-  // async googleCallback(@Req() req, @Res() res) {
-  //   const token = await this.authService.issueJwtFromOAuth(req.user);
-  //   return res.redirect(
-  //     `${process.env.FRONT_URL}/oauth/success?token=${token}`,
-  //   );
-  // }
-  // @Get('me')
-  // @UseGuards(JwtAuthGuard)
-  // getProfile(@Request() req) {
-  //   return this.userService.getUserById(req.user.id);
-  // }
 }

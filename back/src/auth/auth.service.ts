@@ -12,6 +12,8 @@ import { TemporaryRole } from 'src/users/types/temporary-role';
 
 @Injectable()
 export class AuthService {
+
+
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
@@ -65,5 +67,7 @@ export class AuthService {
     };
     const access_token = this.jwtService.sign(payload);
     return { access_token };
-  }
+ }
 }
+
+// holaxdgzsbgkjfga

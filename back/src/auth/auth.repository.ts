@@ -24,7 +24,6 @@ export class AuthRepository {
     const { password, ...userWithoutPassword } = newUser;
     return userWithoutPassword;
   }
-
   async findByEmail(email: string) {
     return this.userRepository
       .createQueryBuilder('u')

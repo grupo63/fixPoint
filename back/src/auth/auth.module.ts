@@ -14,6 +14,8 @@ import { UsersModule } from 'src/users/users.module';
 import { Professional } from 'src/professional/entity/professional.entity';
 
 @Module({
+
+  
   imports: [
     TypeOrmModule.forFeature([User, Professional]),
     ConfigModule,
