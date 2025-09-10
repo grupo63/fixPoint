@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { ReservationRepository } from './reservation.repository';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Reservation } from './entities/reservation.entity';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { User } from 'src/users/entities/user.entity';
@@ -7,9 +11,12 @@ import { Professional } from 'src/professional/entity/professional.entity';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { CreateReviewDto } from 'src/reviews/dto/create-review.dto';
+import { Review } from 'src/reviews/entities/review.entity';
 
 @Injectable()
 export class ReservationService {
+  reviewRepo: any;
   constructor(
     @InjectRepository(Reservation)
     private readonly reservationRepo: Repository<Reservation>,
@@ -83,5 +90,43 @@ export class ReservationService {
     const reservation = await this.findOne(id);
     await this.reservationRepo.remove(reservation);
     return { message: 'Reservation delete succesfully' };
+  }
+
+  async markAsReview(reservationId: string): Promise<void> {
+    const reservation = await this.findOne(reservationId);
+    reservation.wasReviewed = true;
+    await this.reservationRepo.save(reservation);
+  }
+
+  async createReview(dto: CreateReviewDto): Promise<Review> {
+    const reservation = await this.reservationRepo.findOne({
+      where: { reservationId: dto.reservationId },
+      relations: ['user', 'professional'],
+    });
+    if (reservation?.status !== 'COMPLETED') {
+      throw new BadRequestException(
+        'Only completed reservations can be reviewed',
+      );
+    }
+    if (reservation.wasReviewed) {
+      throw new BadRequestException(
+        'This reservation has already been reviewed',
+      );
+    }
+    if (reservation.user.id !== dto.userId) {
+      throw new ForbiddenException('You can only review your own reservations');
+    }
+
+    const review = this.markAsReview.arguments({
+      ...dto,
+      user: reservation.user,
+      professional: reservation.professional,
+      reservation,
+    });
+
+    await this.reviewRepo.save(review);
+    await this.markAsReview(dto.reservationId);
+
+    return review;
   }
 }

@@ -3,16 +3,6 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateReviewDto {
   @ApiProperty({
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'The unique ID of the review.',
-    type: 'string',
-    format: 'uuid',
-  })
-  @IsUUID()
-  @IsNotEmpty()
-  review_ID: string;
-
-  @ApiProperty({
     example: 'd888e223-b12d-4874-a69c-2c262804c7c8',
     description: 'The unique ID of the reservation associated with the review.',
     type: 'string',

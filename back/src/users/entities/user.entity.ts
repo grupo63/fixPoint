@@ -5,9 +5,11 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToOne,
+  JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Professional } from 'src/professional/entity/professional.entity';
-import { TemporaryRole } from '../types/temporary-role';
+import { Review } from 'src/reviews/entities/review.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -17,25 +19,21 @@ export class User {
   @Column({ type: 'varchar', length: 150, unique: true })
   email: string;
 
-  // permitir cuentas OAuth sin password y no seleccionarlo por defecto
+  // [CHANGE] permitir cuentas OAuth sin password y no seleccionarlo por defecto
   @Column({ type: 'varchar', length: 255, nullable: true, select: false })
   password: string | null;
 
-  // proveedor de autenticación
+  // [CHANGE] proveedor de autenticación
   @Column({ type: 'varchar', length: 20, default: 'local' })
   provider: 'local' | 'google' | 'github';
 
-  // id del proveedor externo (opcional y único)
+  // [CHANGE] id del proveedor externo (opcional y único)
   @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
   providerId: string | null;
 
-  // rol como ENUM (con default)
-  @Column({
-    type: 'enum',
-    enum: TemporaryRole,
-    default: TemporaryRole.USER,
-  })
-  role: TemporaryRole;
+  // [CHANGE] rol básico (arregla foundUser.role)
+  @Column({ type: 'varchar', length: 20, default: 'user' })
+  role: 'user' | 'professional';
 
   @Column({ type: 'varchar', length: 60, nullable: true })
   firstName?: string;
@@ -72,4 +70,8 @@ export class User {
 
   @OneToOne(() => Professional, (professional) => professional.user)
   professional?: Professional;
+
+  //conecction of reviews and user
+  @OneToMany(() => Review, (review) => review.user)
+  reviews: Review[];
 }
