@@ -28,8 +28,9 @@ export class Professional {
   @Column({
     type: 'varchar',
     length: 50,
+    nullable: true,
   })
-  speciality: string;
+  speciality?: string;
 
   @Column({
     type: 'text',
@@ -63,8 +64,9 @@ export class Professional {
   @Column({
     type: 'varchar',
     length: 100,
+    nullable: true,
   })
-  location: string;
+  location?: string;
 
   @Column({
     type: 'varchar',
