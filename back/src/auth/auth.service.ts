@@ -71,61 +71,69 @@ export class AuthService {
     return { access_token };
   }
 
-  // ---------- Google/GitHub OAuth ----------
-  async issueJwtFromOAuth(oauthUser: {
-    email: string | null;
-    name: string;
-    provider: 'google' | 'github';
-    providerId: string;
-  }): Promise<string> {
-    if (!oauthUser.providerId) {
-      throw new BadRequestException('Invalid OAuth profile');
-    }
+  // ---------- [ADD] Google/GitHub OAuth ----------
+//   async issueJwtFromOAuth(oauthUser: {
+//     email: string | null;
+//     name: string;
+//     provider: 'google' | 'github';
+//     providerId: string;
+//   }): Promise<string> {
+//     if (!oauthUser.providerId) {
+//       throw new BadRequestException('Invalid OAuth profile');
+//     }
 
-    let user = await this.authRepository.findByProviderId(oauthUser.providerId);
+//     // 1) intenta por providerId
+//     let user = await this.authRepository.findByProviderId(oauthUser.providerId);
 
-    if (!user && oauthUser.email) {
-      const byEmail = await this.authRepository.findByEmail(oauthUser.email);
-      if (byEmail) {
-        (byEmail as any).provider = oauthUser.provider;
-        (byEmail as any).providerId = oauthUser.providerId;
-        await this.authRepository.save(byEmail as any);
-        user = byEmail as any;
-      }
-    }
+//     // 2) si no existe, intenta enlazar por email
+//     if (!user && oauthUser.email) {
+//       const byEmail = await this.authRepository.findByEmail(oauthUser.email);
+//       if (byEmail) {
+//         (byEmail as any).provider = oauthUser.provider;
+//         (byEmail as any).providerId = oauthUser.providerId;
+//         await this.authRepository.save(byEmail as any);
+//         user = byEmail as any;
+//       }
+//     }
 
-    if (!user) {
-      if (!oauthUser.email) {
-        throw new BadRequestException(
-          'Google no proporcionó un email para esta cuenta. No es posible crear el usuario.',
-        );
-      }
+//     // 3) crear si no existe
+//     if (!user) {
+//       if (!oauthUser.email) {
+//         throw new BadRequestException(
+//           'Google no proporcionó un email para esta cuenta. No es posible crear el usuario.',
+//         );
+//       }
 
-      const raw = oauthUser.name?.trim() ?? '';
-      const [firstNamePart, ...restParts] = raw ? raw.split(/\s+/) : [''];
-      const lastNamePart = restParts.length ? restParts.join(' ') : undefined;
+//       // separar "name" en firstName / lastName según tu entidad
+//       const raw = oauthUser.name?.trim() ?? '';
+//       const [firstName, ...restParts] = raw.length ? raw.split(/\s+/) : [''];
+//       const lastName = restParts.length ? restParts.join(' ') : null;
 
-      // Evitamos null en propiedades opcionales
-      const toCreate: Partial<User> = {
-        email: oauthUser.email,
-        // Para cuentas OAuth, password puede omitirse si la columna es nullable en DB
-        // y en la entidad es opcional. No enviar null, mejor undefined/omitir.
-        // Si tu entidad exige string | null explícitamente, entonces ajusta allí.
-        ...(oauthUser.provider ? { provider: oauthUser.provider } : {}),
-        providerId: oauthUser.providerId,
-        role: TemporaryRole.USER,
-        ...(firstNamePart ? { firstName: firstNamePart } : {}),
-        ...(lastNamePart  ? { lastName:  lastNamePart  } : {}),
-      };
+//       const toCreate: Partial<User> = {
+//         email: oauthUser.email,
+//         password: null, // usuarios OAuth no necesitan password
+//         provider: oauthUser.provider,
+//         providerId: oauthUser.providerId,
+//         role: 'user', // [SAFE ROLE PATCH] rol seguro por defecto también en OAuth
+//       };
 
-      user = (await this.authRepository.createUser(toCreate)) as unknown as User;
-    }
+//       // añadir nombres si existen (tu entidad los tiene como opcionales)
+//       (toCreate as any).firstName = firstName || null;
+//       (toCreate as any).lastName = lastName || null;
 
-    const payload = {
-      sub: (user as any).id,
-      email: (user as any).email,
-      role: (user as any).role,
-    };
-    return this.jwtService.signAsync(payload);
-  }
-}
+//       user = (await this.authRepository.createUser(
+//         toCreate,
+//       )) as unknown as User;
+//     }
+
+//     // 4) emite tu JWT estándar
+//     const payload = {
+//       sub: (user as any).id,
+//       email: (user as any).email,
+//       role: (user as any).role,
+//     };
+//     return this.jwtService.signAsync(payload);
+//   }
+// }
+
+  

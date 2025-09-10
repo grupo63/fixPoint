@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Professional } from 'src/professional/entity/professional.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 
@@ -8,15 +9,29 @@ export class AuthRepository {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Professional)
+    private readonly professionalRepository: Repository<Professional>,
   ) {}
+  async createUser(userInput: Partial<User>) {
+    const newUser = await this.userRepository.save(userInput);
 
-  async createUser(user: Partial<User>) {
-    const newUser = await this.userRepository.save(user);
-    const dataBase = await this.userRepository.findOneBy({ id: newUser.id });
-    if (!dataBase) throw new Error('User not found after creation');
+    if (newUser.role?.toString().toUpperCase() === 'PROFESSIONAL') {
+      await this.professionalRepository.insert({
+        user: { id: newUser.id } as User,
+      });
+    }
+
     const { password, ...userWithoutPassword } = newUser;
     return userWithoutPassword;
   }
+
+  // async createUser(user: Partial<User>) {
+  //   const newUser = await this.userRepository.save(user);
+  //   const dataBase = await this.userRepository.findOneBy({ id: newUser.id });
+  //   if (!dataBase) throw new Error('User not found after creation');
+  //   const { password, ...userWithoutPassword } = newUser;
+  //   return userWithoutPassword;
+  // }
   async findByEmail(email: string) {
     return this.userRepository
       .createQueryBuilder('u')
