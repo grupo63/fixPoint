@@ -5,47 +5,42 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-
-export interface JwtUser {
-  sub?: string;
-  id?: string;
-  email: string;
-  role?: string;
-  roles?: string[];
-  iat?: number;
-  exp?: number;
-  _iatDate?: Date;
-  _expDate?: Date;
-}
+import { Observable } from 'rxjs';
+import { TemporaryRole } from 'src/users/types/temporary-role';
+import { Roles } from '../decorators/roles.decorator';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(private readonly jwt: JwtService) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  canActivate(
+    context: ExecutionContext,
+  ): boolean | Promise<boolean> | Observable<boolean> {
     const req = context.switchToHttp().getRequest();
-    const auth = req.headers['authorization'] as string | undefined;
+    const auth = req.headers.authorization?.split(' ')[1];
 
     if (!auth) throw new UnauthorizedException('No token sent');
 
-    const [type, token] = auth.split(' ');
-    if (type !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Invalid Authorization header');
-    }
-
     try {
-      const payload = this.jwt.verify<JwtUser>(token);
+      const secret = process.env.JWT_SECRET;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      const payload = this.jwt.verify(auth, { secret });
 
-      if (payload.iat) payload._iatDate = new Date(payload.iat * 1000);
-      if (payload.exp) payload._expDate = new Date(payload.exp * 1000);
+      payload.iat = payload.iat ? new Date(payload.iat * 1000) : null;
+      payload.exp = payload.exp ? new Date(payload.exp * 1000) : null;
 
-      const single = payload.role ? [payload.role] : [];
-      const arr = Array.isArray(payload.roles) ? payload.roles : single;
-
-      req.user = { ...payload, roles: arr } as JwtUser;
+      req.user = {
+        ...payload,
+        roles:
+          payload.role === TemporaryRole.ADMIN
+            ? [TemporaryRole.ADMIN]
+            : payload.role === TemporaryRole.PROFESSIONAL
+              ? [TemporaryRole.PROFESSIONAL]
+              : [TemporaryRole.USER],
+      };
 
       return true;
-    } catch (e: any) {
+    } catch (error) {
       throw new UnauthorizedException('Error validating token');
     }
   }

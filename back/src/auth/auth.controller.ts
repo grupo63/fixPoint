@@ -49,3 +49,4 @@ export class AuthController {
     return this.authService.signIn(email, password);
   }
 }
+

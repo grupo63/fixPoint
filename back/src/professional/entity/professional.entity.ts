@@ -1,7 +1,6 @@
-import { Available } from 'src/available/entity/available.entity';
+import {} from 'src/reservation/dto/create-reservation.dto';
 import { Reservation } from 'src/reservation/entities/reservation.entity';
 import { Review } from 'src/reviews/entities/review.entity';
-// import { reservationStatus, Review } from 'src/reviews/entities/review.entity';
 import { Service } from 'src/service/entities/service.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
@@ -54,6 +53,7 @@ export class Professional {
   @Column({
     type: 'int',
     default: 10,
+    nullable: false,
   })
   workingRadius: number;
 
@@ -87,8 +87,7 @@ export class Professional {
     name: 'userId',
   })
   user: User;
-
-  // @OneToMany(() => ProfessionalImg, (profImage) => ProfessionalImg.professional)
+// @OneToMany(() => ProfessionalImg, (profImage) => ProfessionalImg.professional)
   // professionalImg: ProfessionalImg[]; //recordar explicitar esta relacion en la tabla de profImage
 
   @OneToMany(() => Reservation, (reservation) => reservation.professional)
@@ -103,3 +102,4 @@ export class Professional {
   @OneToMany(() => Review, (rewiew) => rewiew.professional)
   reviews: Review[];
 }
+

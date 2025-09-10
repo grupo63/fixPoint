@@ -1,4 +1,4 @@
 import { SetMetadata } from '@nestjs/common';
+import { TemporaryRole } from 'src/users/types/temporary-role';
 
-export const ROLES_KEY = 'roles_required';
-export const Roles = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+export const Roles = (...roles: TemporaryRole[]) => SetMetadata('roles', roles);

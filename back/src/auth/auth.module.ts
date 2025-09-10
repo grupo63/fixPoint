@@ -23,7 +23,7 @@ import { Professional } from 'src/professional/entity/professional.entity';
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
         secret: cfg.get<string>('JWT_SECRET') ?? 'dev-secret',
-        signOptions: { expiresIn: cfg.get<string>('JWT_EXPIRES_IN') ?? '1d' },
+        signOptions: { expiresIn: cfg.get<string>('JWT_EXPIRES_IN') ?? '60m' },
       }),
     }),
     UsersModule,
