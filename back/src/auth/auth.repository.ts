@@ -17,8 +17,6 @@ export class AuthRepository {
     const { password, ...userWithoutPassword } = newUser;
     return userWithoutPassword;
   }
-
-  // [CHANGE] Trae también password para que signIn pueda comparar con bcrypt
   async findByEmail(email: string) {
     return this.userRepository
       .createQueryBuilder('u')

@@ -32,8 +32,8 @@ export class User {
   providerId: string | null;
 
   // [CHANGE] rol básico (arregla foundUser.role)
-  @Column({ type: 'varchar', length: 10, default: 'user' })
-  role: 'user' | 'admin';
+  @Column({ type: 'varchar', length: 20, default: 'user' })
+  role: 'user' | 'professional';
 
   @Column({ type: 'varchar', length: 60, nullable: true })
   firstName?: string;

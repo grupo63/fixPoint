@@ -1,13 +1,27 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto, LoginUserDto } from './dto/auth.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiResponse, ApiTags, ApiOperation } from '@nestjs/swagger';
+import { JwtAuthGuard } from './guards/auth.guards';
+import { UsersService } from 'src/users/users.service';
+import { Request } from '@nestjs/common';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UsersService,
+  ) {}
 
   @Post('signup')
   @ApiOperation({
@@ -61,6 +75,13 @@ export class AuthController {
   })
   async googleCallback(@Req() req, @Res() res) {
     const token = await this.authService.issueJwtFromOAuth(req.user);
-    return res.redirect(`${process.env.FRONT_URL}/oauth/success?token=${token}`);
+    return res.redirect(
+      `${process.env.FRONT_URL}/oauth/success?token=${token}`,
+    );
+  }
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  getProfile(@Request() req) {
+    return this.userService.getUserById(req.user.id);
   }
 }
