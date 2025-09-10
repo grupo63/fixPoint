@@ -11,10 +11,11 @@ import { User } from 'src/users/entities/user.entity';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { UsersService } from 'src/users/users.service';
 import { UsersModule } from 'src/users/users.module';
+import { Professional } from 'src/professional/entity/professional.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Professional]),
     ConfigModule,
     PassportModule.register({ session: false }), // [ADD]
     JwtModule.registerAsync({

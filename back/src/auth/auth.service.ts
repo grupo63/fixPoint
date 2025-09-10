@@ -92,66 +92,67 @@ export class AuthService {
   }
 
   // ---------- [ADD] Google/GitHub OAuth ----------
-  async issueJwtFromOAuth(oauthUser: {
-    email: string | null;
-    name: string;
-    provider: 'google' | 'github';
-    providerId: string;
-  }): Promise<string> {
-    if (!oauthUser.providerId) {
-      throw new BadRequestException('Invalid OAuth profile');
-    }
+  //   async issueJwtFromOAuth(oauthUser: {
+  //     email: string | null;
+  //     name: string;
+  //     provider: 'google' | 'github';
+  //     providerId: string;
+  //   }): Promise<string> {
+  //     if (!oauthUser.providerId) {
+  //       throw new BadRequestException('Invalid OAuth profile');
+  //     }
 
-    // 1) intenta por providerId
-    let user = await this.authRepository.findByProviderId(oauthUser.providerId);
+  //     // 1) intenta por providerId
+  //     let user = await this.authRepository.findByProviderId(oauthUser.providerId);
 
-    // 2) si no existe, intenta enlazar por email
-    if (!user && oauthUser.email) {
-      const byEmail = await this.authRepository.findByEmail(oauthUser.email);
-      if (byEmail) {
-        (byEmail as any).provider = oauthUser.provider;
-        (byEmail as any).providerId = oauthUser.providerId;
-        await this.authRepository.save(byEmail as any);
-        user = byEmail as any;
-      }
-    }
+  //     // 2) si no existe, intenta enlazar por email
+  //     if (!user && oauthUser.email) {
+  //       const byEmail = await this.authRepository.findByEmail(oauthUser.email);
+  //       if (byEmail) {
+  //         (byEmail as any).provider = oauthUser.provider;
+  //         (byEmail as any).providerId = oauthUser.providerId;
+  //         await this.authRepository.save(byEmail as any);
+  //         user = byEmail as any;
+  //       }
+  //     }
 
-    // 3) crear si no existe
-    if (!user) {
-      if (!oauthUser.email) {
-        throw new BadRequestException(
-          'Google no proporcionó un email para esta cuenta. No es posible crear el usuario.',
-        );
-      }
+  //     // 3) crear si no existe
+  //     if (!user) {
+  //       if (!oauthUser.email) {
+  //         throw new BadRequestException(
+  //           'Google no proporcionó un email para esta cuenta. No es posible crear el usuario.',
+  //         );
+  //       }
 
-      // separar "name" en firstName / lastName según tu entidad
-      const raw = oauthUser.name?.trim() ?? '';
-      const [firstName, ...restParts] = raw.length ? raw.split(/\s+/) : [''];
-      const lastName = restParts.length ? restParts.join(' ') : null;
+  //       // separar "name" en firstName / lastName según tu entidad
+  //       const raw = oauthUser.name?.trim() ?? '';
+  //       const [firstName, ...restParts] = raw.length ? raw.split(/\s+/) : [''];
+  //       const lastName = restParts.length ? restParts.join(' ') : null;
 
-      const toCreate: Partial<User> = {
-        email: oauthUser.email,
-        password: null, // usuarios OAuth no necesitan password
-        provider: oauthUser.provider,
-        providerId: oauthUser.providerId,
-        role: 'user', // [SAFE ROLE PATCH] rol seguro por defecto también en OAuth
-      };
+  //       const toCreate: Partial<User> = {
+  //         email: oauthUser.email,
+  //         password: null, // usuarios OAuth no necesitan password
+  //         provider: oauthUser.provider,
+  //         providerId: oauthUser.providerId,
+  //         role: 'user', // [SAFE ROLE PATCH] rol seguro por defecto también en OAuth
+  //       };
 
-      // añadir nombres si existen (tu entidad los tiene como opcionales)
-      (toCreate as any).firstName = firstName || null;
-      (toCreate as any).lastName = lastName || null;
+  //       // añadir nombres si existen (tu entidad los tiene como opcionales)
+  //       (toCreate as any).firstName = firstName || null;
+  //       (toCreate as any).lastName = lastName || null;
 
-      user = (await this.authRepository.createUser(
-        toCreate,
-      )) as unknown as User;
-    }
+  //       user = (await this.authRepository.createUser(
+  //         toCreate,
+  //       )) as unknown as User;
+  //     }
 
-    // 4) emite tu JWT estándar
-    const payload = {
-      sub: (user as any).id,
-      email: (user as any).email,
-      role: (user as any).role,
-    };
-    return this.jwtService.signAsync(payload);
-  }
+  //     // 4) emite tu JWT estándar
+  //     const payload = {
+  //       sub: (user as any).id,
+  //       email: (user as any).email,
+  //       role: (user as any).role,
+  //     };
+  //     return this.jwtService.signAsync(payload);
+  //   }
+  // }
 }
