@@ -52,3 +52,36 @@ export type Professional = {
   /** ✅ Relación con la tabla de usuario */
   user: IUser;
 };
+
+// export type ProfessionalResponse ={
+//   {
+//   id: string,
+//   speciality: Carpintero,
+//   aboutMe: carpineria,
+//   longitud: null,
+//   latitude: null,
+//   workingRadius: 10,
+//   location: Buenos AIRES,
+//   profileImg: https://tumayorferretero.net/22457-large_default/producto-generico.jpg,
+//   createdAt: 2025-09-09T23:14:20.214Z,
+//   isActive: true,
+//   user: {
+//     id: f9845db0-c998-4b09-980c-b0d8d16655e1,
+//     email: juan@example.com,
+//     provider: local,
+//     providerId: null,
+//     role: user,
+//     firstName: juan,
+//     lastName: castillo,
+//     birthDate: null,
+//     phone: null,
+//     address: san martin 2012,
+//     city: null,
+//     zipCode: null,
+//     isActive: true,
+//     profileImage: null,
+//     createdAt: 2025-09-08T15:02:10.815Z,
+//     updatedAt: 2025-09-08T15:02:10.815Z
+//   }
+// }
+// }

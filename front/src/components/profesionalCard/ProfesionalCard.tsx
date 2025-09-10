@@ -20,7 +20,7 @@ export function ProfessionalCard({ pro,  }: Props) {
       <div className="flex items-center gap-4">
         <img
           src={pro.profileImg ?? "/placeholder.png"}
-          alt={pro. ?? "Profesional"}
+          alt={ "Profesional"}
           className="h-16 w-16 rounded-full object-cover"
         />
         <div>
