@@ -6,8 +6,10 @@ import {
   UpdateDateColumn,
   OneToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Professional } from 'src/professional/entity/professional.entity';
+import { Review } from 'src/reviews/entities/review.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -68,4 +70,8 @@ export class User {
 
   @OneToOne(() => Professional, (professional) => professional.user)
   professional?: Professional;
+
+  //conecction of reviews and user
+  @OneToMany(() => Review, (review) => review.user)
+  reviews: Review[];
 }
