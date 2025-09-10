@@ -16,7 +16,6 @@ import { Review } from 'src/reviews/entities/review.entity';
 
 @Injectable()
 export class ReservationService {
-  reviewRepo: any;
   constructor(
     @InjectRepository(Reservation)
     private readonly reservationRepo: Repository<Reservation>,
@@ -26,6 +25,9 @@ export class ReservationService {
 
     @InjectRepository(Professional)
     private readonly professionalRepo: Repository<Professional>,
+
+    @InjectRepository(Review)
+    private readonly reviewRepo: Repository<Review>,
   ) {}
 
   async create(createDto: CreateReservationDto): Promise<Reservation> {
@@ -75,14 +77,22 @@ export class ReservationService {
   ): Promise<Reservation> {
     const reservation = await this.findOne(id);
 
-    Object.assign(reservation, {
-      ...updateDto,
-      ...(updateDto.userId && { user: { userId: updateDto.userId } as any }),
-      ...(updateDto.professionalId && {
-        professional: { pId: updateDto.professionalId } as any,
-      }),
-    });
+    if (updateDto.userId) {
+      const user = await this.userRepo.findOne({
+        where: { id: updateDto.userId },
+      });
+      if (!user) throw new NotFoundException('User not found');
+      reservation.user = user;
+    }
+    if (updateDto.professionalId) {
+      const professional = await this.professionalRepo.findOne({
+        where: { id: updateDto.professionalId },
+      });
+      if (!professional) throw new NotFoundException('Professional not found');
+      reservation.professional = professional;
+    }
 
+    Object.assign(reservation, updateDto);
     return await this.reservationRepo.save(reservation);
   }
 
@@ -92,7 +102,7 @@ export class ReservationService {
     return { message: 'Reservation delete succesfully' };
   }
 
-  async markAsReview(reservationId: string): Promise<void> {
+  async markAsReviewd(reservationId: string): Promise<void> {
     const reservation = await this.findOne(reservationId);
     reservation.wasReviewed = true;
     await this.reservationRepo.save(reservation);
@@ -103,7 +113,9 @@ export class ReservationService {
       where: { reservationId: dto.reservationId },
       relations: ['user', 'professional'],
     });
-    if (reservation?.status !== 'COMPLETED') {
+
+    if (!reservation) throw new NotFoundException('Reservation not found');
+    if (reservation.status !== 'COMPLETED') {
       throw new BadRequestException(
         'Only completed reservations can be reviewed',
       );
@@ -117,15 +129,17 @@ export class ReservationService {
       throw new ForbiddenException('You can only review your own reservations');
     }
 
-    const review = this.markAsReview.arguments({
-      ...dto,
+    const review = this.reviewRepo.create({
+      rate: dto.rate,
+      commentary: dto.commentary,
+      date: new Date(),
       user: reservation.user,
       professional: reservation.professional,
       reservation,
     });
 
     await this.reviewRepo.save(review);
-    await this.markAsReview(dto.reservationId);
+    await this.markAsReviewd(dto.reservationId);
 
     return review;
   }
