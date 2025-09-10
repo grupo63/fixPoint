@@ -1,26 +1,26 @@
 import { getProfessionalById } from "@/services/getProfessionalsById";
-import { routes } from "@/routes";
 import { ProfessionalCard } from "@/components/profesionalCard/ProfesionalCard";
-import { redirect } from "next/navigation";
 
-// 🔧 Ajustamos los params esperados
-type Params = { id: string }; // ← el nombre del archivo debe ser [id].tsx
+type Props = {
+  params: {
+    id: string;
+  };
+};
 
-export default async function Page({ params }: { params: Params }) {
-  const { id } = params;
-
-  // ✅ Hacemos fetch al profesional
+export default async function Page({ params }: Props) {
+  const  {id}= params;
+console.log(id)
   const professional = await getProfessionalById(id);
 
-  // 🚨 Si no existe, redirigimos
+  console.log("ahahahahah", professional)
+
   if (!professional) {
-    // return redirect(routes.home);
-    alert ("No hay proffesiopnels")
+    return <p>No se encontró el profesional.</p>;
   }
-console.log("Recibido slug ID:", id);
+
   return (
     <div className="flex justify-center items-center h-full">
-      <ProfessionalCard  />
+      <ProfessionalCard key={professional.id} pro={professional} />
     </div>
   );
 }

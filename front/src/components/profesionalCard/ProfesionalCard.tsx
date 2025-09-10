@@ -41,16 +41,13 @@ export function ProfessionalCard({ pro }: Props) {
       {/* 👉 Botón "Ver" */}
       <div className="mt-4 flex justify-end">
         
-        <Link
-        
-  href={routes.profesionalDetail(pro.userId)}
+    <Link
+  href={routes.profesionalDetail(pro.id)}
   className="text-sm text-white bg-blue-600 hover:bg-blue-700 px-4 py-1 rounded"
 >
   Ver
-  
-</Link >
-
-      </div>
+</Link>
+      </div> 
     </article>
   );
 }

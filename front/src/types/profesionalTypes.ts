@@ -2,7 +2,7 @@ import { Key } from "react";
 
 export type Professional = {
   name: string;
-  Id: string;
+  id: string;
   userId: string;
   speciality: string;
   aboutMe?: string | null;
