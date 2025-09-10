@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ProfessionalRepository } from './professional.repository';
-import { CreateProfessionalDto } from './dto/createProfessional.dto';
-import { Professional } from './entity/professional.entity';
 import { UpdateProfessionalDto } from './dto/updateProfessional.dto';
 
 @Injectable()
@@ -17,12 +15,6 @@ export class ProfessionalService {
     return this.professionalRepository.getProfessionalById(id);
   }
 
-  async createProfessional(
-    userId: string,
-    professional: CreateProfessionalDto,
-  ) {
-    return this.professionalRepository.createProfessional(userId, professional);
-  }
   async updateProfessional(id: string, dto: UpdateProfessionalDto) {
     return this.professionalRepository.updateProfessional(id, dto);
   }

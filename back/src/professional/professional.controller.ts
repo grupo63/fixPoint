@@ -9,7 +9,6 @@ import {
   Query,
 } from '@nestjs/common';
 import { ProfessionalService } from './professional.service';
-import { CreateProfessionalDto } from './dto/createProfessional.dto';
 import { UpdateProfessionalDto } from './dto/updateProfessional.dto';
 import {
   ApiBody,
@@ -87,42 +86,6 @@ export class ProfessionalController {
     return this.professionalService.getProfessionalById(id);
   }
 
-  @Post(':userId')
-  @ApiOperation({
-    summary: 'Create a new professional',
-    description:
-      'Creates a professional profile linked to an existing user. The professional details are provided in the request body.',
-  })
-  @ApiParam({
-    name: 'userId',
-    description:
-      'UUID of the user who will be associated with the professional profile',
-    type: String,
-  })
-  @ApiBody({
-    type: CreateProfessionalDto,
-    description: 'Professional profile data',
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Professional successfully created',
-    type: Professional,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid input data',
-  })
-  async createProfessional(
-    @Param('userId') userId: string,
-    @Body() professional: CreateProfessionalDto,
-  ) {
-    return this.professionalService.createProfessional(userId, professional);
-  }
-
   @Put(':id')
   @ApiOperation({
     summary: 'Update a professional profile',
@@ -158,7 +121,6 @@ export class ProfessionalController {
     return this.professionalService.updateProfessional(id, dto);
   }
 
-  @Put(':id/deactivate')
   @Put(':id/deactivate')
   @ApiOperation({
     summary: 'Deactivate a professional profile',

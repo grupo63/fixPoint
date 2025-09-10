@@ -11,6 +11,7 @@ import {
 import { UploadImgService } from './upload-img.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ApiBody,
   ApiConsumes,
   ApiOperation,
   ApiParam,
@@ -36,6 +37,17 @@ export class UploadImgController {
     example: '7e6e4e3d-2b2f-4d5c-9e5f-12a2b3c4d5e6',
   })
   @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: 200,
     description:
@@ -51,7 +63,7 @@ export class UploadImgController {
   })
   @ApiResponse({ status: 404, description: 'Professional not found' })
   @UseInterceptors(FileInterceptor('file'))
-  async uploadProfileImg(
+  async uploadImage(
     @Param('id') id: string,
     @UploadedFile(
       new ParseFilePipe({
@@ -68,6 +80,6 @@ export class UploadImgController {
     )
     file: Express.Multer.File,
   ) {
-    return this.uploadImgService.uploadProfileImg(file, id);
+    return this.uploadImgService.uploadImage(file, id);
   }
 }
