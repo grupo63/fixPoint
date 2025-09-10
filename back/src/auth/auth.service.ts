@@ -43,6 +43,30 @@ export class AuthService {
     return created;
   }
 
+  // async signUp(user: Partial<User>) {
+  //   // [SAFE ROLE PATCH] aceptar 'role' pero ignorarlo
+  //   const { email, password, role: _ignoredRole, ...rest } = user as any;
+
+  //   if (!email || !password) {
+  //     throw new BadRequestException('Email and password are required');
+  //   }
+
+  //   const exists = await this.authRepository.findByEmail(email);
+  //   if (exists) throw new ConflictException('Email already registered');
+
+  //   const passwordHash = await bcrypt.hash(password, 12);
+
+  //   // [SAFE ROLE PATCH] forzar rol seguro por backend
+  //   const created = await this.authRepository.createUser({
+  //     email,
+  //     password: passwordHash,
+  //     role: 'user', // nunca confiamos en el body
+  //     ...rest,
+  //   });
+
+  //   return created;
+  // }
+
   async signIn(email: string, password: string) {
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');

@@ -26,7 +26,7 @@ export class Professional {
     length: 50,
     nullable: true,
   })
-  speciality: string;
+  speciality?: string;
 
   @Column({
     type: 'text',
@@ -87,20 +87,19 @@ export class Professional {
     name: 'userId',
   })
   user: User;
-
-  // @OneToMany(() => ProfessionalImg, (profImage) => ProfessionalImg.professional)
+// @OneToMany(() => ProfessionalImg, (profImage) => ProfessionalImg.professional)
   // professionalImg: ProfessionalImg[]; //recordar explicitar esta relacion en la tabla de profImage
 
-  // @OneToMany(() => Available, (available) => available.professional)
-  // available: Available[];
+  @OneToMany(() => Reservation, (reservation) => reservation.professional)
+  reservation: Reservation[];
+
+  @OneToMany(() => Available, (available) => available.professional)
+  available: Available[];
 
   @OneToMany(() => Service, (service) => service.professional)
   service: Service[];
 
-  // Relacion con entity review
   @OneToMany(() => Review, (rewiew) => rewiew.professional)
   reviews: Review[];
-
-  @OneToMany(() => Reservation, (reservation) => reservation.professional)
-  reservation: Reservation[];
 }
+
