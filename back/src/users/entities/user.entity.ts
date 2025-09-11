@@ -49,6 +49,9 @@ export class User {
   phone?: string;
 
   @Column({ type: 'varchar', length: 120, nullable: true })
+  country?: string;
+
+  @Column({ type: 'varchar', length: 120, nullable: true })
   address?: string;
 
   @Column({ type: 'varchar', length: 80, nullable: true })

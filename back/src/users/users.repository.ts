@@ -6,6 +6,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
+import { parsePhoneNumberFromString, CountryCode } from 'libphonenumber-js';
+import { UpdateUserDTO } from './dto/users.dto';
+import * as countryCodeLookup from 'country-code-lookup';
 
 @Injectable()
 export class UserRepository {
@@ -13,6 +16,26 @@ export class UserRepository {
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {}
+
+  private getCountryCode(input: string): CountryCode {
+    if (!input) throw new BadRequestException('Country input is required');
+
+    const normalizedInput = input.toLowerCase().trim();
+
+    const countryData =
+      countryCodeLookup.byCountry(input) ||
+      countryCodeLookup.byIso(input) ||
+      countryCodeLookup.countries.find(
+        (country) =>
+          country.country.toLowerCase() === normalizedInput ||
+          country.iso2.toLowerCase() === normalizedInput ||
+          country.iso3.toLowerCase() === normalizedInput,
+      );
+    if (!countryData || !countryData.iso2)
+      throw new BadRequestException(`Invalid country: ${input}`);
+
+    return countryData.iso2 as CountryCode;
+  }
 
   async signUp(user: Partial<User>) {
     const newUser = await this.userRepository.save(user);
@@ -47,13 +70,52 @@ export class UserRepository {
     return this.userRepository.save(user);
   }
 
-  async updateUser(id: string, user: Partial<User>) {
-    await this.userRepository.update(id, user);
-    const updateUser = await this.userRepository.findOneBy({ id });
-    if (!updateUser)
-      throw new NotFoundException(`User whit id ${id} not found`);
+  async updateUser(userId: string, user: UpdateUserDTO) {
+    const foundUser = await this.userRepository.findOneBy({ id: userId });
+    if (!foundUser)
+      throw new NotFoundException(`User whit id ${userId} not found`);
 
-    const { password, role, ...filteredData } = updateUser;
+    if (!foundUser)
+      throw new NotFoundException(`User whith id ${userId} not found`);
+
+    if (user.phone) {
+      const country = user.country || foundUser.country || '';
+
+      if (!country)
+        throw new BadRequestException(
+          'Country is required for phone validation',
+        );
+
+      try {
+        const countryCode = this.getCountryCode(country);
+        const phoneNumber = parsePhoneNumberFromString(user.phone, countryCode);
+
+        if (!phoneNumber || !phoneNumber.isValid())
+          throw new BadRequestException(
+            'Invalid phone number for the selected country',
+          );
+
+        user.phone = phoneNumber.formatInternational();
+        user.country = countryCode;
+      } catch (error) {
+        if (error instanceof BadRequestException) throw error;
+
+        throw new BadRequestException('Failed to validate phone number');
+      }
+    }
+
+    await this.userRepository.update(userId, {
+      ...user,
+      updatedAt: new Date(),
+    });
+
+    const updatedUser = await this.userRepository.findOneBy({ id: userId });
+    if (!updatedUser)
+      throw new NotFoundException(
+        `User whith id ${userId} not found after update`,
+      );
+
+    const { password, role, ...filteredData } = updatedUser;
     return filteredData;
   }
 
@@ -98,8 +160,4 @@ export class UserRepository {
     const { password, role, ...filteredData } = updatedUser;
     return filteredData;
   }
-
-  // async getUserByEmailAuth(email: string) {
-  //   return this.userRepository.findOneBy({ email });
-  // }
 }

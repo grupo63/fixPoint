@@ -34,6 +34,8 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "cloudinary": "^1.41.3",
+    "country-code-lookup": "^0.1.3",
+    "libphonenumber-js": "^1.12.15",
     "multer-storage-cloudinary": "^4.0.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
