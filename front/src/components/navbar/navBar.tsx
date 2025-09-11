@@ -6,24 +6,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { navLinks } from "./navLinks";
 import { routes } from "@/routes";
 import { useAuth } from "@/context/AuthContext";
+import SearchBar from "@/components/searchBar/searchBar";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
-  
-  const [query, setQuery] = useState("");
-
-  // auth
   const { isAuthenticated, logout } = useAuth();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      router.push(`/search?query=${encodeURIComponent(query)}`);
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -51,7 +41,9 @@ export default function Navbar() {
                   <Link
                     href={l.href}
                     className={`text-sm transition-colors ${
-                      active ? "text-blue-600 font-medium" : "text-gray-600 hover:text-blue-600"
+                      active
+                        ? "text-blue-600 font-medium"
+                        : "text-gray-600 hover:text-blue-600"
                     }`}
                   >
                     {l.label}
@@ -61,25 +53,18 @@ export default function Navbar() {
             })}
           </ul>
 
-     
-
-
-          {/* <form onSubmit={handleSearch} className="ml-4">
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar Profesional…"
-              className="w-40 lg:w-64 rounded-md border border-gray-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </form> */}
+          {/* 👉 Search bar */}
+          <SearchBar />
         </div>
 
         {/* Right: acciones (desktop) */}
         <div className="hidden md:flex items-center gap-4">
           {!isAuthenticated ? (
             <>
-              <Link href={routes.signin} className="text-sm text-gray-700 hover:text-blue-600">
+              <Link
+                href={routes.signin}
+                className="text-sm text-gray-700 hover:text-blue-600"
+              >
                 Ingresar
               </Link>
               <Link
@@ -96,9 +81,17 @@ export default function Navbar() {
                 className="flex items-center gap-2 text-sm text-gray-700 hover:text-blue-600"
                 title="Mi perfil"
               >
-                {/* ícono simple de usuario (SVG inline) */}
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z" stroke="currentColor" strokeWidth="1.5" />
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
                 </svg>
                 Perfil
               </Link>
@@ -118,11 +111,24 @@ export default function Navbar() {
           className="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 md:hidden"
           aria-label="Abrir menú"
         >
-          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <svg
+            className="h-6 w-6"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
             {open ? (
-              <path strokeWidth="1.5" strokeLinecap="round" d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             ) : (
-              <path strokeWidth="1.5" strokeLinecap="round" d="M3 6h18M3 12h18M3 18h18" />
+              <path
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                d="M3 6h18M3 12h18M3 18h18"
+              />
             )}
           </svg>
         </button>

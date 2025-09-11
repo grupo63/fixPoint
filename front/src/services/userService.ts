@@ -1,4 +1,4 @@
-// src/services/userServiceClient.ts
+
 "use client";
 
 import { apiUrl } from "@/lib/apiUrl";

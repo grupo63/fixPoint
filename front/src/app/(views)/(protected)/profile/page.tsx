@@ -14,22 +14,21 @@ export default function ProfilePage() {
   if (!user) return <p>Cargando…</p>;
 
   return (
-    <div>
-      {/* <h2>Hola, {user.name}</h2>
-      <p>Email: {user.email}</p>
-      <p></p> */}
-<ProfileSummary user={{
-        id:user.userId ,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        city: user.city,
-        address: user.address,
-        zipCode: user.zipCode,
-        registrationDate: user.registrationDate,
-        profileImg: user.profileImg
-      }}/>
+    <div className="mt-16 flex justify-center">
+      <ProfileSummary
+        user={{
+          id: user.userId,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          phone: user.phone,
+          city: user.city,
+          address: user.address,
+          zipCode: user.zipCode,
+          registrationDate: user.registrationDate,
+          profileImg: user.profileImg,
+        }}
+      />
     </div>
   );
 }
