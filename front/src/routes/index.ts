@@ -35,11 +35,15 @@ export const routes = {
   register: "/register",
   profesionales: "/professionals",
   profile: "/profile",
+  profile_information: "/profile/information",
+    profile_account_edit: "/profile/accountEdit",
   profesionalDetail: (id: string) => `/professionalDetail/${id}`,
   como_funciona: "/como-funciona",
   ayuda: "/ayuda",
   contacto: "/contact", 
   servicios: "services",
+ 
+
 
 
   admin: "/admin",

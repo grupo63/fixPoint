@@ -1,5 +1,7 @@
 "use client";
+import { routes } from "@/routes";
 import type { IUser } from "@/types/types";
+import Link from "next/link";
 
 type Props = { user: IUser };
 
@@ -17,7 +19,6 @@ export default function ProfileSummary({ user }: Props) {
   const {
     name,
     email,
-    role,
     phone,
     city,
     address,
@@ -27,63 +28,54 @@ export default function ProfileSummary({ user }: Props) {
   } = user;
 
   return (
-    <section className="max-w-3xl mx-auto bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white rounded-3xl p-10 shadow-2xl space-y-8">
-      {/* Cabecera */}
-      <header className="flex items-center gap-6 border-b border-blue-500/40 pb-6">
-        <div className="h-28 w-28 rounded-full overflow-hidden bg-blue-500 border-4 border-white shadow-lg shrink-0">
-          {profileImg ? (
-            <img
-              src={profileImg}
-              alt={name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="h-full w-full grid place-items-center text-sm text-blue-200">
-              Sin foto
-            </div>
-          )}
-        </div>
-        <div>
-          <h2 className="text-4xl font-extrabold tracking-tight drop-shadow-md">
-            {name}
-          </h2>
-          <p className="text-lg text-blue-200">{email}</p>
-          <p className="text-sm text-blue-300 italic">Rol: {role}</p>
-          <p className="text-sm text-blue-300">
+    <section className="max-w-5xl mx-auto p-6">
+      <div className="grid md:grid-cols-3 gap-8 items-start justify-center">
+        {/* Columna izquierda - Perfil */}
+        <aside className="col-span-1 bg-white rounded-2xl shadow-md p-6 flex flex-col items-center text-center">
+          <div className="h-32 w-32 rounded-full overflow-hidden bg-blue-100 border-4 border-blue-500 shadow-md mb-4">
+            {profileImg ? (
+              <img
+                src={profileImg}
+                alt={name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="h-full w-full grid place-items-center text-sm text-blue-500">
+                Sin foto
+              </div>
+            )}
+          </div>
+
+          <h2 className="text-xl font-bold text-blue-700">{name}</h2>
+          <p className="text-sm text-gray-500">{email}</p>
+          <p className="text-xs text-gray-400 mt-1">
             Miembro desde: {formatMemberSince(registrationDate)}
           </p>
-        </div>
-      </header>
 
-      {/* Info en dos columnas con estilo "cards" */}
-      <div className="grid sm:grid-cols-2 gap-6">
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-500/20">
-          <h3 className="font-semibold text-xl mb-3 text-blue-100">
-            Contacto
-          </h3>
-          <p className="text-base">
-            <span className="font-medium">Teléfono:</span> {phone ?? "—"}
-          </p>
-          <p className="text-base">
-            <span className="font-medium">Email:</span> {email}
-          </p>
-        </div>
+          <button className="mt-6 bg-blue-600 text-white px-5 py-2 rounded-xl text-sm shadow hover:bg-blue-700 transition">
+            Subir foto
+          </button>
+        </aside>
 
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-blue-500/20">
-          <h3 className="font-semibold text-xl mb-3 text-blue-100">
-            Ubicación
-          </h3>
-          <p className="text-base">
-            <span className="font-medium">Ciudad:</span> {city ?? "—"}
-          </p>
-          <p className="text-base">
-            <span className="font-medium">Dirección:</span> {address ?? "—"}
-          </p>
-          <p className="text-base">
-            <span className="font-medium">Código Postal:</span>{" "}
-            {zipCode ?? "—"}
-          </p>
-        </div>
+        {/* Columna derecha - Configuración */}
+        <main className="col-span-2 flex flex-col gap-6">
+          <Link href={routes.profile_information}>
+            <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer text-center md:text-left">
+              <h3 className="font-semibold text-gray-700">
+                Configuraciones de la cuenta
+              </h3>
+              <p className="text-sm text-gray-500">
+                Editar tu nombre, correo y contraseña.
+              </p>
+            </div>
+          </Link>
+
+          
+
+          <div className="bg-red-50 rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer text-center md:text-left">
+            <h3 className="font-semibold text-red-600">Cerrar sesión</h3>
+          </div>
+        </main>
       </div>
     </section>
   );

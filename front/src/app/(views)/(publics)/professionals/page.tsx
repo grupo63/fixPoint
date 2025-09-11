@@ -16,9 +16,9 @@ export default async function ProfessionalsPage() {
         <h1 className="text-3xl md:text-4xl font-extrabold text-blue-900">
           Conectá con el profesional ideal
         </h1>
-        <p className="text-blue-700 mt-2 text-base md:text-lg">
-          Encontrá plomeros, electricistas, carpinteros y más — todos verificados y listos para ayudarte.
-        </p>
+ <p className="mt-4 bg-white border border-blue-600 text-blue-700 text-lg md:text-xl px-6 py-3 rounded-xl shadow-md text-center">
+  Encontrá plomeros, electricistas, carpinteros y más — todos verificados y listos para ayudarte.
+</p>
       </div>
       <div>
 
