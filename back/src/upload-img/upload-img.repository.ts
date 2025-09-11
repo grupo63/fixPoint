@@ -1,29 +1,48 @@
 import { Injectable } from '@nestjs/common';
-import { UploadApiResponse, v2 } from 'cloudinary';
-import toStream = require('buffer-to-stream');
+import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
+import { Readable } from 'stream';
 
 @Injectable()
 export class UploadImgRepository {
-  async uploadImage(
-    file: Express.Multer.File,
-    folder?: string,
-  ): Promise<UploadApiResponse> {
+  constructor() {
+    // Usa CLOUDINARY_URL si está; si no, usa las 3 variables separadas
+    if (process.env.CLOUDINARY_URL) {
+      // Toma cloud_name, api_key y api_secret de CLOUDINARY_URL
+      cloudinary.config({ secure: true });
+    } else {
+      cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+        secure: true,
+      });
+    }
+
+    const cfg = cloudinary.config();
+    if (!cfg.cloud_name || !cfg.api_key || !cfg.api_secret) {
+      // No frenamos la app, pero avisamos en consola
+      // eslint-disable-next-line no-console
+      console.warn('[Cloudinary] Faltan credenciales CLOUDINARY_* o CLOUDINARY_URL en .env');
+    }
+  }
+
+  uploadImage(file: Express.Multer.File, folder = 'uploads'): Promise<UploadApiResponse> {
     return new Promise((resolve, reject) => {
-      const upload = v2.uploader.upload_stream(
+      const upload = cloudinary.uploader.upload_stream(
         {
-          resource_type: 'auto',
-          folder: folder || 'uploads',
+          resource_type: 'image',           // solo imágenes (tu pipe ya valida mime)
+          folder,                           // ej: 'professionals/<id>/profile'
+          overwrite: true,
           transformation: [{ width: 500, height: 500, crop: 'limit' }],
         },
-        (error, result) => {
-          if (error || !result) {
-            reject(error || new Error('upload result is undefined'));
-          } else {
-            resolve(result);
-          }
-        },
+        (err, res) => {
+          if (err || !res) return reject(err || new Error('upload result is undefined'));
+          resolve(res as UploadApiResponse);
+        }
       );
-      toStream(file.buffer).pipe(upload);
+
+      // Subimos desde memoria (usa file.buffer del FileInterceptor)
+      Readable.from(file.buffer).pipe(upload);
     });
   }
 }
