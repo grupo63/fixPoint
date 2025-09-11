@@ -1,3 +1,4 @@
+import { Available } from 'src/available/entity/available.entity';
 import {} from 'src/reservation/dto/create-reservation.dto';
 import { Reservation } from 'src/reservation/entities/reservation.entity';
 import { Review } from 'src/reviews/entities/review.entity';
@@ -90,8 +91,8 @@ export class Professional {
   // @OneToMany(() => ProfessionalImg, (profImage) => ProfessionalImg.professional)
   // professionalImg: ProfessionalImg[]; //recordar explicitar esta relacion en la tabla de profImage
 
-  // @OneToMany(() => Available, (available) => available.professional)
-  // available: Available[];
+  @OneToMany(() => Available, (available) => available.professional)
+  available: Available[];
 
   @OneToMany(() => Service, (service) => service.professional)
   service: Service[];
