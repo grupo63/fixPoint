@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 import { Professional } from 'src/professional/entity/professional.entity';
 
 export enum ReservationStatusEnum {
-  PENDING = 'PENDINGending',
+  PENDING = 'PENDING',
   COMPLETED = 'COMPLETED',
   CANCELED = 'CANCELED',
 }
