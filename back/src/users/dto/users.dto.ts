@@ -8,12 +8,14 @@ import {
   MaxLength,
   MinLength,
   IsNotEmpty,
+  IsStrongPassword,
+  IsISO31661Alpha2,
 } from 'class-validator';
 
 export class UpdateUserDTO {
   @ApiProperty({
-    description: 'User full name',
-    example: 'Juan Perez',
+    description: 'User first name',
+    example: 'Juan',
     maxLength: 50,
     required: false,
   })
@@ -21,7 +23,19 @@ export class UpdateUserDTO {
   @IsString()
   @MinLength(3)
   @MaxLength(50)
-  name?: string;
+  firstName?: string;
+
+  @ApiProperty({
+    description: 'User last name',
+    example: 'Perez',
+    maxLength: 50,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(50)
+  lastName?: string;
 
   @ApiProperty({
     description: 'User email adress',
@@ -34,19 +48,12 @@ export class UpdateUserDTO {
   @MaxLength(50)
   email?: string;
 
-  @ApiProperty({
-    description: 'User password',
-    example: 'Password123!',
-    minLength: 8,
-    maxLength: 20,
-    required: false,
-  })
   @IsOptional()
-  @IsString()
-  @Matches(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*?])[A-Za-z\d!@#$%^&*?]+$/,
+  @IsStrongPassword(
+    { minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 },
     {
-      message: 'Contraseña debil',
+      message:
+        'La contraseña debe tener al menos una minúscula, una mayúscula, un número y un simbolo (@, _, -, !).',
     },
   )
   @MinLength(8)
@@ -64,6 +71,15 @@ export class UpdateUserDTO {
   @MaxLength(20)
   @Matches(/^\d+$/, { message: 'El teléfono debe contener solo dígitos' })
   phone?: string;
+
+  @ApiProperty({
+    description: 'User country (ISO Alpha-2 code)',
+    example: 'AR',
+    required: false,
+  })
+  @IsOptional()
+  @IsISO31661Alpha2()
+  country?: string;
 
   @ApiProperty({
     description: 'User adress',

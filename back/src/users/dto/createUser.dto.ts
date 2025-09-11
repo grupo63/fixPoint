@@ -1,4 +1,13 @@
-import { IsNotEmpty, IsString, MinLength, MaxLength, IsEmail, IsOptional, IsStrongPassword, IsEnum } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsEmail,
+  IsOptional,
+  IsStrongPassword,
+  IsEnum,
+} from 'class-validator';
 import { TemporaryRole } from '../types/temporary-role';
 
 export class CreateUserDto {
@@ -19,7 +28,10 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsStrongPassword(
     { minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 },
-    { message: 'La contraseña debe tener al menos una minúscula, una mayúscula, un número y un simbolo (@, _, -, !).' },
+    {
+      message:
+        'La contraseña debe tener al menos una minúscula, una mayúscula, un número y un simbolo (@, _, -, !).',
+    },
   )
   @MinLength(8)
   @MaxLength(20)
