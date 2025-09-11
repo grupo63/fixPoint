@@ -1,64 +1,45 @@
+// front/src/components/searchBar.tsx
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-
-const categories = [
-  { value: "", label: "Todas las categorías" },
-  { value: "plomero", label: "Plomero" },
-  { value: "electricista", label: "Electricista" },
-  { value: "carpintero", label: "Carpintero" },
-  // 👉 Podés traer esto de la DB en lugar de hardcodearlo
-];
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState, useTransition } from "react";
 
 export default function SearchBar() {
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("");
   const router = useRouter();
+  const params = useSearchParams();
+  const initialQ = params.get("q") ?? "";
+  const [q, setQ] = useState(initialQ);
+  const [isPending, startTransition] = useTransition();
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
-    if (query.trim()) params.set("query", query.trim());
-    if (category) params.set("category", category);
+  // Opcional: debounce para evitar push por cada tecla
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const usp = new URLSearchParams(params.toString());
+      if (q) usp.set("q", q);
+      else usp.delete("q");
+      // Reiniciar paginación si la tuvieras
+      usp.set("page", "1");
 
-    router.push(`/professionals?${params.toString()}`);
-  };
+      startTransition(() => {
+        router.push(`/professionals?${usp.toString()}`);
+      });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <form
-      onSubmit={handleSearch}
-      className="flex items-center gap-2 w-full max-w-lg"
-    >
-      {/* Texto */}
+    <div className="w-full max-w-2xl">
+      <label className="sr-only" htmlFor="search">Buscar profesionales</label>
       <input
-        type="search"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Buscar profesional…"
-        className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+        id="search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Buscar por nombre, oficio o ubicación..."
+        className="w-full rounded-xl border px-4 py-3 shadow-sm outline-none focus:ring-2"
       />
-
-      {/* Categoría */}
-      <select
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-        className="rounded-full border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        {categories.map((c) => (
-          <option key={c.value} value={c.value}>
-            {c.label}
-          </option>
-        ))}
-      </select>
-
-      {/* Botón */}
-      <button
-        type="submit"
-        className="px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
-      >
-        Buscar
-      </button>
-    </form>
+      {isPending && (
+        <p className="text-sm text-gray-500 mt-1">Buscando…</p>
+      )}
+    </div>
   );
 }

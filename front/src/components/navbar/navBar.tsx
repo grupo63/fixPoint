@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { navLinks } from "./navLinks";
 import { routes } from "@/routes";
 import { useAuth } from "@/context/AuthContext";
-import SearchBar from "@/components/searchBar/searchBar";
+
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -53,8 +53,7 @@ export default function Navbar() {
             })}
           </ul>
 
-          {/* 👉 Search bar */}
-          <SearchBar />
+       
         </div>
 
         {/* Right: acciones (desktop) */}
