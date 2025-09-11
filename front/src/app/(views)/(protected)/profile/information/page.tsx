@@ -16,12 +16,12 @@ export default function AccountSettingsPage() {
           >
             Cuenta
           </Link>
-          <Link
+          {/* <Link
             href="#"
             className="block rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 transition"
           >
             Notificaciones
-          </Link>
+          </Link> */}
         </nav>
       </aside>
 
