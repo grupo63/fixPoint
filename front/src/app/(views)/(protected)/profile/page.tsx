@@ -18,11 +18,7 @@ export default function ProfilePage() {
   if (!user) return <p>Cargando…</p>;
 
   return (
-<<<<<<< HEAD
-    <div className="mt-16 flex justify-center">
-=======
     <div className="mx-auto max-w-4xl p-4 space-y-8">
->>>>>>> ed6b0f5cca9e33d7489849c41855f447136fe76f
       <ProfileSummary
         user={{
           id: user.userId,
@@ -34,11 +30,6 @@ export default function ProfilePage() {
           address: user.address,
           zipCode: user.zipCode,
           registrationDate: user.registrationDate,
-<<<<<<< HEAD
-          profileImg: user.profileImg,
-        }}
-      />
-=======
           // prioriza la del Professional si existe
           profileImg: uploader.pro?.profileImg ?? user.profileImg,
         }}
@@ -56,15 +47,7 @@ export default function ProfilePage() {
         upload={uploader.upload}
         token={uploader.token}
       />
->>>>>>> ed6b0f5cca9e33d7489849c41855f447136fe76f
     </div>
   );
 }
-//Compatibilidad 1:1 con tu lógica actual (mismos endpoints y almacenamiento en localStorage).
-
-//Si en el futuro resolvés el professionalId automáticamente (por ejemplo, pidiendo /professional/me), solo tendrías que actualizar el hook.
-
-//ProfessionalImageUploader es presentacional: recibe todo por props y no conoce detalles del fetch.
-
-//Si querés tests, el hook quedó fácil de testear (mockeando fetchProfessionalById y uploadProfessionalProfileImageXHR).
 

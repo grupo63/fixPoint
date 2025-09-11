@@ -24,7 +24,7 @@ const benefits = [
 
 export default function Home() {
   return (
-    <main className="flex justify-center items-center h-screen p-10 bg-gray-50">
+    <main className="flex justify-center items-center h-screen p-10 bg-blue-50">
       <div className="flex items-center gap-12 w-full justify-between max-w-7xl mx-auto">
         {/* Tarjetas animadas */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

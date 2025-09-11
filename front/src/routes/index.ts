@@ -39,6 +39,7 @@ export const routes = {
   como_funciona: "/como-funciona",
   ayuda: "/ayuda",
   contacto: "/contact", 
+  servicios: "services",
 
 
   admin: "/admin",

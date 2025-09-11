@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { navLinks } from "./navLinks";
 import { routes } from "@/routes";
 import { useAuth } from "@/context/AuthContext";
-
+import SearchBar from "@/components/searchBar/searchBar"; // 🚩 importada
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -53,7 +53,10 @@ export default function Navbar() {
             })}
           </ul>
 
-       
+          {/* SearchBar en desktop */}
+          <div className="w-64">
+            <SearchBar />
+          </div>
         </div>
 
         {/* Right: acciones (desktop) */}
@@ -136,7 +139,10 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="border-t bg-white md:hidden">
-          <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-3">
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3">
+            {/* SearchBar en mobile */}
+            <SearchBar />
+
             {navLinks.map((l) => (
               <Link
                 key={l.href}

@@ -11,39 +11,35 @@ type Props = {
 
 export function ProfessionalCard({ pro }: Props) {
   return (
-    <article className="bg-blue-700 border border-blue-800 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 w-full max-w-2xl">
-      {/* Cabecera con foto y datos */}
-      <div className="flex items-center gap-6">
+    <div className="rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
+      {/* Parte superior: azul suave con foto */}
+      <div className="flex flex-col items-center p-6 bg-blue-50">
         <img
           src={pro.profileImg ?? "/placeholder.png"}
-          alt={"Profesional"}
-          className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-md"
+          alt="Profesional"
+          className="h-28 w-28 rounded-full object-cover border-4 border-white shadow-md"
         />
-        <div>
-          <h2 className="text-2xl font-extrabold text-white tracking-tight">
-            {pro.user.firstName}
-          </h2>
-          <p className="text-lg text-blue-200">{pro.speciality}</p>
-          <p className="text-md text-blue-300">
-            {pro.location ?? "Ubicación no disponible"}
-          </p>
-        </div>
+        <h2 className="mt-4 text-xl font-bold text-blue-600">
+          {pro.user.firstName}
+        </h2>
+        <p className="text-sm text-gray-700">{pro.speciality}</p>
+        <p className="text-sm text-gray-500">
+          {pro.location ?? "Ubicación no disponible"}
+        </p>
       </div>
 
-      {/* Descripción */}
-      <div className="mt-6 text-base text-blue-100 leading-relaxed">
-        <p>{pro.aboutMe ?? "Sin descripción."}</p>
-      </div>
-
-      {/* Botón */}
-      <div className="mt-6 flex justify-end">
+      {/* Parte inferior: azul fuerte */}
+      <div className="bg-blue-600 p-6 flex flex-col flex-1 justify-between text-center">
+        <p className="text-sm text-blue-50 mb-4">
+          {pro.aboutMe ?? "Sin descripción."}
+        </p>
         <Link
           href={routes.profesionalDetail(pro.id)}
-          className="text-md font-semibold text-white bg-blue-500 hover:bg-blue-600 px-6 py-2 rounded-full shadow-md transition"
+          className="inline-block text-sm font-semibold text-blue-600 bg-white hover:bg-blue-50 px-6 py-2 rounded-full shadow transition"
         >
           Ver perfil
         </Link>
       </div>
-    </article>
+    </div>
   );
 }
