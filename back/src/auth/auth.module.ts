@@ -8,7 +8,6 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthRepository } from './auth.repository';
 import { User } from 'src/users/entities/user.entity';
-import { GoogleStrategy } from './strategies/google.strategy';
 import { UsersService } from 'src/users/users.service';
 import { UsersModule } from 'src/users/users.module';
 import { Professional } from 'src/professional/entity/professional.entity';
@@ -29,7 +28,7 @@ import { Professional } from 'src/professional/entity/professional.entity';
     UsersModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthRepository, GoogleStrategy], // [ADD]
+  providers: [AuthService, AuthRepository], 
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
