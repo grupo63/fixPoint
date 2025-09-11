@@ -24,7 +24,4 @@ export class CreateAvailabilityDto {
 
   @IsBoolean()
   isRecurring: boolean;
-
-  @IsUUID()
-  professionalId: string;
 }
