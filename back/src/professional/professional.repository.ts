@@ -20,12 +20,12 @@ export class ProfessionalRepository {
   ) {}
   async getProfessional(page: number, limit: number, speciality?: string) {
     const pageNum = Math.max(1, page || 1);
-    const limitNum = Math.max(1, Math.min(limit || 12, 100)); // tope 100
+    const limitNum = Math.max(1, Math.min(limit || 12, 100));
 
     const query = this.professionalRepo
       .createQueryBuilder('professional')
+      .leftJoinAndSelect('professional.user', 'user')
       .where('professional.isActive = :isActive', { isActive: true })
-      .orderBy('professional.createdAt', 'DESC')
       .skip((pageNum - 1) * limitNum)
       .take(limitNum);
 
