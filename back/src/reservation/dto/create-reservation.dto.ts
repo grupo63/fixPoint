@@ -1,6 +1,12 @@
-import { IsUUID, IsDateString, IsEnum, IsNotEmpty } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
-import { ReservationStatusEnum } from 'src/reviews/entities/reviewStatus.entity';
+import {
+  IsUUID,
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ReservationStatusEnum } from '../enums/reservation-status.enum';
 
 export class CreateReservationDto {
   @ApiProperty({
@@ -29,11 +35,12 @@ export class CreateReservationDto {
   @IsNotEmpty()
   date: Date;
 
-  @ApiProperty({
-    example: ReservationStatusEnum.PENDING,
-    description: 'The status of the reservation.',
+  @ApiPropertyOptional({
     enum: ReservationStatusEnum,
+    default: ReservationStatusEnum.PENDING,
+    description: 'Reservation status. Default to PENDING.',
   })
   @IsEnum(ReservationStatusEnum)
-  status: ReservationStatusEnum;
+  @IsOptional()
+  status?: ReservationStatusEnum = ReservationStatusEnum.PENDING;
 }

@@ -1,11 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 import { Professional } from 'src/professional/entity/professional.entity';
-
-export enum ReservationStatusEnum {
-  PENDING = 'PENDINGending',
-  COMPLETED = 'COMPLETED',
-  CANCELED = 'CANCELED',
-}
+import { ReservationStatusEnum } from 'src/reservation/enums/reservation-status.enum';
 
 @Entity({ name: 'review_status' })
 export class ReviewStatus {

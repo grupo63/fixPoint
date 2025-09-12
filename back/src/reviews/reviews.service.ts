@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReservationService } from 'src/reservation/reservation.service';
 import { ReviewDto } from './dto/review.dto';
-import { ReservationStatusEnum } from './entities/reviewStatus.entity';
+import { ReservationStatusEnum } from 'src/reservation/enums/reservation-status.enum';
 
 @Injectable()
 export class ReviewService {
@@ -26,9 +26,7 @@ export class ReviewService {
     const reservation = await this.reservationService.findOne(
       createReviewDto.reservationId,
     );
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (reservation.status !== ReservationStatusEnum.CANCELED) {
+    if (reservation.status !== ReservationStatusEnum.CANCELLED) {
       throw new BadRequestException(
         'A review can only be created for a completed reservation.',
       );
@@ -42,6 +40,7 @@ export class ReviewService {
   //     relations: ['professional'],
   //   });
   // }
+
   async findAll(): Promise<Review[]> {
     return this.reviewRepository.find();
   }

@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Professional } from 'src/professional/entity/professional.entity';
 import { Review } from 'src/reviews/entities/review.entity';
+import { Reservation } from 'src/reservation/entities/reservation.entity';
 import { TemporaryRole } from '../types/temporary-role';
 
 @Entity({ name: 'users' })
@@ -78,4 +79,7 @@ export class User {
   //conecction of reviews and user
   @OneToMany(() => Review, (review) => review.user)
   reviews: Review[];
+
+  @OneToMany(() => Reservation, (reservation) => reservation.user)
+  reservations: Reservation[];
 }
