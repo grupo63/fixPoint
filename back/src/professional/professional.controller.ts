@@ -28,7 +28,7 @@ export class ProfessionalController {
 
   @Get()
   @ApiOperation({
-    summary: 'Retrieve all professinals',
+    summary: 'Retrieve all professinals with optional filers',
     description:
       'Returns a paginated list of active professionals. By default, it returns 12 professionals per page, but you can customize this using query parameters.',
   })
@@ -44,23 +44,30 @@ export class ProfessionalController {
     description: 'Number of professionals per page (default: 12)',
     type: Number,
   })
+  @ApiQuery({
+    name: 'speciality',
+    required: false,
+    description: 'filter by speciality',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of professionals retrieved successfully',
     type: Professional,
     isArray: true,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'No professionals found',
-  })
+  @ApiResponse({ status: 404, description: 'No professionals found' })
   getProfessional(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('speciality') speciality?: string,
   ) {
     const pageNumber = Number(page) || 1;
     const limitNumber = Number(limit) || 12;
-    return this.professionalService.getProfessional(pageNumber, limitNumber);
+    return this.professionalService.getProfessional(
+      pageNumber,
+      limitNumber,
+      speciality || '',
+    );
   }
 
   @Get(':id')

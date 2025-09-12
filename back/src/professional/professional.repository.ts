@@ -18,32 +18,44 @@ export class ProfessionalRepository {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {}
-  async getProfessional(page: number, limit: number) {
-    return await this.professionalRepo.find({
-      skip: (page - 1) * limit,
-      take: limit,
-      where: { isActive: true },
-    });
+  async getProfessional(page: number, limit: number, speciality?: string) {
+    const pageNum = Math.max(1, page || 1);
+    const limitNum = Math.max(1, Math.min(limit || 12, 100)); // tope 100
+
+    const query = this.professionalRepo
+      .createQueryBuilder('professional')
+      .where('professional.isActive = :isActive', { isActive: true })
+      .orderBy('professional.createdAt', 'DESC')
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum);
+
+    if (speciality) {
+      query.andWhere('LOWER(professional.speciality) = LOWER(:speciality)', {
+        speciality: speciality.trim(),
+      });
+    }
+
+    const [data, total] = await query.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+    };
   }
   async getProfessionalById(id: string) {
     const professionalId = await this.professionalRepo.findOne({
       where: { id },
-      // relations: {
-      //   reservation: {
-      //     reviews: true,
-      //   },
+      relations: ['user'],
     });
+
     if (!professionalId) {
       throw new NotFoundException('professional not found');
     }
-    // const reviews = professionalId.reservation
-    //   .map((r) => r.review)
-    //   .filter(Boolean);
 
-    // return {
-    //   ...professionalId,
-    //   reviews,
-    // };
+    return professionalId;
   }
 
   async createProfessional(

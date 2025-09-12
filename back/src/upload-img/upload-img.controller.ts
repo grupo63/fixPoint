@@ -11,6 +11,7 @@ import {
 import { UploadImgService } from './upload-img.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ApiBody,
   ApiConsumes,
   ApiOperation,
   ApiParam,
@@ -36,6 +37,18 @@ export class UploadImgController {
     example: '7e6e4e3d-2b2f-4d5c-9e5f-12a2b3c4d5e6',
   })
   @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Upload profile image',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: 200,
     description:
@@ -69,5 +82,65 @@ export class UploadImgController {
     file: Express.Multer.File,
   ) {
     return this.uploadImgService.uploadProfileImg(file, id);
+  }
+
+  @Put('users/:id/profile-image')
+  @ApiOperation({
+    summary: 'upload profile image',
+    description:
+      'Uploads a profile image for a user identified by their ID. The image is validated, stored in Cloudinary, and the `profileImg` field of the `User` entity is updated.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'UUID of the user',
+    example: '7e6e4e3d-2b2f-4d5c-9e5f-12a2b3c4r3j8',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Upload profile image',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Profile image successfully uploaded. Returns the updated user entity.',
+    schema: {
+      example: {
+        id: '7e6e4e3d-2b2f-4d5c-9e5f-12a2b3c4e9g7',
+        name: 'Juan Garcia',
+        profileImg:
+          'https://res.cloudinary.com/demo/image/upload/v1693456789/users/7e6e4e3d/profile.jpg',
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadUserProfileImg(
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({
+            maxSize: 200 * 1024,
+            message: 'file size can not exceed 200kb',
+          }),
+          new FileTypeValidator({
+            fileType: /^(image\/jpeg|image\/png|image\/webp)$/i,
+          }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.uploadImgService.uploadUserProfileImg(file, id);
   }
 }

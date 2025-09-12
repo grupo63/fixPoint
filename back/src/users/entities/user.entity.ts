@@ -11,6 +11,7 @@ import {
 import { Professional } from 'src/professional/entity/professional.entity';
 import { Review } from 'src/reviews/entities/review.entity';
 import { Reservation } from 'src/reservation/entities/reservation.entity';
+import { TemporaryRole } from '../types/temporary-role';
 
 @Entity({ name: 'users' })
 export class User {
@@ -33,8 +34,8 @@ export class User {
   providerId: string | null;
 
   // [CHANGE] rol básico (arregla foundUser.role)
-  @Column({ type: 'varchar', length: 10, default: 'user' })
-  role: 'user' | 'admin';
+  @Column({ type: 'varchar', length: 20, default: 'user' })
+  role: 'user' | 'professional' | 'admin';
 
   @Column({ type: 'varchar', length: 60, nullable: true })
   firstName?: string;
@@ -47,6 +48,9 @@ export class User {
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone?: string;
+
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  country?: string;
 
   @Column({ type: 'varchar', length: 120, nullable: true })
   address?: string;

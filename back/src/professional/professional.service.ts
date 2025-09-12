@@ -9,8 +9,8 @@ export class ProfessionalService {
   constructor(
     private readonly professionalRepository: ProfessionalRepository,
   ) {}
-  async getProfessional(page: number, limit: number) {
-    return this.professionalRepository.getProfessional(page, limit);
+  async getProfessional(page: number, limit: number, speciality: string) {
+    return this.professionalRepository.getProfessional(page, limit, speciality);
   }
 
   async getProfessionalById(id: string) {

@@ -35,7 +35,7 @@ export class Available {
   })
   isRecurring: boolean;
 
-  // @ManyToOne(() => Professional, (professional) => professional.available)
-  // @JoinColumn({ name: 'professionalId' })
-  // professional: Professional;
+  @ManyToOne(() => Professional, (professional) => professional.available)
+  @JoinColumn({ name: 'professionalId' })
+  professional: Professional;
 }

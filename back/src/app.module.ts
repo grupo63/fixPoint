@@ -15,6 +15,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { UploadImgModule } from './upload-img/upload-img.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { BrowseModule } from './browse/browse.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     }),
     UploadImgModule,
     ReviewsModule,
+    BrowseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
