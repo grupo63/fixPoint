@@ -16,6 +16,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { UploadImgModule } from './upload-img/upload-img.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { BrowseModule } from './browse/browse.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { BrowseModule } from './browse/browse.module';
     UploadImgModule,
     ReviewsModule,
     BrowseModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
