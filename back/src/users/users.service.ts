@@ -8,6 +8,7 @@ import { UserRepository } from './users.repository';
 import { User } from './entities/user.entity';
 // import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { UpdateUserDTO } from './dto/users.dto';
 
 @Injectable()
 export class UsersService {
@@ -24,7 +25,7 @@ export class UsersService {
     return this.userRepository.getUserById(id);
   }
 
-  updateUser(id: string, user: Partial<User>) {
+  updateUser(id: string, user: UpdateUserDTO) {
     return this.userRepository.updateUser(id, user);
   }
 

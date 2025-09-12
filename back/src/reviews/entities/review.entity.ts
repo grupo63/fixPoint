@@ -19,7 +19,7 @@ export class Review {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @ManyToOne(() => Professional, (Professional) => Professional.isActive)
+  @ManyToOne(() => Professional, (Professional) => Professional.reviews)
   @JoinColumn({ name: 'professionalId' })
   professional: Professional;
 
