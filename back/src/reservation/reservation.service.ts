@@ -42,14 +42,18 @@ export class ReservationService {
     const professional = await this.professionalRepo.findOne({
       where: { id: createDto.professionalId },
     });
-
     if (!professional) {
       throw new NotFoundException(
         `Professional with id ${createDto.professionalId} not found`,
       );
     }
+    const reservationDate = new Date(createDto.date);
+    if (new Date(createDto.date) < new Date()) {
+      throw new BadRequestException('Reservation date must be in the future');
+    }
     const reservation = this.reservationRepo.create({
       ...createDto,
+      date: reservationDate,
       user,
       professional,
     });
