@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from './dto/auth.dto';
 import { TemporaryRole } from 'src/users/types/temporary-role';
 import { DeepPartial } from 'typeorm';
+import { first } from 'rxjs';
 
 @Injectable()
 export class AuthService {
@@ -99,31 +100,52 @@ export class AuthService {
       email: string;
       name: string;
       picture?: string;
+      given_name?: string;
+      family_name?: string;
     },
     roleHint?: 'user' | 'professional',
   ): Promise<User> {
-    const { providerId, email, name, picture } = profile;
+    const { providerId, email, name, picture, given_name, family_name } =
+      profile;
+
+    const firstName: string | undefined =
+      given_name ?? (name ? name.trim().split(/\s+/)[0] : undefined);
+
+    const lastName: string | undefined =
+      family_name ??
+      (name
+        ? name.trim().split(/\s+/).slice(1).join(' ') || undefined
+        : undefined);
 
     let user = await this.authRepository.findByGoogleId(providerId);
     if (user) return user;
 
     user = await this.authRepository.findByEmail(email);
     if (user) {
-      if (!(user as any).googleId) (user as any).googleId = providerId;
-      if (!(user as any).firstName) (user as any).firstName = name;
-      if (!(user as any).profileImage)
-        (user as any).profileImage = picture ?? null;
+      if (!(user as any).googleId) (user as any).googleId = providerId; // usa providerId si tu columna se llama así
+      if (!(user as any).firstName && firstName)
+        (user as any).firstName = firstName;
+      if (!(user as any).lastName && lastName)
+        (user as any).lastName = lastName;
+      if (!(user as any).profileImage) (user as any).profileImage = picture ?? null;
       return this.authRepository.save(user);
     }
 
     if (!roleHint) {
       throw new BadRequestException(
-        'No existe una cuenta registrada con Google para este email. Registrate primero.',
+        'No Google account is registered with this email. Please sign up first.',
       );
     }
 
     return this.authRepository.findOrCreateFromGoogle(
-      { providerId, email, name, picture },
+      {
+        providerId,
+        email,
+        name,
+        picture,
+        given_name: firstName,
+        family_name: lastName,
+      },
       roleHint,
     );
   }

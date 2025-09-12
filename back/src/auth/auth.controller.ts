@@ -101,6 +101,8 @@ export class AuthController {
       email?: string;
       name?: string;
       picture?: string;
+      given_name?: string;
+      family_name?: string;
     };
 
     const providerId = googleUser?.providerId ?? googleUser?.googleId;
@@ -116,6 +118,8 @@ export class AuthController {
         email: googleUser.email,
         name: googleUser.name ?? '',
         picture: googleUser.picture,
+        given_name: googleUser.given_name,
+        family_name: googleUser.family_name,
       },
       roleHint,
     );

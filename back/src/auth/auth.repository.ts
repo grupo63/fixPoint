@@ -51,6 +51,8 @@ export class AuthRepository {
       email: string;
       name: string;
       picture?: string;
+      given_name?: string | undefined;
+      family_name?: string | undefined;
     },
     roleHint: 'user' | 'professional',
   ): Promise<User> {
@@ -59,18 +61,29 @@ export class AuthRepository {
 
     user = await this.findByEmail(profile.email);
     if (user) {
-      if (!user.providerId) user.providerId = profile.providerId;
-      if (!user.firstName) user.firstName = profile.name;
-      if (!user.profileImage) user.profileImage = profile.picture ?? null;
+      if (!(user as any).providerId)
+        (user as any).providerId = profile.providerId;
+      if (!(user as any).firstName && (profile.given_name || profile.name)) {
+        (user as any).firstName = profile.given_name ?? profile.name;
+      }
+      if (!(user as any).lastName && profile.family_name) {
+        (user as any).lastName = profile.family_name;
+      }
+      if (!(user as any).profileImage && profile.picture) {
+        (user as any).profileImage = profile.picture;
+      }
       return this.userRepository.save(user);
     }
 
     const toCreate: DeepPartial<User> = {
       providerId: profile.providerId,
       email: profile.email,
-      firstName: profile.name,
-      profileImage: profile.picture ?? null,
       role: roleHint,
+      ...(profile.given_name || profile.name
+        ? { firstName: profile.given_name ?? profile.name }
+        : {}),
+      ...(profile.family_name ? { lastName: profile.family_name } : {}),
+      ...(profile.picture ? { profileImage: profile.picture } : {}),
     };
     return this.userRepository.save(toCreate);
   }
