@@ -23,6 +23,9 @@ export class Reservation {
   })
   status: ReservationStatusEnum;
 
+  @Column({ type: 'timestamp', nullable: true })
+  date: Date;
+
   @Column({ default: false })
   wasReviewed: boolean;
 }
