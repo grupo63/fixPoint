@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Professional } from 'src/professional/entity/professional.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
+import { DeepPartial } from 'typeorm';
 
 @Injectable()
 export class AuthRepository {
@@ -40,13 +41,41 @@ export class AuthRepository {
       .getOne();
   }
 
-  // [ADD] buscar por providerId (para OAuth)
-  async findByProviderId(providerId: string) {
+  async findByGoogleId(providerId: string) {
     return this.userRepository.findOne({ where: { providerId } });
   }
 
-  // [ADD] guardar cambios (enlace de cuentas, etc.)
-  async save(user: User) {
-    return this.userRepository.save(user);
+  async findOrCreateFromGoogle(
+    profile: {
+      providerId: string;
+      email: string;
+      name: string;
+      picture?: string;
+    },
+    roleHint: 'user' | 'professional',
+  ): Promise<User> {
+    let user = await this.findByGoogleId(profile.providerId);
+    if (user) return user;
+
+    user = await this.findByEmail(profile.email);
+    if (user) {
+      if (!user.providerId) user.providerId = profile.providerId;
+      if (!user.firstName) user.firstName = profile.name;
+      if (!user.profileImage) user.profileImage = profile.picture ?? null;
+      return this.userRepository.save(user);
+    }
+
+    const toCreate: DeepPartial<User> = {
+      providerId: profile.providerId,
+      email: profile.email,
+      firstName: profile.name,
+      profileImage: profile.picture ?? null,
+      role: roleHint,
+    };
+    return this.userRepository.save(toCreate);
+  }
+
+  async save(user: DeepPartial<User> | User): Promise<User> {
+    return this.userRepository.save(user as any);
   }
 }
