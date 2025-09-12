@@ -1,10 +1,14 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
+  HttpStatus,
+  InternalServerErrorException,
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -13,16 +17,20 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiResponse, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from './guards/auth.guards';
 import { UsersService } from 'src/users/users.service';
-import { Request } from '@nestjs/common';
+import type {
+  Response as ExpressResponse,
+  Request as ExpressRequest,
+} from 'express';
+import { GoogleAuthGuard } from './guards/google.guards';
+import { JwtService } from '@nestjs/jwt';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-
-
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UsersService,
+    private readonly jwtService: JwtService,
   ) {}
 
   @Post('signup')
@@ -51,4 +59,80 @@ export class AuthController {
     return this.authService.signIn(email, password);
   }
 
+  //Google
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({
+    summary: 'Login with Google',
+    description: 'Redirects the user to Google OAuth login page.',
+  })
+  @ApiResponse({ status: 302, description: 'Redirects to Google login page.' })
+  googleLogin(): any {
+    return HttpStatus.OK;
+  }
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({
+    summary: 'Google OAuth callback',
+    description:
+      'Handles the callback from Google, issues a JWT and redirects to the frontend.',
+  })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to frontend with JWT token in query param.',
+  })
+  async googleCallback(
+    @Req() req: ExpressRequest,
+    @Res() res: ExpressResponse,
+  ) {
+    type Role = 'user' | 'professional';
+
+    const raw =
+      (req.query?.state as string | undefined) ??
+      (req.query?.role as string | undefined);
+
+    const roleHint: Role | undefined =
+      raw === 'user' || raw === 'professional' ? raw : undefined;
+
+    const googleUser = req.user as {
+      providerId?: string;
+      googleId?: string;
+      email?: string;
+      name?: string;
+      picture?: string;
+    };
+
+    const providerId = googleUser?.providerId ?? googleUser?.googleId;
+    if (!providerId || !googleUser?.email) {
+      throw new BadRequestException(
+        'Google profile incomplete (sin email o providerId)',
+      );
+    }
+
+    const user = await this.authService.loginOrCreateGoogleUser(
+      {
+        providerId,
+        email: googleUser.email,
+        name: googleUser.name ?? '',
+        picture: googleUser.picture,
+      },
+      roleHint,
+    );
+
+    const accessToken = this.jwtService.sign({
+      id: (user as any).id,
+      email: (user as any).email,
+      role: (user as any).role,
+    });
+
+    const base = process.env.FRONT_URL || 'http://localhost:3000';
+    return res.redirect(`${base}/?token=${accessToken}`);
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  getProfile(@Req() req) {
+    return this.userService.getUserById(req.user.id);
+  }
 }

@@ -13,11 +13,20 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     });
   }
 
-  async validate(accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) {
-    const email = profile.emails?.[0]?.value ?? null;
-    const name = profile.displayName ?? '';
-    const providerId = profile.id;
+  async validate(
+    accessToken: string,
+    refreshToken: string,
+    profile: Profile,
+    done: VerifyCallback,
+  ): Promise<any> {
+    const { name, emails } = profile;
+    const user = {
+      email: emails?.[0]?.value,
+      firstName: name?.givenName,
+      lastName: name?.familyName,
+      providerId: profile.id,
+    };
 
-    done(null, { email, name, provider: 'google', providerId });
+    done(null, user);
   }
 }

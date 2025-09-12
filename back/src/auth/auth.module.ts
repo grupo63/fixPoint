@@ -12,13 +12,12 @@ import { GoogleStrategy } from './strategies/google.strategy';
 import { UsersService } from 'src/users/users.service';
 import { UsersModule } from 'src/users/users.module';
 import { Professional } from 'src/professional/entity/professional.entity';
+// import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
-
-  
   imports: [
     TypeOrmModule.forFeature([User, Professional]),
-    ConfigModule,
+    ConfigModule.forRoot({ isGlobal: true }),
     PassportModule.register({ session: false }), // [ADD]
     JwtModule.registerAsync({
       imports: [ConfigModule],

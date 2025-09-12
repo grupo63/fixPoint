@@ -17,7 +17,8 @@ export class JwtAuthGuard implements CanActivate {
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
     const req = context.switchToHttp().getRequest();
-    const auth = req.headers.authorization?.split(' ')[1];
+    const auth =
+      req.cookies?.access_token || req.headers.authorization?.split(' ')[1];
 
     if (!auth) throw new UnauthorizedException('No token sent');
 

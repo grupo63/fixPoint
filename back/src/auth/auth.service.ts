@@ -9,11 +9,10 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from './dto/auth.dto';
 import { TemporaryRole } from 'src/users/types/temporary-role';
+import { DeepPartial } from 'typeorm';
 
 @Injectable()
 export class AuthService {
-
-
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
@@ -22,8 +21,8 @@ export class AuthService {
   async signUp(user: CreateUserDto) {
     const { role, name, email, password, ...rest } = user;
     const roleMap = {
-      user: 'USER', // o el valor que tu entidad espere
-      professional: 'PROFESSIONAL', // ajustalo al valor que uses
+      user: 'USER',
+      professional: 'PROFESSIONAL',
     };
     const internalRole = role ? roleMap[role] : 'USER';
 
@@ -67,7 +66,74 @@ export class AuthService {
     };
     const access_token = this.jwtService.sign(payload);
     return { access_token };
- }
-}
+  }
 
-// holaxdgzsbgkjfga
+  async validateOrCreateGoogleUser(
+    oauth: {
+      providerId?: string;
+      googleId?: string;
+      email: string;
+      name: string;
+      picture?: string;
+    },
+    roleHint: 'user' | 'professional',
+  ) {
+    const providerId = oauth.providerId ?? oauth.googleId;
+    if (!providerId || !oauth.email) {
+      throw new BadRequestException('Google profile incomplete');
+    }
+
+    const profile = {
+      providerId,
+      email: oauth.email,
+      name: oauth.name,
+      picture: oauth.picture,
+    };
+
+    return this.authRepository.findOrCreateFromGoogle(profile, roleHint);
+  }
+
+  async loginOrCreateGoogleUser(
+    profile: {
+      providerId: string;
+      email: string;
+      name: string;
+      picture?: string;
+    },
+    roleHint?: 'user' | 'professional',
+  ): Promise<User> {
+    const { providerId, email, name, picture } = profile;
+
+    let user = await this.authRepository.findByGoogleId(providerId);
+    if (user) return user;
+
+    user = await this.authRepository.findByEmail(email);
+    if (user) {
+      if (!(user as any).googleId) (user as any).googleId = providerId;
+      if (!(user as any).firstName) (user as any).firstName = name;
+      if (!(user as any).profileImage)
+        (user as any).profileImage = picture ?? null;
+      return this.authRepository.save(user);
+    }
+
+    if (!roleHint) {
+      throw new BadRequestException(
+        'No existe una cuenta registrada con Google para este email. Registrate primero.',
+      );
+    }
+
+    return this.authRepository.findOrCreateFromGoogle(
+      { providerId, email, name, picture },
+      roleHint,
+    );
+  }
+
+  signTokens(user: { id: string; email: string }) {
+    const payload = { sub: user.id, email: user.email };
+    const accessToken = this.jwtService.sign(payload, {
+      secret: process.env.JWT_SECRET!,
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    });
+    return { accessToken };
+  }
+}
