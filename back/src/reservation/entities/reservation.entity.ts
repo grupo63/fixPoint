@@ -1,6 +1,7 @@
 import { Professional } from 'src/professional/entity/professional.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { ReservationStatusEnum } from '../enums/reservation-status.enum';
 
 @Entity('reservation')
 export class Reservation {
@@ -17,9 +18,10 @@ export class Reservation {
 
   @Column({
     type: 'enum',
-    enum: ['PENDING', 'CONFIRMED', 'CANCELLED'],
+    enum: ReservationStatusEnum,
+    default: ReservationStatusEnum.PENDING,
   })
-  status: string;
+  status: ReservationStatusEnum;
 
   @Column({ default: false })
   wasReviewed: boolean;

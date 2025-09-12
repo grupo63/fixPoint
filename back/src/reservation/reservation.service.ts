@@ -13,6 +13,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateReviewDto } from 'src/reviews/dto/create-review.dto';
 import { Review } from 'src/reviews/entities/review.entity';
+import { ReservationStatusEnum } from './enums/reservation-status.enum';
 
 @Injectable()
 export class ReservationService {
@@ -114,17 +115,22 @@ export class ReservationService {
       relations: ['user', 'professional'],
     });
 
-    if (!reservation) throw new NotFoundException('Reservation not found');
-    if (reservation.status !== 'COMPLETED') {
+    if (!reservation) {
+      throw new NotFoundException('Reservation not found');
+    }
+
+    if (reservation.status !== ReservationStatusEnum.COMPLETED) {
       throw new BadRequestException(
         'Only completed reservations can be reviewed',
       );
     }
+
     if (reservation.wasReviewed) {
       throw new BadRequestException(
         'This reservation has already been reviewed',
       );
     }
+
     if (reservation.user.id !== dto.userId) {
       throw new ForbiddenException('You can only review your own reservations');
     }
