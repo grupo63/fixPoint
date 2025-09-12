@@ -1,145 +1,60 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiOkResponse,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { BrowseService } from './browse.service';
 import { ListQueryDto } from './dto/list-query.dto';
-import { Paginated } from './types/paginated.type';
 import { Service as Svc } from '../service/entities/service.entity';
 import { Category } from '../category/entities/category.entity';
 
 @ApiTags('Browse')
 @Controller('browse')
 export class BrowseController {
-  constructor(private readonly browseService: BrowseService) {}
+  constructor(
+    private readonly browse: BrowseService,
+    @InjectRepository(Svc) private readonly svcRepo: Repository<Svc>,
+    @InjectRepository(Category) private readonly catRepo: Repository<Category>,
+  ) {}
 
-  /**
-   * GET /browse/services
-   * Search + filters for Services
-   */
+  /** GET /browse/services */
   @Get('services')
   @ApiOperation({
-    summary: 'Browse services with search and filters',
+    summary: 'Simple services search',
     description:
-      'Returns a paginated list of services, applying optional text search and filters (category, status, price range, etc.).',
+      'Partial search with exact-match priority on title/description. Alphabetically sorted by title. Paginated. No additional filters.',
   })
-  @ApiQuery({ name: 'page', required: false, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, example: 10 })
-  @ApiQuery({ name: 'q', required: false, example: 'plumber' })
-  @ApiQuery({ name: 'categoryId', required: false, example: 'uuid-category' })
-  @ApiQuery({ name: 'isActive', required: false, example: true })
-  @ApiQuery({ name: 'minPrice', required: false, example: 50 })
-  @ApiQuery({ name: 'maxPrice', required: false, example: 200 })
-  @ApiQuery({ name: 'sortBy', required: false, example: 'price' })
-  @ApiQuery({ name: 'order', required: false, example: 'ASC' })
-  @ApiOkResponse({
-    description: 'Paginated list of services',
-    schema: {
-      type: 'object',
-      properties: {
-        total: { type: 'number', example: 42 },
-        page: { type: 'number', example: 1 },
-        limit: { type: 'number', example: 10 },
-        totalPages: { type: 'number', example: 5 },
-        data: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', example: 'e46e9e9e-1234-4321-aaaa-abcdef123456' },
-              title: { type: 'string', example: 'Plumbing fix' },
-              description: { type: 'string', example: 'Leak repair and pipe replacement' },
-              price: { type: 'number', example: 120 },
-              isActive: { type: 'boolean', example: true },
-              categoryId: { type: 'string', example: 'uuid-category' },
-            },
-          },
-        },
-      },
-      example: {
-        total: 42,
-        page: 1,
-        limit: 10,
-        totalPages: 5,
-        data: [
-          {
-            id: 'e46e9e9e-1234-4321-aaaa-abcdef123456',
-            title: 'Plumbing fix',
-            description: 'Leak repair and pipe replacement',
-            price: 120,
-            isActive: true,
-            categoryId: '1d3b2c4a-aaaa-bbbb-cccc-1234567890ab',
-          },
-        ],
-      },
-    },
-  })
-  async services(
-    @Query() query: ListQueryDto,
-  ): Promise<Paginated<Svc>> {
-    return this.browseService.listServices(query);
+  @ApiOkResponse({ description: 'OK' })
+  @ApiQuery({ name: 'q', required: false, description: 'Texto a buscar (title/description)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  async browseServices(@Query() dto: ListQueryDto) {
+    return this.browse.simpleSearch<Svc>({
+      repo: this.svcRepo,
+      alias: 'svc',
+      dto,
+      searchable: ['title', 'description'] as any,
+      sortColumn: 'svc.title',
+    });
   }
 
-  /**
-   * GET /browse/categories
-   * Search + filters for Categories
-   */
+  /** GET /browse/categories */
   @Get('categories')
   @ApiOperation({
-    summary: 'Browse categories with search and filters',
+    summary: 'Simple categories search',
     description:
-      'Returns a paginated list of categories, applying optional text search and filters (status).',
+      'Partial search with exact-match priority on name/description. Alphabetically sorted by name. Paginated. No additional filters.',
   })
-  @ApiQuery({ name: 'page', required: false, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, example: 10 })
-  @ApiQuery({ name: 'q', required: false, example: 'plumbing' })
-  @ApiQuery({ name: 'isActive', required: false, example: true })
-  @ApiQuery({ name: 'sortBy', required: false, example: 'name' })
-  @ApiQuery({ name: 'order', required: false, example: 'ASC' })
-  @ApiOkResponse({
-    description: 'Paginated list of categories',
-    schema: {
-      type: 'object',
-      properties: {
-        total: { type: 'number', example: 12 },
-        page: { type: 'number', example: 1 },
-        limit: { type: 'number', example: 10 },
-        totalPages: { type: 'number', example: 2 },
-        data: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', example: '2b8ccf5e-9876-5432-bbbb-abcdef654321' },
-              name: { type: 'string', example: 'Plumbing' },
-              description: { type: 'string', example: 'Pipes, leaks and repairs' },
-              isActive: { type: 'boolean', example: true },
-            },
-          },
-        },
-      },
-      example: {
-        total: 12,
-        page: 1,
-        limit: 10,
-        totalPages: 2,
-        data: [
-          {
-            id: '2b8ccf5e-9876-5432-bbbb-abcdef654321',
-            name: 'Plumbing',
-            description: 'Pipes, leaks and repairs',
-            isActive: true,
-          },
-        ],
-      },
-    },
-  })
-  async categories(
-    @Query() query: ListQueryDto,
-  ): Promise<Paginated<Category>> {
-    return this.browseService.listCategories(query);
+  @ApiOkResponse({ description: 'OK' })
+  @ApiQuery({ name: 'q', required: false, description: 'Texto a buscar (name/description)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  async browseCategories(@Query() dto: ListQueryDto) {
+    return this.browse.simpleSearch<Category>({
+      repo: this.catRepo,
+      alias: 'cat',
+      dto,
+      searchable: ['name', 'description'] as any,
+      sortColumn: 'cat.name',
+    });
   }
 }
