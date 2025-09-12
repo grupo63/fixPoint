@@ -4,8 +4,8 @@ import fetchProfessionals from "@/services/professionals";
 import { Professional, ProfessionalResponse } from "@/types/profesionalTypes";
 
 export default async function ProfessionalsPage() {
-  const profesionals = await fetchProfessionals();
-console.log(profesionals)
+  const response = await fetchProfessionals();
+  const profesionals = response.data || []; // aseguramos que sea array
   return (
     <main className="p-6 space-y-8">
       <div className="">
