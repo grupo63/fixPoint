@@ -20,7 +20,7 @@ export class AuthService {
   ) {}
 
   async signUp(user: CreateUserDto) {
-    const { role, name, email, password, ...rest } = user;
+    const { role, firstName, lastName, email, password, ...rest } = user;
     const roleMap = {
       user: 'USER',
       professional: 'PROFESSIONAL',
@@ -40,6 +40,8 @@ export class AuthService {
       email,
       password: passwordHash,
       role: internalRole,
+      firstName,
+      lastName,
     });
     console.log('Created user:', created);
     return created;

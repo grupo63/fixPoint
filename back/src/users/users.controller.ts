@@ -52,7 +52,7 @@ export class UsersController {
     summary: 'Update user information',
     description: 'Update the details of an existing user by their ID.',
   })
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Put(':id')
   updateUser(
     @Param('id', ParseUUIDPipe) id: string,
