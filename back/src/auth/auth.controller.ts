@@ -1,28 +1,24 @@
+// src/auth/auth.controller.ts
 import {
   BadRequestException,
   Body,
   Controller,
   Get,
   HttpStatus,
-  InternalServerErrorException,
   Post,
   Req,
   Res,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { CreateUserDto, LoginUserDto } from './dto/auth.dto';
-import { AuthGuard } from '@nestjs/passport';
-import { ApiResponse, ApiTags, ApiOperation } from '@nestjs/swagger';
-import { JwtAuthGuard } from './guards/auth.guards';
-import { UsersService } from 'src/users/users.service';
-import type {
-  Response as ExpressResponse,
-  Request as ExpressRequest,
-} from 'express';
-import { GoogleAuthGuard } from './guards/google.guards';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import { JwtService } from '@nestjs/jwt';
+
+import { AuthService } from './auth.service';
+import { UsersService } from 'src/users/users.service';
+import { CreateUserDto, LoginUserDto } from './dto/auth.dto';
+import { GoogleAuthGuard } from './guards/google.guards';
+import { JwtAuthGuard } from './guards/auth.guards';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -34,66 +30,61 @@ export class AuthController {
   ) {}
 
   @Post('signup')
-  @ApiOperation({
-    summary: 'User registration',
-    description: 'Creates a new user in the database.',
-  })
-  @ApiResponse({ status: 201, description: 'User created successfully.' })
-  @ApiResponse({ status: 400, description: 'Invalid data.' })
+  @ApiOperation({ summary: 'User registration' })
+  @ApiResponse({ status: 201 })
+  @ApiResponse({ status: 400 })
   async signUp(@Body() user: CreateUserDto) {
     return this.authService.signUp(user as any);
   }
 
   @Post('signin')
-  @ApiOperation({
-    summary: 'User login',
-    description: 'Validates user credentials and returns a JWT.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Login successful. Returns the JWT token.',
-  })
-  @ApiResponse({ status: 401, description: 'Invalid credentials.' })
+  @ApiOperation({ summary: 'User login' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 401 })
   signIn(@Body() credentials: LoginUserDto) {
     const { email, password } = credentials;
     return this.authService.signIn(email, password);
   }
 
-  //Google
+  // ===== Google OAuth =====
   @Get('google')
   @UseGuards(GoogleAuthGuard)
-  @ApiOperation({
-    summary: 'Login with Google',
-    description: 'Redirects the user to Google OAuth login page.',
-  })
-  @ApiResponse({ status: 302, description: 'Redirects to Google login page.' })
+  @ApiOperation({ summary: 'Login/Register with Google' })
+  @ApiResponse({ status: 302 })
   googleLogin(): any {
     return HttpStatus.OK;
   }
 
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  @ApiOperation({
-    summary: 'Google OAuth callback',
-    description:
-      'Handles the callback from Google, issues a JWT and redirects to the frontend.',
-  })
-  @ApiResponse({
-    status: 302,
-    description: 'Redirects to frontend with JWT token in query param.',
-  })
-  async googleCallback(
-    @Req() req: ExpressRequest,
-    @Res() res: ExpressResponse,
-  ) {
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  @ApiResponse({ status: 302 })
+  async googleCallback(@Req() req: ExpressRequest, @Res() res: ExpressResponse) {
     type Role = 'user' | 'professional';
 
-    const raw =
-      (req.query?.state as string | undefined) ??
-      (req.query?.role as string | undefined);
+    // Parseo robusto de state
+    let roleHint: Role | undefined = undefined;
+    let action: 'login' | 'register' = 'login';
+    let next = '/';
 
-    const roleHint: Role | undefined =
-      raw === 'user' || raw === 'professional' ? raw : undefined;
+    try {
+      if (typeof req.query.state === 'string') {
+        const parsed = JSON.parse(req.query.state);
+        const r = String(parsed?.role || '').toLowerCase();
+        if (r === 'user' || r === 'professional') roleHint = r as Role;
+        const a = String(parsed?.action || '').toLowerCase();
+        if (a === 'register') action = 'register';
+        if (parsed?.next) next = String(parsed.next);
+      }
+    } catch {
+      const rawState = (req.query?.state as string | undefined)?.toLowerCase();
+      const rawRole = (req.query?.role as string | undefined)?.toLowerCase() || rawState;
+      if (rawRole === 'user' || rawRole === 'professional') roleHint = rawRole as Role;
+      const a = (req.query?.action as string | undefined)?.toLowerCase();
+      if (a === 'register') action = 'register';
+      const n = req.query?.next as string | undefined;
+      if (n) next = n;
+    }
 
     const googleUser = req.user as {
       providerId?: string;
@@ -107,9 +98,7 @@ export class AuthController {
 
     const providerId = googleUser?.providerId ?? googleUser?.googleId;
     if (!providerId || !googleUser?.email) {
-      throw new BadRequestException(
-        'Google profile incomplete (sin email o providerId)',
-      );
+      throw new BadRequestException('Google profile incomplete (sin email o providerId)');
     }
 
     const user = await this.authService.loginOrCreateGoogleUser(
@@ -122,6 +111,7 @@ export class AuthController {
         family_name: googleUser.family_name,
       },
       roleHint,
+      action,
     );
 
     const accessToken = this.jwtService.sign({
@@ -130,28 +120,12 @@ export class AuthController {
       role: (user as any).role,
     });
 
-    // 🔹 MODO DEBUG: si está activo, NO redirige; devuelve JSON para inspección
-    const DEBUG = String(process.env.OAUTH_DEBUG ?? '').toLowerCase();
-    const isDebug = DEBUG === '1' || DEBUG === 'true' || DEBUG === 'yes';
-
-    if (isDebug) {
-      console.log('[OAuth][DEBUG] mode:', (roleHint ? 'register' : 'login'));
-      console.log('[OAuth][DEBUG] user:', (user as any).email, 'role:', (user as any).role);
-
-      return res.status(200).json({
-        ok: true,
-        mode: roleHint ? 'register' : 'login',
-        user: {
-          id: (user as any).id,
-          email: (user as any).email,
-          role: (user as any).role,
-        },
-        accessToken,
-      });
-    }
-
+    // Redirige al front → /oauth/success (ahí se guarda token y se navega)
     const base = process.env.FRONT_URL || 'http://localhost:3000';
-    return res.redirect(`${base}/?token=${accessToken}`);
+    const redirectUrl =
+      `${base}/oauth/success?token=${encodeURIComponent(accessToken)}` +
+      (next ? `&next=${encodeURIComponent(next)}` : '');
+    return res.redirect(redirectUrl);
   }
 
   @Get('me')

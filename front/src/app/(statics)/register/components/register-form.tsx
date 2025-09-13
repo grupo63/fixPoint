@@ -1,27 +1,33 @@
+// app/(statics)/register/components/register-form.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import GoogleOAuthButton from "@/components/auth/GoogleOAthButton";
 
-type Role = "user" | "professional";
+type RoleAPI = "user" | "professional";
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:3001";
 
 export default function RegisterForm({
   onBack,
   onSuccess,
-  showOAuth = true,
 }: {
   onBack?: () => void;
   onSuccess?: () => void;
-  showOAuth?: boolean;
 }) {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<Role>("user");
+  const [role, setRole] = useState<RoleAPI>("user");
   const [showPassword, setShowPassword] = useState(false);
 
   const [state, setState] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -35,30 +41,58 @@ export default function RegisterForm({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!state.name || !state.email || !state.password || !state.confirmPassword) {
-      alert("Completá todos los campos.");
+    const firstName = state.firstName.trim();
+    const lastName = state.lastName.trim();
+    const email = state.email.trim();
+    const pwd = state.password;
+
+    const errors: string[] = [];
+
+    if (!firstName || !lastName || !email || !pwd || !state.confirmPassword) {
+      errors.push("Completá todos los campos.");
+    }
+    if (firstName.length < 3 || firstName.length > 50) {
+      errors.push("El nombre debe tener entre 3 y 50 caracteres.");
+    }
+    if (lastName.length < 3 || lastName.length > 50) {
+      errors.push("El apellido debe tener entre 3 y 50 caracteres.");
+    }
+    if (email.length > 50) {
+      errors.push("El email no puede superar los 50 caracteres.");
+    }
+    const strong =
+      pwd.length >= 8 &&
+      pwd.length <= 20 &&
+      /[a-z]/.test(pwd) &&
+      /[A-Z]/.test(pwd) &&
+      /[0-9]/.test(pwd) &&
+      /[^A-Za-z0-9]/.test(pwd);
+    if (!strong) {
+      errors.push(
+        "La contraseña debe tener 8–20 caracteres, e incluir al menos 1 minúscula, 1 mayúscula, 1 número y 1 símbolo."
+      );
+    }
+    if (pwd !== state.confirmPassword) {
+      errors.push("Las contraseñas no coinciden.");
+    }
+
+    if (errors.length) {
+      alert(errors.join("\n"));
       return;
     }
 
-    if (state.password !== state.confirmPassword) {
-      alert("Las contraseñas no coinciden.");
-      return;
-    }
+    const payload = {
+      firstName,
+      lastName,
+      email,
+      password: pwd,
+      role, // "user" o "professional"
+    };
 
     setLoading(true);
     try {
-      const payload = {
-        name: state.name.trim(),
-        email: state.email.trim(),
-        password: state.password,
-        role,
-      };
-
-      const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+      const base = API_BASE.replace(/\/+$/, "");
       const url = `${base}/auth/signup`;
-
-      console.log("➡️ Signup URL:", url);
-      console.log("➡️ Payload:", payload);
 
       const res = await fetch(url, {
         method: "POST",
@@ -66,36 +100,34 @@ export default function RegisterForm({
         body: JSON.stringify(payload),
       });
 
+      let bodyText = "";
+      let data: any = null;
+      try {
+        bodyText = await res.text();
+        data = JSON.parse(bodyText);
+      } catch {
+        // si el back no devuelve JSON, seguimos igual
+      }
+
       if (!res.ok) {
-        let body: any = null;
-        try {
-          body = await res.json();
-        } catch {
-          body = await res.text().catch(() => "");
-        }
-
-        const backendMsg =
-          (typeof body === "string" && body) ||
-          body?.message ||
-          body?.error ||
-          JSON.stringify(body || {});
-
-        console.error("❌ Signup FAIL", {
-          url,
-          status: res.status,
-          statusText: res.statusText,
-          response: body,
-        });
-
-        alert(`Error ${res.status} ${res.statusText}\n${backendMsg}`);
+        console.error("Signup error:", res.status, res.statusText, bodyText);
+        alert(`Error ${res.status} ${res.statusText}\n${bodyText || "(sin detalle)"}`);
         return;
       }
 
-      console.log("✅ Signup OK");
+      // 🔒 Normalizamos SIEMPRE: todo nuevo usuario arranca sin foto
+      if (data) {
+        data.profileImage = null;
+      }
+      // y marcamos que aún no subió foto
+      try {
+        localStorage.setItem("fp_avatar_uploaded", "0");
+      } catch {}
+
       alert("✅ Cuenta creada con éxito");
       onSuccess ? onSuccess() : router.push("/signin");
     } catch (err: any) {
-      console.error("🔥 Signup EXCEPTION", err);
+      console.error(err);
       alert(err?.message ?? "Error inesperado al registrar");
     } finally {
       setLoading(false);
@@ -139,13 +171,19 @@ export default function RegisterForm({
         </button>
       </div>
 
-      {/* Campos comunes */}
+      {/* Campos */}
       <div className="grid grid-cols-1 gap-5">
         <Field
           label="Nombre"
-          value={state.name}
-          onChange={handle("name")}
-          placeholder="Juan Pérez"
+          value={state.firstName}
+          onChange={handle("firstName")}
+          placeholder="Juan"
+        />
+        <Field
+          label="Apellido"
+          value={state.lastName}
+          onChange={handle("lastName")}
+          placeholder="Pérez"
         />
         <Field
           label="Email"
@@ -197,29 +235,22 @@ export default function RegisterForm({
         </button>
       </div>
 
-      {showOAuth && (
-        <div className="pt-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="flex-grow h-px bg-gray-300"></div>
-            <span className="text-sm text-gray-500">o</span>
-            <div className="flex-grow h-px bg-gray-300"></div>
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              (window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`)
-            }
-            className="w-full flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-50"
-          >
-            <img
-              src="/google.jpg"
-              alt="Google"
-              className="h-5 w-5 flex-shrink-0 object-contain"
-            />
-            Continuar con Google
-          </button>
+      {/* Divider + botón de Google */}
+      <div className="pt-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="flex-grow h-px bg-gray-300"></div>
+          <span className="text-sm text-gray-500">o</span>
+          <div className="flex-grow h-px bg-gray-300"></div>
         </div>
-      )}
+
+        <GoogleOAuthButton
+          mode="register"
+          role={role}
+          next="/profile"
+          label="Continuar con Google (registrarme)"
+          className="w-full flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm hover:bg-gray-50"
+        />
+      </div>
     </form>
   );
 }
@@ -245,7 +276,10 @@ function Field({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
+        minLength={type === "password" ? undefined : 3}
+        maxLength={type === "password" ? undefined : 50}
         className="mt-1 w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        required
       />
     </div>
   );

@@ -1,7 +1,10 @@
+// src/app/(auth)/signin/components/login-form.tsx
 "use client";
+
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import GoogleOAuthButton from "@/components/auth/GoogleOAthButton";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -17,10 +20,10 @@ export default function LoginForm() {
     setErrorMsg(null);
     setLoading(true);
     try {
-      await login(email, password);
-      router.push("/"); // ✅ redirección post-login
+      await login(email.trim(), password);
+      router.replace("/"); // 👈 redirige al home
     } catch (error: any) {
-      setErrorMsg(error.message || "Credenciales inválidas");
+      setErrorMsg(error?.message || "Credenciales inválidas");
     } finally {
       setLoading(false);
     }
@@ -32,6 +35,8 @@ export default function LoginForm() {
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md space-y-6"
       >
+        <h1 className="text-xl font-semibold text-gray-900">Ingresar</h1>
+
         <div>
           <label className="block text-sm font-medium text-gray-700">Correo electrónico</label>
           <input
@@ -41,6 +46,7 @@ export default function LoginForm() {
             required
             className="mt-1 w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
             placeholder="tucorreo@mail.com"
+            autoComplete="email"
           />
         </div>
 
@@ -53,12 +59,11 @@ export default function LoginForm() {
             required
             className="mt-1 w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
             placeholder="********"
+            autoComplete="current-password"
           />
         </div>
 
-        {errorMsg && (
-          <p className="text-red-600 text-sm text-center">{errorMsg}</p>
-        )}
+        {errorMsg && <p className="text-red-600 text-sm text-center">{errorMsg}</p>}
 
         <button
           type="submit"
@@ -67,6 +72,21 @@ export default function LoginForm() {
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
+
+        {/* Divider */}
+        <div className="flex items-center gap-2 my-2">
+          <div className="h-px flex-1 bg-gray-300" />
+          <span className="text-xs text-gray-500">o</span>
+          <div className="h-px flex-1 bg-gray-300" />
+        </div>
+
+        {/* Botón de Google → redirige al home "/" al finalizar */}
+        <GoogleOAuthButton
+          mode="login"
+          next="/"          // 👈 vuelve al home
+          label="Continuar con Google"
+          className="w-full flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm hover:bg-gray-50"
+        />
       </form>
     </div>
   );

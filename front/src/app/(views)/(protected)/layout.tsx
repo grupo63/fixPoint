@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isReady } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
+  const isAuthenticated = !!user; // derivado del contexto
+  const isReady = !loading;       // derivado del contexto
+
   useEffect(() => {
-    if (!isReady) return;                  // espera la hidratación
+    if (!isReady) return;           // espera a que se resuelva la sesión
     if (!isAuthenticated) router.replace("/signin");
   }, [isAuthenticated, isReady, router]);
 
@@ -21,7 +24,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!isAuthenticated) return null;       // evita parpadeo de contenido protegido
+  if (!isAuthenticated) return null; // evita parpadeo
 
   return <>{children}</>;
 }
