@@ -26,6 +26,9 @@ type AuthContextType = {
 
   setAuthFromToken: (token: string) => Promise<void>;
   setAuthenticatedFromCookie: (me: AuthUser | null) => void;
+
+  // 👇 NUEVO: actualizar solo la imagen de perfil en memoria (y opcionalmente persistir)
+  setUserProfileImage: (url: string) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -152,6 +155,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(false);
   }, []);
 
+  // 👇 NUEVO: actualiza solo la imagen del usuario y bustea caché para que se vea al instante
+  const setUserProfileImage = useCallback((url: string) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const busted = url
+        ? (url.includes("?") ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`)
+        : null;
+      const next = { ...prev, profileImage: busted };
+
+      // (opcional) persistir si guardás el user en storage propio
+      try {
+        const raw = localStorage.getItem("auth_user");
+        if (raw) {
+          const stored = JSON.parse(raw);
+          localStorage.setItem(
+            "auth_user",
+            JSON.stringify({ ...stored, profileImage: next.profileImage })
+          );
+        }
+      } catch {}
+
+      return next;
+    });
+  }, []);
+
   const value = useMemo<AuthContextType>(
     () => ({
       isReady,
@@ -162,8 +190,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       setAuthFromToken,
       setAuthenticatedFromCookie,
+      setUserProfileImage,     // 👈 NUEVO en el contexto
     }),
-    [isReady, isAuthenticated, user, login, signin, logout, setAuthFromToken, setAuthenticatedFromCookie]
+    [
+      isReady,
+      isAuthenticated,
+      user,
+      login,
+      signin,
+      logout,
+      setAuthFromToken,
+      setAuthenticatedFromCookie,
+      setUserProfileImage,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -11,6 +11,52 @@ type Props = {
   onUploaded: (newUrl: string) => void;
 };
 
+function extractUrl(payload: any): string {
+  if (!payload) return "";
+
+  // 1) claves directas comunes
+  const directKeys = [
+    "profileImage", "profileImg",
+    "secure_url", "url", "imageUrl"
+  ];
+  for (const k of directKeys) {
+    if (typeof payload?.[k] === "string" && payload[k]) return payload[k];
+  }
+
+  // 2) anidados típicos
+  const nestedCandidates = [
+    payload?.user,
+    payload?.data,
+    payload?.result,
+    payload?.profile,
+    payload?.updatedUser,
+  ];
+  for (const obj of nestedCandidates) {
+    if (!obj) continue;
+    for (const k of directKeys) {
+      if (typeof obj?.[k] === "string" && obj[k]) return obj[k];
+    }
+  }
+
+  // 3) búsqueda profunda (recursiva/bfs limitada)
+  const queue: any[] = [];
+  if (typeof payload === "object") queue.push(payload);
+  let steps = 0;
+  while (queue.length && steps < 200) {
+    const cur = queue.shift();
+    steps++;
+    if (cur && typeof cur === "object") {
+      for (const k of Object.keys(cur)) {
+        const v = (cur as any)[k];
+        if (typeof v === "string" && directKeys.includes(k) && v) return v;
+        if (v && typeof v === "object") queue.push(v);
+      }
+    }
+  }
+
+  return "";
+}
+
 export default function UserAvatarUploader({ userId, currentUrl, onUploaded }: Props) {
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -27,7 +73,6 @@ export default function UserAvatarUploader({ userId, currentUrl, onUploaded }: P
     try { setToken(localStorage.getItem("token")); } catch {}
   }, []);
 
-  // target del portal (botones en el header)
   useEffect(() => {
     setPortalEl(document.getElementById("profile-upload-controls"));
   }, []);
@@ -66,38 +111,26 @@ export default function UserAvatarUploader({ userId, currentUrl, onUploaded }: P
 
       const xhr = new XMLHttpRequest();
       xhr.open("PUT", apiUrl(`/upload-img/users/${encodeURIComponent(userId)}/profile-image`));
+      xhr.responseType = "json";                      // 👈 parse automático
       if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) setProgress(Math.round((e.loaded * 100) / e.total));
       };
 
-      const response: string = await new Promise((resolve, reject) => {
+      const data: any = await new Promise((resolve, reject) => {
         xhr.onreadystatechange = () => {
           if (xhr.readyState === XMLHttpRequest.DONE) {
-            if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.responseText);
-            else reject(new Error(xhr.responseText || `Error ${xhr.status}`));
+            if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
+            else reject(new Error((xhr.response && (xhr.response.message || xhr.response.error)) || `Error ${xhr.status}`));
           }
         };
         xhr.onerror = () => reject(new Error("Error de red en upload"));
         xhr.send(form);
       });
 
-      let data: any = null;
-      try { data = JSON.parse(response); } catch { data = response; }
-
-      const newUrl: string =
-        (typeof data === "object" && (
-          data?.profileImg ??
-          data?.user?.profileImg ??
-          data?.data?.profileImg ??
-          data?.secure_url ??
-          data?.result?.secure_url ??
-          data?.url ??
-          data?.imageUrl ??
-          data?.data?.url ??
-          ""
-        )) || "";
+      // extraer URL robustamente
+      const newUrl = extractUrl(data);
 
       if (newUrl) {
         onUploaded(newUrl);
@@ -105,6 +138,7 @@ export default function UserAvatarUploader({ userId, currentUrl, onUploaded }: P
         setPreview(null);
         setProgress(100);
       } else {
+        console.warn("Upload OK pero no llegó URL. Respuesta:", data);
         setMsg("Subida OK pero no llegó la URL. Revisá consola para ver la respuesta ↘️");
       }
     } catch (e: any) {
@@ -114,7 +148,6 @@ export default function UserAvatarUploader({ userId, currentUrl, onUploaded }: P
     }
   }
 
-  // bloque de botones (se porta al header)
   const Controls = (
     <div className="flex items-center gap-4">
       <button
@@ -148,7 +181,7 @@ export default function UserAvatarUploader({ userId, currentUrl, onUploaded }: P
   return (
     <section className="rounded-2xl border p-6" aria-busy={loading}>
       <div className="flex flex-col items-center gap-4">
-        {/* Imagen (se queda en su lugar original) */}
+        {/* Imagen */}
         <div className="relative h-[160px] w-[160px] overflow-hidden rounded-2xl border bg-gray-50">
           <Image
             src={currentImg}
@@ -160,7 +193,7 @@ export default function UserAvatarUploader({ userId, currentUrl, onUploaded }: P
           />
         </div>
 
-        {/* Fallback: si no hay portal, mostramos controles aquí */}
+        {/* Fallback local si no existe el portal */}
         {!portalEl && Controls}
 
         <input
@@ -174,7 +207,7 @@ export default function UserAvatarUploader({ userId, currentUrl, onUploaded }: P
         {msg && <p className="text-sm text-gray-700">{msg}</p>}
       </div>
 
-      {/* Portal real: renderiza los botones en el ancla del header */}
+      {/* Portal al header */}
       {portalEl && createPortal(Controls, portalEl)}
     </section>
   );

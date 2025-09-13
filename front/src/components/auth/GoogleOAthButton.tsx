@@ -10,8 +10,8 @@ const API_BASE =
   "http://localhost:3001";
 
 export default function GoogleOAuthButton({
-  mode,                // "login" | "register"
-  role = "user",       // solo se usa si mode="register"
+  mode,
+  role = "user",
   next = "/",
   label,
   className = "",
@@ -23,24 +23,15 @@ export default function GoogleOAuthButton({
   className?: string;
 }) {
   const onClick = () => {
-    const state = {
-      action: mode,  // 👈 el back decide login vs register
-      role,          // 👈 hint de rol en registro
-      next,          // 👈 a dónde volver en el front
-      t: Date.now(), // anti-cache/debug
-    };
+    const state = { action: mode, role, next, t: Date.now() };
     const base = API_BASE.replace(/\/+$/, "");
     const url = `${base}/auth/google?state=${encodeURIComponent(JSON.stringify(state))}`;
-
-    // opcional: recordar el next en el front
     try { localStorage.setItem("postLoginRedirect", next); } catch {}
-
     window.location.href = url;
   };
 
   const text =
-    label ??
-    (mode === "register" ? "Continuar con Google (registrarme)" : "Continuar con Google");
+    label ?? (mode === "register" ? "Continuar con Google (registrarme)" : "Continuar con Google");
 
   return (
     <button

@@ -26,17 +26,11 @@ export default function OAuthSuccessPage() {
       }
 
       try {
-        // 1) Guarda token (AuthContext hidrata user con /auth/me)
         await setAuthFromToken(token);
-
-        // 2) (opcional) también cookie legible por server
         document.cookie = `token=${token}; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-
-        // 3) Limpia y redirige al HOME (o al next recibido)
         localStorage.removeItem("postLoginRedirect");
         router.replace(next || "/");
       } catch {
-        // Fallback cookie-based por si el setAuthFromToken falla
         try {
           const r = await fetch(`${API_BASE.replace(/\/+$/, "")}/auth/me`, {
             credentials: "include",
