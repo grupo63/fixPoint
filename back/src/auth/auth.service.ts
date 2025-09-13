@@ -8,6 +8,7 @@ import { User } from 'src/users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from './dto/auth.dto';
+import { first } from 'rxjs';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +18,7 @@ export class AuthService {
   ) {}
 
   async signUp(user: CreateUserDto) {
-    const { role, email, password } = user;
+    const { role, email, password, firstName, lastName } = user;
 
     const roleMap = {
       user: 'USER',
@@ -36,6 +37,8 @@ export class AuthService {
 
     const created = await this.authRepository.createUser({
       email,
+      firstName,
+      lastName,
       password: passwordHash,
       role: internalRole,
     });
@@ -59,6 +62,8 @@ export class AuthService {
 
     const payload = {
       id: foundUser.id,
+      firstName: foundUser.firstName,
+      lastName: foundUser.lastName,
       email: foundUser.email,
       role: (foundUser as any).role,
     };
@@ -79,14 +84,17 @@ export class AuthService {
     roleHint?: 'user' | 'professional',
     action: 'login' | 'register' = 'login',
   ): Promise<User> {
-    const { providerId, email, name, picture, given_name, family_name } = profile;
+    const { providerId, email, name, picture, given_name, family_name } =
+      profile;
 
     const firstName: string | undefined =
       given_name ?? (name ? name.trim().split(/\s+/)[0] : undefined);
 
     const lastName: string | undefined =
       family_name ??
-      (name ? name.trim().split(/\s+/).slice(1).join(' ') || undefined : undefined);
+      (name
+        ? name.trim().split(/\s+/).slice(1).join(' ') || undefined
+        : undefined);
 
     // 1) Buscar por Google ID
     let user = await this.authRepository.findByGoogleId(providerId);
@@ -96,9 +104,12 @@ export class AuthService {
     user = await this.authRepository.findByEmail(email);
     if (user) {
       if (!(user as any).googleId) (user as any).googleId = providerId;
-      if (!(user as any).firstName && firstName) (user as any).firstName = firstName;
-      if (!(user as any).lastName && lastName) (user as any).lastName = lastName;
-      if (!(user as any).profileImage) (user as any).profileImage = picture ?? null;
+      if (!(user as any).firstName && firstName)
+        (user as any).firstName = firstName;
+      if (!(user as any).lastName && lastName)
+        (user as any).lastName = lastName;
+      if (!(user as any).profileImage)
+        (user as any).profileImage = picture ?? null;
       return this.authRepository.save(user);
     }
 
