@@ -7,7 +7,6 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Observable } from 'rxjs';
 import { TemporaryRole } from 'src/users/types/temporary-role';
-import { Roles } from '../decorators/roles.decorator';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -17,30 +16,39 @@ export class JwtAuthGuard implements CanActivate {
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
     const req = context.switchToHttp().getRequest();
-    const auth = req.headers.authorization?.split(' ')[1];
+    const header = req.headers.authorization;
 
-    if (!auth) throw new UnauthorizedException('No token sent');
+    if (!header?.startsWith('Bearer ')) {
+      throw new UnauthorizedException('No token sent');
+    }
+
+    const token = header.slice('Bearer '.length).trim();
 
     try {
-      const secret = process.env.JWT_SECRET;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      const payload = this.jwt.verify(auth, { secret });
+      const payload = this.jwt.verify(token) as any; // usa JwtModule global
 
-      payload.iat = payload.iat ? new Date(payload.iat * 1000) : null;
-      payload.exp = payload.exp ? new Date(payload.exp * 1000) : null;
+      const id = payload.id ?? payload.sub ?? payload.userId;
+      if (!id) {
+        throw new UnauthorizedException('Invalid token payload: missing id/sub/userId');
+      }
 
       req.user = {
-        ...payload,
+        id,
+        email: payload.email ?? null,
+        role: payload.role ?? null,
         roles:
           payload.role === TemporaryRole.ADMIN
             ? [TemporaryRole.ADMIN]
             : payload.role === TemporaryRole.PROFESSIONAL
-              ? [TemporaryRole.PROFESSIONAL]
-              : [TemporaryRole.USER],
+            ? [TemporaryRole.PROFESSIONAL]
+            : [TemporaryRole.USER],
+        iat: payload.iat ? new Date(payload.iat * 1000) : null,
+        exp: payload.exp ? new Date(payload.exp * 1000) : null,
       };
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      // console.error('[JwtAuthGuard] verify error:', error?.name, error?.message);
       throw new UnauthorizedException('Error validating token');
     }
   }

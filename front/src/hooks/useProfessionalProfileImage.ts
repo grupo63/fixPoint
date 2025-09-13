@@ -1,16 +1,20 @@
+// src/hooks/useProfessionalProfileImage.ts
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PRO_ID_KEY, TOKEN_KEY } from "@/lib/constants";
 import {
   Professional,
-  fetchProfessionalById,
   uploadProfessionalProfileImageXHR,
 } from "@/services/professionalService";
 
-export function useProfessionalProfileImage() {
+/**
+ * Maneja subida de imagen de perfil para Professional.
+ * Se sincroniza con un `professionalId` externo y limpia el estado si ese ID se vacía.
+ */
+export function useProfessionalProfileImage(externalProfessionalId?: string) {
   const [token, setToken] = useState<string | null>(null);
-  const [professionalId, setProfessionalId] = useState<string>("");
+
+  const [professionalId, setProfessionalId] = useState<string>(externalProfessionalId ?? "");
   const [pro, setPro] = useState<Professional | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -19,34 +23,30 @@ export function useProfessionalProfileImage() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string>("");
 
-  // Token y professionalId desde localStorage
+  // token LS
   useEffect(() => {
-    setToken(window.localStorage.getItem(TOKEN_KEY));
-    const savedProId = window.localStorage.getItem(PRO_ID_KEY);
-    if (savedProId) setProfessionalId(savedProId);
+    try { setToken(window.localStorage.getItem("token")); } catch {}
   }, []);
 
-  // Persistencia de professionalId
+  // sync con ID externo + limpieza cuando se desloguea o cambia a USER
   useEffect(() => {
-    if (professionalId) {
-      window.localStorage.setItem(PRO_ID_KEY, professionalId);
-    } else {
-      window.localStorage.removeItem(PRO_ID_KEY);
-    }
-  }, [professionalId]);
-
-  // Cargar Professional
-  useEffect(() => {
-    if (!professionalId) return;
-    fetchProfessionalById(professionalId, token).then(setPro);
-  }, [professionalId, token]);
-
-  // Preview local
-  useEffect(() => {
-    if (!file) {
+    if (!externalProfessionalId) {
+      setProfessionalId("");
+      setPro(null);
+      setFile(null);
       setPreview(null);
+      setProgress(0);
+      setMsg("");
       return;
     }
+    if (externalProfessionalId !== professionalId) {
+      setProfessionalId(externalProfessionalId);
+    }
+  }, [externalProfessionalId, professionalId]);
+
+  // preview local
+  useEffect(() => {
+    if (!file) { setPreview(null); return; }
     const url = URL.createObjectURL(file);
     setPreview(url);
     return () => URL.revokeObjectURL(url);
@@ -64,8 +64,8 @@ export function useProfessionalProfileImage() {
   }
 
   async function upload() {
-    if (!file) return setMsg("Elegí un archivo.");
-    if (!professionalId) return setMsg("Pegá el UUID del Professional.");
+    if (!file) { setMsg("Elegí un archivo."); return; }
+    if (!professionalId) { setMsg("No se detectó Professional ID."); return; }
 
     setLoading(true);
     setProgress(0);
@@ -78,7 +78,7 @@ export function useProfessionalProfileImage() {
         token,
         onProgress: setProgress,
       });
-      setPro(updated);
+      setPro(updated ?? null);
       setPreview(null);
       setMsg("Imagen subida con éxito ✅");
       setProgress(100);
@@ -90,7 +90,6 @@ export function useProfessionalProfileImage() {
   }
 
   return {
-    // estado
     token,
     professionalId,
     pro,
@@ -100,12 +99,10 @@ export function useProfessionalProfileImage() {
     loading,
     msg,
 
-    // setters & actions
     setProfessionalId,
     onFileChange,
     upload,
 
-    // derivados
     canUpload,
   };
 }
