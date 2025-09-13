@@ -4,24 +4,21 @@ import {
   Controller,
   Get,
   HttpStatus,
-  InternalServerErrorException,
   Post,
   Req,
   Res,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto, LoginUserDto } from './dto/auth.dto';
-import { AuthGuard } from '@nestjs/passport';
 import { ApiResponse, ApiTags, ApiOperation } from '@nestjs/swagger';
-import { JwtAuthGuard } from './guards/auth.guards';
-import { UsersService } from 'src/users/users.service';
 import type {
   Response as ExpressResponse,
   Request as ExpressRequest,
 } from 'express';
 import { GoogleAuthGuard } from './guards/google.guards';
+import { JwtAuthGuard } from './guards/auth.guards';
+import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 
 @ApiTags('auth')
@@ -59,11 +56,11 @@ export class AuthController {
     return this.authService.signIn(email, password);
   }
 
-  //Google
+  // ===== Google OAuth =====
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({
-    summary: 'Login with Google',
+    summary: 'Login/Register with Google',
     description: 'Redirects the user to Google OAuth login page.',
   })
   @ApiResponse({ status: 302, description: 'Redirects to Google login page.' })
@@ -76,7 +73,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Google OAuth callback',
     description:
-      'Handles the callback from Google, issues a JWT and redirects to the frontend.',
+      'Handles the callback from Google, creates account if action=register, and redirects to the frontend.',
   })
   @ApiResponse({
     status: 302,
@@ -88,12 +85,23 @@ export class AuthController {
   ) {
     type Role = 'user' | 'professional';
 
-    const raw =
-      (req.query?.state as string | undefined) ??
-      (req.query?.role as string | undefined);
+    let roleHint: Role | undefined = undefined;
+    let action: 'login' | 'register' = 'login';
+    let next = '/';
 
-    const roleHint: Role | undefined =
-      raw === 'user' || raw === 'professional' ? raw : undefined;
+    try {
+      if (typeof req.query.state === 'string') {
+        const parsed = JSON.parse(req.query.state);
+        if (parsed?.role === 'user' || parsed?.role === 'professional') {
+          roleHint = parsed.role;
+        }
+        if (parsed?.action === 'register') action = 'register';
+        if (parsed?.next) next = String(parsed.next);
+      }
+    } catch {
+      const raw = req.query?.role as string | undefined;
+      if (raw === 'user' || raw === 'professional') roleHint = raw;
+    }
 
     const googleUser = req.user as {
       providerId?: string;
@@ -112,6 +120,7 @@ export class AuthController {
       );
     }
 
+    // --- Login o Registro según action ---
     const user = await this.authService.loginOrCreateGoogleUser(
       {
         providerId,
@@ -122,6 +131,7 @@ export class AuthController {
         family_name: googleUser.family_name,
       },
       roleHint,
+      action,
     );
 
     const accessToken = this.jwtService.sign({
@@ -130,28 +140,11 @@ export class AuthController {
       role: (user as any).role,
     });
 
-    // 🔹 MODO DEBUG: si está activo, NO redirige; devuelve JSON para inspección
-    const DEBUG = String(process.env.OAUTH_DEBUG ?? '').toLowerCase();
-    const isDebug = DEBUG === '1' || DEBUG === 'true' || DEBUG === 'yes';
-
-    if (isDebug) {
-      console.log('[OAuth][DEBUG] mode:', (roleHint ? 'register' : 'login'));
-      console.log('[OAuth][DEBUG] user:', (user as any).email, 'role:', (user as any).role);
-
-      return res.status(200).json({
-        ok: true,
-        mode: roleHint ? 'register' : 'login',
-        user: {
-          id: (user as any).id,
-          email: (user as any).email,
-          role: (user as any).role,
-        },
-        accessToken,
-      });
-    }
-
+    // Redirigir al front
     const base = process.env.FRONT_URL || 'http://localhost:3000';
-    return res.redirect(`${base}/?token=${accessToken}`);
+    const redirectUrl = `${base}/auth/google/callback?token=${encodeURIComponent(accessToken)}&next=${encodeURIComponent(next)}`;
+
+    return res.redirect(redirectUrl);
   }
 
   @Get('me')
