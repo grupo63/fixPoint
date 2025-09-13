@@ -1,5 +1,5 @@
 import { API_BASE } from "@/lib/constants";
-
+import { apiUrl } from "@/lib/apiUrl";
 export type Professional = {
   id: string;
   speciality?: string;
@@ -70,4 +70,34 @@ export function uploadProfessionalProfileImageXHR(opts: {
     xhr.onerror = () => reject(new Error("Network error"));
     xhr.send(form);
   });
+}
+
+export async function updateProfessional(
+  id: string,
+  body: Partial<Professional>
+): Promise<Professional | null> {
+  try {
+    const res = await fetch(apiUrl(`professional/${id}`), {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      console.error(
+        `❌ Error al actualizar profesional ${id}:`,
+        res.status,
+        res.statusText
+      );
+      return null;
+    }
+
+    const data: Professional = await res.json();
+    return data;
+  } catch (error) {
+    console.error("🔥 Excepción en updateProfessional:", error);
+    return null;
+  }
 }

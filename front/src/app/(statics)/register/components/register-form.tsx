@@ -3,7 +3,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import GoogleOAuthButton from "@/components/auth/GoogleOAthButton";
+import { useAuth } from "@/context/AuthContext";
+// import GoogleOAuthButton from "@/components/auth/GoogleOAthButton";
 
 type RoleAPI = "user" | "professional";
 
@@ -12,15 +13,10 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:3001";
 
-export default function RegisterForm({
-  onBack,
-  onSuccess,
-}: {
-  onBack?: () => void;
-  onSuccess?: () => void;
-}) {
+export default function RegisterForm() {
   const router = useRouter();
 
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState<RoleAPI>("user");
   const [showPassword, setShowPassword] = useState(false);
@@ -33,9 +29,19 @@ export default function RegisterForm({
     confirmPassword: "",
   });
 
+  const onSuccess = async () => {
+    await login(state.email.trim(), state.password);
+
+    const urlRedirect: string = role === "user" ? "/" : "/onboarding";
+    router.push(urlRedirect);
+  };
+
+  const onBack = () => {
+    router.push("/signin");
+  };
+
   const handle =
-    (k: keyof typeof state) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
+    (k: keyof typeof state) => (e: React.ChangeEvent<HTMLInputElement>) =>
       setState((s) => ({ ...s, [k]: e.target.value }));
 
   const submit = async (e: React.FormEvent) => {
@@ -111,7 +117,11 @@ export default function RegisterForm({
 
       if (!res.ok) {
         console.error("Signup error:", res.status, res.statusText, bodyText);
-        alert(`Error ${res.status} ${res.statusText}\n${bodyText || "(sin detalle)"}`);
+        alert(
+          `Error ${res.status} ${res.statusText}\n${
+            bodyText || "(sin detalle)"
+          }`
+        );
         return;
       }
 
@@ -125,7 +135,7 @@ export default function RegisterForm({
       } catch {}
 
       alert("✅ Cuenta creada con éxito");
-      onSuccess ? onSuccess() : router.push("/signin");
+      onSuccess();
     } catch (err: any) {
       console.error(err);
       alert(err?.message ?? "Error inesperado al registrar");
@@ -208,7 +218,9 @@ export default function RegisterForm({
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
-              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              aria-label={
+                showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+              }
             >
               {showPassword ? "🙈" : "👁️"}
             </button>
@@ -243,13 +255,13 @@ export default function RegisterForm({
           <div className="flex-grow h-px bg-gray-300"></div>
         </div>
 
-        <GoogleOAuthButton
+        {/* <GoogleOAuthButton
           mode="register"
           role={role}
           next="/profile"
           label="Continuar con Google (registrarme)"
           className="w-full flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm hover:bg-gray-50"
-        />
+        /> */}
       </div>
     </form>
   );

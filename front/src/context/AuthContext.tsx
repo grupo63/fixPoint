@@ -1,12 +1,19 @@
 // src/context/AuthContext.tsx
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 type RoleAPI = "USER" | "PROFESSIONAL" | string;
 
 export type AuthUser = {
-  id: string | number;          // 👈 acepta ambos
+  id: string; // 👈 acepta ambos
   email: string;
   role: RoleAPI;
   name?: string | null;
@@ -21,7 +28,7 @@ type AuthContextType = {
   user: AuthUser | null;
 
   login: (email: string, password: string) => Promise<void>;
-  signin: (email: string, password: string) => Promise<void>;   // 👈 alias opcional
+  signin: (email: string, password: string) => Promise<void>; // 👈 alias opcional
   logout: () => void;
 
   setAuthFromToken: (token: string) => Promise<void>;
@@ -44,29 +51,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
 
   // --- helpers internos ---
-  const fetchMe = useCallback(
-    async (token?: string | null) => {
-      try {
-        const headers: Record<string, string> = {};
-        if (token) headers.Authorization = `Bearer ${token}`;
-        const res = await fetch(`${API_BASE.replace(/\/+$/, "")}/auth/me`, {  // 👈 /auth/me
-          headers,
-          credentials: "include",
-        });
-        if (!res.ok) return null;
-        const me = (await res.json()) as AuthUser;
-        return me;
-      } catch {
-        return null;
-      }
-    },
-    []
-  );
+  const fetchMe = useCallback(async (token?: string | null) => {
+    try {
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(`${API_BASE.replace(/\/+$/, "")}/auth/me`, {
+        // 👈 /auth/me
+        headers,
+        credentials: "include",
+      });
+      if (!res.ok) return null;
+      const me = (await res.json()) as AuthUser;
+      return me;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const hydrateFromStorage = useCallback(async () => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (!token) {
-      const me = await fetchMe(null);   // cookie-based fallback
+      const me = await fetchMe(null); // cookie-based fallback
       if (me) {
         setUser(me);
         setIsAuthenticated(true);
@@ -121,33 +127,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const base = API_BASE.replace(/\/+$/, "");
-    const res = await fetch(`${base}/auth/signin`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, password }),
-    });
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const base = API_BASE.replace(/\/+$/, "");
+      const res = await fetch(`${base}/auth/signin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!res.ok) {
-      let msg = "Error al iniciar sesión";
-      try {
-        const body = await res.json();
-        msg = body?.message || msg;
-      } catch {}
-      throw new Error(msg);
-    }
+      if (!res.ok) {
+        let msg = "Error al iniciar sesión";
+        try {
+          const body = await res.json();
+          msg = body?.message || msg;
+        } catch {}
+        throw new Error(msg);
+      }
 
-    const data = await res.json();
-    const token: string = data?.access_token;
-    if (!token) throw new Error("Token no recibido");
+      const data = await res.json();
+      const token: string = data?.access_token;
+      if (!token) throw new Error("Token no recibido");
 
-    await setAuthFromToken(token);
-  }, [setAuthFromToken]);
+      await setAuthFromToken(token);
+    },
+    [setAuthFromToken]
+  );
 
   // 👇 alias opcional para compatibilidad con código existente
-  const signin = useCallback((email: string, password: string) => login(email, password), [login]);
+  const signin = useCallback(
+    (email: string, password: string) => login(email, password),
+    [login]
+  );
 
   const logout = useCallback(() => {
     localStorage.removeItem("token");
@@ -160,7 +172,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((prev) => {
       if (!prev) return prev;
       const busted = url
-        ? (url.includes("?") ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`)
+        ? url.includes("?")
+          ? `${url}&t=${Date.now()}`
+          : `${url}?t=${Date.now()}`
         : null;
       const next = { ...prev, profileImage: busted };
 
@@ -186,11 +200,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated,
       user,
       login,
-      signin,                  // 👈 exportamos alias
+      signin, // 👈 exportamos alias
       logout,
       setAuthFromToken,
       setAuthenticatedFromCookie,
-      setUserProfileImage,     // 👈 NUEVO en el contexto
+      setUserProfileImage, // 👈 NUEVO en el contexto
     }),
     [
       isReady,

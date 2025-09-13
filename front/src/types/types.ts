@@ -2,7 +2,6 @@ import { StaticImport } from "next/dist/shared/lib/get-img-props";
 
 export type Role = "CLIENTE" | "PROFESIONAL" | "ADMIN";
 
-
 export type IUser = {
   id: string;
   name: string;
@@ -12,7 +11,7 @@ export type IUser = {
   city?: string | null;
   address?: string | null;
   zipCode?: string | null;
-  registrationDate?: string | null; 
+  registrationDate?: string | null;
   profileImg?: string | null;
 };
 
@@ -25,7 +24,7 @@ export type MeResponse = {
   city?: string | null;
   address?: string | null;
   zipCode?: string | null;
-  registrationDate?: string | null; 
+  registrationDate?: string | null;
   profileImg?: string | null;
 };
 
@@ -42,13 +41,10 @@ export type UserProfile = {
   profileImg?: string | null;
 };
 
-
 export type AuthCredentials = {
   email: string;
   password: string;
 };
-
-
 
 // Category type (front)
 export type Category = {
