@@ -11,12 +11,19 @@ import {
 import { TemporaryRole } from '../types/temporary-role';
 
 export class CreateUserDto {
-  /** @example 'Test User' */
+  /** @example 'Juan' */
   @IsNotEmpty()
   @IsString()
   @MinLength(3)
   @MaxLength(50)
-  name: string;
+  firstName: string;
+
+  /** @example 'Perez' */
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(50)
+  lastName: string;
 
   /** @example 'test.user@example.com' */
   @IsNotEmpty()

@@ -15,7 +15,7 @@ import { TemporaryRole } from 'src/users/types/temporary-role';
 export class CreateUserDto {
   @ApiProperty({
     description: 'Must be a string between 3 and 50 characters',
-    example: 'Test User',
+    example: 'Juan',
     minLength: 3,
     maxLength: 50,
   })
@@ -23,7 +23,19 @@ export class CreateUserDto {
   @IsString()
   @MinLength(3)
   @MaxLength(50)
-  name: string;
+  firstName: string;
+
+  @ApiProperty({
+    description: 'Must be a string between 3 and 50 characters',
+    example: 'Perez',
+    minLength: 3,
+    maxLength: 50,
+  })
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(50)
+  lastName: string;
 
   @ApiProperty({
     description: 'Must be a valid email format with a maximum of 50 characters',
