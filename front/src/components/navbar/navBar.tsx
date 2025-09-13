@@ -11,12 +11,9 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-
-  
   const [query, setQuery] = useState("");
 
-  // auth
-  const { isAuthenticated, logout } = useAuth();
+  const { isReady, isAuthenticated, user, logout } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +27,26 @@ export default function Navbar() {
     router.push(routes.signin || "/signin");
   };
 
+  // Evitar parpadeo: hasta que se resuelva isReady, mostramos skeleton
+  if (!isReady) {
+    return (
+      <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+        <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
+          <Link href={routes.home} className="flex items-center gap-2">
+            <div className="grid h-9 w-9 place-content-center rounded-full bg-blue-600 text-white">
+              <span className="text-sm font-bold">F</span>
+            </div>
+            <span className="text-base font-semibold text-gray-900">FixPoint</span>
+          </Link>
+          <div className="hidden md:flex items-center gap-4">
+            <div className="h-8 w-24 rounded bg-gray-200 animate-pulse" />
+          </div>
+          <div className="md:hidden h-8 w-8 rounded bg-gray-200 animate-pulse" />
+        </nav>
+      </header>
+    );
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
@@ -41,7 +58,7 @@ export default function Navbar() {
           <span className="text-base font-semibold text-gray-900">FixPoint</span>
         </Link>
 
-        {/* Center: Links + Search */}
+        {/* Center: Links */}
         <div className="hidden md:flex items-center gap-6 flex-1 justify-center">
           <ul className="flex items-center gap-6">
             {navLinks.map((l) => {
@@ -51,7 +68,9 @@ export default function Navbar() {
                   <Link
                     href={l.href}
                     className={`text-sm transition-colors ${
-                      active ? "text-blue-600 font-medium" : "text-gray-600 hover:text-blue-600"
+                      active
+                        ? "text-blue-600 font-medium"
+                        : "text-gray-600 hover:text-blue-600"
                     }`}
                   >
                     {l.label}
@@ -60,19 +79,6 @@ export default function Navbar() {
               );
             })}
           </ul>
-
-     
-
-
-          {/* <form onSubmit={handleSearch} className="ml-4">
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar Profesional…"
-              className="w-40 lg:w-64 rounded-md border border-gray-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </form> */}
         </div>
 
         {/* Right: acciones (desktop) */}
@@ -96,9 +102,12 @@ export default function Navbar() {
                 className="flex items-center gap-2 text-sm text-gray-700 hover:text-blue-600"
                 title="Mi perfil"
               >
-                {/* ícono simple de usuario (SVG inline) */}
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z" stroke="currentColor" strokeWidth="1.5" />
+                  <path
+                    d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
                 </svg>
                 Perfil
               </Link>

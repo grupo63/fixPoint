@@ -1,3 +1,4 @@
+// src/auth/auth.controller.ts
 import {
   BadRequestException,
   Body,
@@ -9,17 +10,15 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
+import { JwtService } from '@nestjs/jwt';
+
 import { AuthService } from './auth.service';
+import { UsersService } from 'src/users/users.service';
 import { CreateUserDto, LoginUserDto } from './dto/auth.dto';
-import { ApiResponse, ApiTags, ApiOperation } from '@nestjs/swagger';
-import type {
-  Response as ExpressResponse,
-  Request as ExpressRequest,
-} from 'express';
 import { GoogleAuthGuard } from './guards/google.guards';
 import { JwtAuthGuard } from './guards/auth.guards';
-import { UsersService } from 'src/users/users.service';
-import { JwtService } from '@nestjs/jwt';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -31,26 +30,17 @@ export class AuthController {
   ) {}
 
   @Post('signup')
-  @ApiOperation({
-    summary: 'User registration',
-    description: 'Creates a new user in the database.',
-  })
-  @ApiResponse({ status: 201, description: 'User created successfully.' })
-  @ApiResponse({ status: 400, description: 'Invalid data.' })
+  @ApiOperation({ summary: 'User registration' })
+  @ApiResponse({ status: 201 })
+  @ApiResponse({ status: 400 })
   async signUp(@Body() user: CreateUserDto) {
     return this.authService.signUp(user as any);
   }
 
   @Post('signin')
-  @ApiOperation({
-    summary: 'User login',
-    description: 'Validates user credentials and returns a JWT.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Login successful. Returns the JWT token.',
-  })
-  @ApiResponse({ status: 401, description: 'Invalid credentials.' })
+  @ApiOperation({ summary: 'User login' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 401 })
   signIn(@Body() credentials: LoginUserDto) {
     const { email, password } = credentials;
     return this.authService.signIn(email, password);
@@ -59,32 +49,20 @@ export class AuthController {
   // ===== Google OAuth =====
   @Get('google')
   @UseGuards(GoogleAuthGuard)
-  @ApiOperation({
-    summary: 'Login/Register with Google',
-    description: 'Redirects the user to Google OAuth login page.',
-  })
-  @ApiResponse({ status: 302, description: 'Redirects to Google login page.' })
+  @ApiOperation({ summary: 'Login/Register with Google' })
+  @ApiResponse({ status: 302 })
   googleLogin(): any {
     return HttpStatus.OK;
   }
 
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  @ApiOperation({
-    summary: 'Google OAuth callback',
-    description:
-      'Handles the callback from Google, creates account if action=register, and redirects to the frontend.',
-  })
-  @ApiResponse({
-    status: 302,
-    description: 'Redirects to frontend with JWT token in query param.',
-  })
-  async googleCallback(
-    @Req() req: ExpressRequest,
-    @Res() res: ExpressResponse,
-  ) {
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  @ApiResponse({ status: 302 })
+  async googleCallback(@Req() req: ExpressRequest, @Res() res: ExpressResponse) {
     type Role = 'user' | 'professional';
 
+    // Parseo robusto de state
     let roleHint: Role | undefined = undefined;
     let action: 'login' | 'register' = 'login';
     let next = '/';
@@ -92,15 +70,20 @@ export class AuthController {
     try {
       if (typeof req.query.state === 'string') {
         const parsed = JSON.parse(req.query.state);
-        if (parsed?.role === 'user' || parsed?.role === 'professional') {
-          roleHint = parsed.role;
-        }
-        if (parsed?.action === 'register') action = 'register';
+        const r = String(parsed?.role || '').toLowerCase();
+        if (r === 'user' || r === 'professional') roleHint = r as Role;
+        const a = String(parsed?.action || '').toLowerCase();
+        if (a === 'register') action = 'register';
         if (parsed?.next) next = String(parsed.next);
       }
     } catch {
-      const raw = req.query?.role as string | undefined;
-      if (raw === 'user' || raw === 'professional') roleHint = raw;
+      const rawState = (req.query?.state as string | undefined)?.toLowerCase();
+      const rawRole = (req.query?.role as string | undefined)?.toLowerCase() || rawState;
+      if (rawRole === 'user' || rawRole === 'professional') roleHint = rawRole as Role;
+      const a = (req.query?.action as string | undefined)?.toLowerCase();
+      if (a === 'register') action = 'register';
+      const n = req.query?.next as string | undefined;
+      if (n) next = n;
     }
 
     const googleUser = req.user as {
@@ -115,12 +98,9 @@ export class AuthController {
 
     const providerId = googleUser?.providerId ?? googleUser?.googleId;
     if (!providerId || !googleUser?.email) {
-      throw new BadRequestException(
-        'Google profile incomplete (sin email o providerId)',
-      );
+      throw new BadRequestException('Google profile incomplete (sin email o providerId)');
     }
 
-    // --- Login o Registro según action ---
     const user = await this.authService.loginOrCreateGoogleUser(
       {
         providerId,
@@ -140,10 +120,11 @@ export class AuthController {
       role: (user as any).role,
     });
 
-    // Redirigir al front
+    // Redirige al front → /oauth/success (ahí se guarda token y se navega)
     const base = process.env.FRONT_URL || 'http://localhost:3000';
-    const redirectUrl = `${base}/auth/google/callback?token=${encodeURIComponent(accessToken)}&next=${encodeURIComponent(next)}`;
-
+    const redirectUrl =
+      `${base}/oauth/success?token=${encodeURIComponent(accessToken)}` +
+      (next ? `&next=${encodeURIComponent(next)}` : '');
     return res.redirect(redirectUrl);
   }
 

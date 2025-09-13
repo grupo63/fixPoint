@@ -13,15 +13,12 @@ import { CreateUserDto } from './dto/auth.dto';
 export class AuthService {
   constructor(
     private readonly authRepository: AuthRepository,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: JwtService, // usa JwtModule global
   ) {}
 
   async signUp(user: CreateUserDto) {
-<<<<<<< Updated upstream
-    const { role, firstName, lastName, email, password, ...rest } = user;
-=======
-    const { role, name, email, password } = user;
->>>>>>> Stashed changes
+    const { role, email, password } = user;
+
     const roleMap = {
       user: 'USER',
       professional: 'PROFESSIONAL',
@@ -41,10 +38,7 @@ export class AuthService {
       email,
       password: passwordHash,
       role: internalRole,
-      firstName,
-      lastName,
     });
-    console.log('Created user:', created);
     return created;
   }
 
@@ -68,33 +62,9 @@ export class AuthService {
       email: foundUser.email,
       role: (foundUser as any).role,
     };
-    const access_token = this.jwtService.sign(payload);
+
+    const access_token = this.jwtService.sign(payload); // usa config global
     return { access_token };
-  }
-
-  async validateOrCreateGoogleUser(
-    oauth: {
-      providerId?: string;
-      googleId?: string;
-      email: string;
-      name: string;
-      picture?: string;
-    },
-    roleHint: 'user' | 'professional',
-  ) {
-    const providerId = oauth.providerId ?? oauth.googleId;
-    if (!providerId || !oauth.email) {
-      throw new BadRequestException('Google profile incomplete');
-    }
-
-    const profile = {
-      providerId,
-      email: oauth.email,
-      name: oauth.name,
-      picture: oauth.picture,
-    };
-
-    return this.authRepository.findOrCreateFromGoogle(profile, roleHint);
   }
 
   async loginOrCreateGoogleUser(
@@ -107,7 +77,7 @@ export class AuthService {
       family_name?: string;
     },
     roleHint?: 'user' | 'professional',
-    action: 'login' | 'register' = 'login',   // 👈 agregado
+    action: 'login' | 'register' = 'login',
   ): Promise<User> {
     const { providerId, email, name, picture, given_name, family_name } = profile;
 
@@ -116,62 +86,46 @@ export class AuthService {
 
     const lastName: string | undefined =
       family_name ??
-      (name
-        ? name.trim().split(/\s+/).slice(1).join(' ') || undefined
-        : undefined);
+      (name ? name.trim().split(/\s+/).slice(1).join(' ') || undefined : undefined);
 
-    // 1) Buscar por GoogleId
+    // 1) Buscar por Google ID
     let user = await this.authRepository.findByGoogleId(providerId);
     if (user) return user;
 
-    // 2) Buscar por Email
+    // 2) Buscar por email
     user = await this.authRepository.findByEmail(email);
     if (user) {
       if (!(user as any).googleId) (user as any).googleId = providerId;
-      if (!(user as any).firstName && firstName)
-        (user as any).firstName = firstName;
-      if (!(user as any).lastName && lastName)
-        (user as any).lastName = lastName;
-      if (!(user as any).profileImage)
-        (user as any).profileImage = picture ?? null;
-
+      if (!(user as any).firstName && firstName) (user as any).firstName = firstName;
+      if (!(user as any).lastName && lastName) (user as any).lastName = lastName;
+      if (!(user as any).profileImage) (user as any).profileImage = picture ?? null;
       return this.authRepository.save(user);
     }
 
-    // 3) Si no existe → depende de la acción
-    if (action === 'register') {
-      if (!roleHint) {
-        throw new BadRequestException(
-          'Role is required to register with Google.',
-        );
-      }
-
-      // 👉 Crear usuario nuevo directamente
-      return this.authRepository.findOrCreateFromGoogle(
-        {
-          providerId,
-          email,
-          name,
-          picture,
-          given_name: firstName,
-          family_name: lastName,
-        },
-        roleHint,
+    // 3) No existe → depende de la acción
+    if (action === 'login') {
+      throw new BadRequestException(
+        'No Google account is registered with this email. Please sign up first.',
       );
     }
 
-    // 4) Si es login y no existe → error
-    throw new BadRequestException(
-      'No Google account is registered with this email. Please sign up first.',
+    // Crear usuario nuevo (register) con roleHint
+    return this.authRepository.findOrCreateFromGoogle(
+      {
+        providerId,
+        email,
+        name,
+        picture,
+        given_name: firstName,
+        family_name: lastName,
+      },
+      roleHint || 'user',
     );
   }
 
-  signTokens(user: { id: string; email: string }) {
-    const payload = { sub: user.id, email: user.email };
-    const accessToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_SECRET!,
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    });
+  signTokens(user: { id: string; email: string; role: string }) {
+    const payload = { id: user.id, email: user.email, role: user.role };
+    const accessToken = this.jwtService.sign(payload);
     return { accessToken };
   }
 }

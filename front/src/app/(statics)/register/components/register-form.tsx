@@ -1,18 +1,23 @@
+// src/components/auth/register-form.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import GoogleOAuthButton from "@/components/auth/GoogleOAthButton";
 
 type Role = "user" | "professional";
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:3001";
 
 export default function RegisterForm({
   onBack,
   onSuccess,
-  showOAuth = true,
 }: {
   onBack?: () => void;
   onSuccess?: () => void;
-  showOAuth?: boolean;
 }) {
   const router = useRouter();
 
@@ -39,7 +44,6 @@ export default function RegisterForm({
       alert("Completá todos los campos.");
       return;
     }
-
     if (state.password !== state.confirmPassword) {
       alert("Las contraseñas no coinciden.");
       return;
@@ -51,14 +55,11 @@ export default function RegisterForm({
         name: state.name.trim(),
         email: state.email.trim(),
         password: state.password,
-        role,
+        role: role === "professional" ? "PROFESSIONAL" : "USER",
       };
 
-      const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+      const base = API_BASE.replace(/\/+$/, "");
       const url = `${base}/auth/signup`;
-
-      console.log("➡️ Signup URL:", url);
-      console.log("➡️ Payload:", payload);
 
       const res = await fetch(url, {
         method: "POST",
@@ -73,29 +74,18 @@ export default function RegisterForm({
         } catch {
           body = await res.text().catch(() => "");
         }
-
         const backendMsg =
           (typeof body === "string" && body) ||
           body?.message ||
           body?.error ||
           JSON.stringify(body || {});
-
-        console.error("❌ Signup FAIL", {
-          url,
-          status: res.status,
-          statusText: res.statusText,
-          response: body,
-        });
-
         alert(`Error ${res.status} ${res.statusText}\n${backendMsg}`);
         return;
       }
 
-      console.log("✅ Signup OK");
       alert("✅ Cuenta creada con éxito");
       onSuccess ? onSuccess() : router.push("/signin");
     } catch (err: any) {
-      console.error("🔥 Signup EXCEPTION", err);
       alert(err?.message ?? "Error inesperado al registrar");
     } finally {
       setLoading(false);
@@ -139,7 +129,7 @@ export default function RegisterForm({
         </button>
       </div>
 
-      {/* Campos comunes */}
+      {/* Campos */}
       <div className="grid grid-cols-1 gap-5">
         <Field
           label="Nombre"
@@ -197,29 +187,22 @@ export default function RegisterForm({
         </button>
       </div>
 
-      {showOAuth && (
-        <div className="pt-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="flex-grow h-px bg-gray-300"></div>
-            <span className="text-sm text-gray-500">o</span>
-            <div className="flex-grow h-px bg-gray-300"></div>
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              (window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`)
-            }
-            className="w-full flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-50"
-          >
-            <img
-              src="/google.jpg"
-              alt="Google"
-              className="h-5 w-5 flex-shrink-0 object-contain"
-            />
-            Continuar con Google
-          </button>
+      {/* Divider + botón de Google para registro */}
+      <div className="pt-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="flex-grow h-px bg-gray-300"></div>
+          <span className="text-sm text-gray-500">o</span>
+          <div className="flex-grow h-px bg-gray-300"></div>
         </div>
-      )}
+
+        <GoogleOAuthButton
+          mode="register"
+          role={role}
+          next="/profile"
+          label="Continuar con Google (registrarme)"
+          className="w-full flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm hover:bg-gray-50"
+        />
+      </div>
     </form>
   );
 }
