@@ -9,14 +9,16 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
-import { JwtAuthGuard } from '../auth/guards/auth.guards'; // SIN cambios en auth
-import { AdminOnlyGuard } from './admin.guard';            // guard local
+import { JwtAuthGuard } from '../auth/guards/auth.guards';          
+import { RolesGuard } from '../auth/guards/roles.guards';            
+import { Roles } from './roles.decorator';                         
 import { AdminListQueryDto } from './dto/list-query.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, AdminOnlyGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)  
+@Roles('admin')                       
 @Controller('admin')
 export class AdminController {
   constructor(private readonly svc: AdminService) {}
@@ -28,20 +30,20 @@ export class AdminController {
     return this.svc.overview();
   }
 
-@Get('users')
-@ApiOperation({ summary: 'List users (search, status filter & pagination)' })
-@ApiQuery({ name: 'q', required: false, description: 'Free text search on email, firstName, lastName' })
-@ApiQuery({ name: 'status', required: false, enum: ['all', 'active', 'inactive'], description: 'Default: all' })
-@ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default 1)' })
-@ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default 10)' })
-async listUsers(@Query() dto: AdminListQueryDto) {
-  return this.svc.listUsers(
-    dto.q,
-    dto.status ?? 'all',  // 👈 default si no viene
-    dto.page,
-    dto.limit,
-  );
-}
+  @Get('users')
+  @ApiOperation({ summary: 'List users (search, status filter & pagination)' })
+  @ApiQuery({ name: 'q', required: false, description: 'Free text search on email, firstName, lastName' })
+  @ApiQuery({ name: 'status', required: false, enum: ['all', 'active', 'inactive'], description: 'Default: all' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default 10)' })
+  async listUsers(@Query() dto: AdminListQueryDto) {
+    return this.svc.listUsers(
+      dto.q,
+      dto.status ?? 'all',
+      dto.page,
+      dto.limit,
+    );
+  }
 
   @Get('users/stats')
   @ApiOperation({ summary: 'Users stats for simple charts' })
@@ -72,18 +74,9 @@ async listUsers(@Query() dto: AdminListQueryDto) {
     type: UpdateUserRoleDto,
     description: 'Payload to change the user role',
     examples: {
-      makeAdmin: {
-        summary: 'Promote to admin',
-        value: { role: 'admin' },
-      },
-      makeProfessional: {
-        summary: 'Set as professional',
-        value: { role: 'professional' },
-      },
-      makeUser: {
-        summary: 'Demote to user',
-        value: { role: 'user' },
-      },
+      makeAdmin: { summary: 'Promote to admin', value: { role: 'admin' } },
+      makeProfessional: { summary: 'Set as professional', value: { role: 'professional' } },
+      makeUser: { summary: 'Demote to user', value: { role: 'user' } },
     },
   })
   async setUserRole(@Param('id') id: string, @Body() body: UpdateUserRoleDto) {
