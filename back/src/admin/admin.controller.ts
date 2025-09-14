@@ -28,13 +28,37 @@ export class AdminController {
     return this.svc.overview();
   }
 
-  @Get('users')
-  @ApiOperation({ summary: 'List users (search & pagination)' })
-  @ApiQuery({ name: 'q', required: false, description: 'Free text search on email, firstName, lastName' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default 10)' })
-  async listUsers(@Query() dto: AdminListQueryDto) {
-    return this.svc.listUsers(dto.q, dto.page, dto.limit);
+@Get('users')
+@ApiOperation({ summary: 'List users (search, status filter & pagination)' })
+@ApiQuery({ name: 'q', required: false, description: 'Free text search on email, firstName, lastName' })
+@ApiQuery({ name: 'status', required: false, enum: ['all', 'active', 'inactive'], description: 'Default: all' })
+@ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default 1)' })
+@ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default 10)' })
+async listUsers(@Query() dto: AdminListQueryDto) {
+  return this.svc.listUsers(
+    dto.q,
+    dto.status ?? 'all',  // 👈 default si no viene
+    dto.page,
+    dto.limit,
+  );
+}
+
+  @Get('users/stats')
+  @ApiOperation({ summary: 'Users stats for simple charts' })
+  @ApiOkResponse({
+    description: 'Active vs inactive + new users per day (last 14 days)',
+    schema: {
+      example: {
+        distribution: { total: 120, active: 95, inactive: 25 },
+        createdLast14d: [
+          { day: '2025-09-01', count: 3 },
+          { day: '2025-09-02', count: 7 }
+        ]
+      }
+    }
+  })
+  async usersStats() {
+    return this.svc.usersStats();
   }
 
   @Patch('users/:id/role')

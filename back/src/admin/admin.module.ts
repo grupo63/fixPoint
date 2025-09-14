@@ -13,6 +13,6 @@ import { AdminOnlyGuard } from './admin.guard';
 @Module({
   imports: [TypeOrmModule.forFeature([User, Professional, Service, Category, Reservation, Review])],
   controllers: [AdminController],
-  providers: [AdminService, AdminOnlyGuard], // <- aquí
+  providers: [AdminService, AdminOnlyGuard],
 })
 export class AdminModule {}
