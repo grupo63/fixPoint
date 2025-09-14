@@ -15,6 +15,9 @@ import { UsersService } from './users.service';
 import { UpdateUserDTO } from './dto/users.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/auth.guards';
+import { RolesGuard } from 'src/auth/guards/roles.guards';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { TemporaryRole } from './types/temporary-role';
 
 @ApiTags('users')
 @Controller('users')
@@ -27,7 +30,8 @@ export class UsersController {
     description:
       'Retrieve a paginated list of users. You can specify the page number and the number of users per page using query parameters.',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TemporaryRole.ADMIN)
   @Get()
   getUsers(@Query('page') page: number, @Query('limit') limit: number) {
     if (page && limit)
