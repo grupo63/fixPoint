@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class AdminListQueryDto {
@@ -10,4 +10,8 @@ export class AdminListQueryDto {
 
   @IsOptional() @Type(() => Number) @IsInt() @Min(1)
   limit: number = 10;
+
+  @IsOptional()
+  @IsIn(['all', 'active', 'inactive'])
+  status: 'all' | 'active' | 'inactive' = 'all';
 }
