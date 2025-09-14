@@ -1,9 +1,6 @@
 import { Key } from "react";
 import { IUser } from "./types";
 
-
-
-
 export type ProfessionalImage = {
   id: string;
   professional_id: string;
@@ -13,7 +10,6 @@ export type ProfessionalImage = {
   sort_index: number;
   created_at: string;
 };
-
 
 export type Professional = {
   id: string;
@@ -34,9 +30,6 @@ export type Professional = {
   /** ✅ Relación con la tabla de usuario */
   user: IUser;
 };
-
-
-
 
 export type ProfessionalResponse = {
   id: string;
@@ -67,4 +60,11 @@ export type ProfessionalResponse = {
     createdAt: string;
     updatedAt: string;
   };
+};
+
+export type ProfessionalUpdate = {
+  aboutMe: string;
+  speciallity: string;
+  location: string;
+  working_radius: number;
 };

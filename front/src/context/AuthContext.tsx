@@ -1,6 +1,7 @@
 // src/context/AuthContext.tsx
 "use client";
 
+import { Professional } from "@/services/professionalService";
 import React, {
   createContext,
   useCallback,
@@ -20,6 +21,7 @@ export type AuthUser = {
   firstName?: string | null;
   lastName?: string | null;
   profileImage?: string | null;
+  professional?: Professional;
 };
 
 type AuthContextType = {
