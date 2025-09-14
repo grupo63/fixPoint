@@ -15,7 +15,10 @@ function formatMemberSince(iso?: string | null) {
   if (!iso) return "Fecha no disponible";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "Fecha no disponible";
-  return new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("es-AR", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
 }
 
 // Normaliza strings vacíos a null para evitar <img src="">
@@ -30,7 +33,8 @@ export default function ProfileSummary({
   disableUpload = false,
   title = "Perfil",
 }: Props) {
-  const { name, email, role, phone, city, address, zipCode, registrationDate } = user;
+  const { name, email, role, phone, city, address, zipCode, registrationDate } =
+    user;
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -63,7 +67,10 @@ export default function ProfileSummary({
     if (!file || !onUploadFile) return;
     try {
       setLoading(true);
-      console.log("[ProfileSummary] uploading...", { file, hasOnUploadFile: !!onUploadFile });
+      console.log("[ProfileSummary] uploading...", {
+        file,
+        hasOnUploadFile: !!onUploadFile,
+      });
       const url = await onUploadFile(file);
       console.log("[ProfileSummary] upload OK →", url);
 
@@ -71,7 +78,9 @@ export default function ProfileSummary({
         onUploaded?.(url);
         resetPicker(); // solo limpio si tengo URL final
       } else {
-        console.warn("[ProfileSummary] Back no devolvió URL; mantengo preview.");
+        console.warn(
+          "[ProfileSummary] Back no devolvió URL; mantengo preview."
+        );
       }
     } catch (err: any) {
       console.error("[ProfileSummary] upload FAIL:", err);
@@ -82,7 +91,8 @@ export default function ProfileSummary({
   };
 
   const shown = preview ?? safeSrc(imageUrl);
-  const canUpload = !!file && file.size > 0 && !!onUploadFile && !loading && !disableUpload;
+  const canUpload =
+    !!file && file.size > 0 && !!onUploadFile && !loading && !disableUpload;
 
   return (
     <section className="mx-auto max-w-5xl p-6 space-y-6">
@@ -127,7 +137,9 @@ export default function ProfileSummary({
               onClick={doUpload}
               disabled={!canUpload}
               className={`rounded-xl px-3 py-1.5 text-sm text-white active:scale-95 ${
-                !canUpload ? "bg-gray-300 cursor-not-allowed" : "bg-black hover:opacity-90"
+                !canUpload
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-black hover:opacity-90"
               }`}
             >
               {loading ? "Subiendo…" : "Subir"}
@@ -156,15 +168,26 @@ export default function ProfileSummary({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border p-4">
           <h3 className="font-medium mb-2">Contacto</h3>
-          <p className="text-sm"><span className="font-semibold">Teléfono:</span> {phone ?? "—"}</p>
-          <p className="text-sm"><span className="font-semibold">Email:</span> {email}</p>
+          <p className="text-sm">
+            <span className="font-semibold">Teléfono:</span> {phone ?? "—"}
+          </p>
+          <p className="text-sm">
+            <span className="font-semibold">Email:</span> {email}
+          </p>
         </div>
 
         <div className="rounded-2xl border p-4">
           <h3 className="font-medium mb-2">Ubicación</h3>
-          <p className="text-sm"><span className="font-semibold">Ciudad:</span> {city ?? "—"}</p>
-          <p className="text-sm"><span className="font-semibold">Dirección:</span> {address ?? "—"}</p>
-          <p className="text-sm"><span className="font-semibold">Código Postal:</span> {zipCode ?? "—"}</p>
+          <p className="text-sm">
+            <span className="font-semibold">Ciudad:</span> {city ?? "—"}
+          </p>
+          <p className="text-sm">
+            <span className="font-semibold">Dirección:</span> {address ?? "—"}
+          </p>
+          <p className="text-sm">
+            <span className="font-semibold">Código Postal:</span>{" "}
+            {zipCode ?? "—"}
+          </p>
         </div>
       </div>
     </section>

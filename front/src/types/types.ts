@@ -2,7 +2,6 @@ import { StaticImport } from "next/dist/shared/lib/get-img-props";
 
 export type Role = "CLIENTE" | "PROFESIONAL" | "ADMIN";
 
-
 export type IUser = {
   id: string;
   name: string;
@@ -12,7 +11,7 @@ export type IUser = {
   city?: string | null;
   address?: string | null;
   zipCode?: string | null;
-  registrationDate?: string | null; 
+  registrationDate?: string | null;
   profileImg?: string | null;
 };
 
@@ -25,7 +24,7 @@ export type MeResponse = {
   city?: string | null;
   address?: string | null;
   zipCode?: string | null;
-  registrationDate?: string | null; 
+  registrationDate?: string | null;
   profileImg?: string | null;
 };
 
@@ -42,8 +41,49 @@ export type UserProfile = {
   profileImg?: string | null;
 };
 
-
 export type AuthCredentials = {
   email: string;
   password: string;
+};
+
+// Category type (front)
+export type Category = {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  // Opcional: si tu endpoint incluye servicios dentro de la categoría
+  services?: Service[];
+};
+
+// Service type (front)
+export type Service = {
+  id: string;
+  title: string;
+  description?: string;
+  categoryId: string;
+
+  // Relaciones opcionales (sólo si el back las expone con join)
+  category?: Category;
+  professionalId?: string;
+  professional?: Professional;
+};
+
+// Professional (sólo lo defino base, ya que aparece en Service)
+export type Professional = {
+  id: string;
+  displayName?: string;
+  speciality?: string;
+  location?: string;
+  aboutMe?: string;
+  isActive: boolean;
+};
+
+// Paginación genérica (coincide con lo que devuelve tu back en /browse/*)
+export type Paginated<T> = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  data: T[];
 };

@@ -56,16 +56,17 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
       <ul className="divide-y rounded-2xl border">
         {filteredUsers.map((user) => (
-          <li key={user.userId} className="p-4 flex items-center justify-between">
+          <li
+            key={user.userId}
+            className="p-4 flex items-center justify-between"
+          >
             <div>
               <div className="font-medium">{user.name}</div>
               <div className="text-sm text-gray-500">
                 {user.email} · {user.role}
               </div>
             </div>
-            <span className="text-xs text-gray-400">
-              {user.city ?? "—"}
-            </span>
+            <span className="text-xs text-gray-400">{user.city ?? "—"}</span>
           </li>
         ))}
       </ul>

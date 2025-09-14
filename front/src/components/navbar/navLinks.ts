@@ -22,4 +22,8 @@ export const navLinks: INavLinkItem[] = [
     href: routes.ayuda,
     label: "Ayuda",
   },
+    {
+    href: routes.servicios,
+    label: "Servicios",
+  },
 ];

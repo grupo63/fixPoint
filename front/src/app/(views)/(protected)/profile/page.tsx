@@ -56,7 +56,8 @@ async function uploadAvatarDecider({
   const headers: Record<string, string> = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  if (role === "PROFESSIONAL" && !professionalId) throw new Error("Falta professionalId");
+  if (role === "PROFESSIONAL" && !professionalId)
+    throw new Error("Falta professionalId");
   if (role === "USER" && !userId) throw new Error("Falta userId");
 
   const url =
@@ -73,12 +74,19 @@ async function uploadAvatarDecider({
   const raw = await res.text();
 
   let data: any = {};
-  try { data = raw ? JSON.parse(raw) : {}; } catch {}
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {}
 
   if (!res.ok) {
-    const reason = (data && (data.message || data.error || data.detail)) || raw || "sin detalle";
+    const reason =
+      (data && (data.message || data.error || data.detail)) ||
+      raw ||
+      "sin detalle";
     console.error("[uploadAvatar] FAIL", res.status, reason);
-    throw new Error(`Upload failed: ${res.status} ${res.statusText} — ${reason}`);
+    throw new Error(
+      `Upload failed: ${res.status} ${res.statusText} — ${reason}`
+    );
   }
 
   console.log("[uploadAvatar] OK", data);
@@ -104,8 +112,11 @@ export default function ProfilePage() {
     return p?.id ?? p?.professional_uuid ?? p?.uuid ?? p?.professionalId ?? "";
   }, [professional]);
 
-  const hasPro = typeof professionalId === "string" && professionalId.length > 0;
-  const roleForUpload: "USER" | "PROFESSIONAL" = hasPro ? "PROFESSIONAL" : "USER";
+  const hasPro =
+    typeof professionalId === "string" && professionalId.length > 0;
+  const roleForUpload: "USER" | "PROFESSIONAL" = hasPro
+    ? "PROFESSIONAL"
+    : "USER";
 
   // key distinta para cachear por usuario/pro
   const storageKey = useMemo(
@@ -129,9 +140,9 @@ export default function ProfilePage() {
   useEffect(() => {
     const contextUrl = hasPro
       ? (professional?.profileImg as string | undefined) ?? null
-      : ((user?.profileImg as string | undefined) ??
-          (user?.avatar as string | undefined) ??
-          null);
+      : (user?.profileImg as string | undefined) ??
+        (user?.avatar as string | undefined) ??
+        null;
     if (contextUrl && contextUrl !== avatarUrl) setAvatarUrl(contextUrl);
   }, [hasPro, professional?.profileImg, user?.profileImg, user?.avatar]);
 
@@ -172,7 +183,12 @@ export default function ProfilePage() {
     return finalUrl;
   };
 
-  console.log("DEBUG upload →", { userRole: user?.role, professionalId, hasPro, roleForUpload });
+  console.log("DEBUG upload →", {
+    userRole: user?.role,
+    professionalId,
+    hasPro,
+    roleForUpload,
+  });
 
   if (!user) return null;
 

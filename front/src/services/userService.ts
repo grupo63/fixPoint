@@ -54,7 +54,9 @@ export async function getUserByIdClient(userId: string): Promise<UserByIdDTO> {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(text || `No se pudo obtener /users/${userId} - ${res.status}`);
+    throw new Error(
+      text || `No se pudo obtener /users/${userId} - ${res.status}`
+    );
   }
   return res.json() as Promise<UserByIdDTO>;
 }
@@ -88,7 +90,9 @@ export type ProfessionalDTO = {
  * Tolera rutas en singular/plural y múltiples “shapes” ({data}, {result}, arrays, etc.),
  * pero **NO** consulta endpoints genéricos de listado para evitar “contaminar” usuarios sin rol.
  */
-export async function getMyProfessionalClient(userId?: string): Promise<ProfessionalDTO | null> {
+export async function getMyProfessionalClient(
+  userId?: string
+): Promise<ProfessionalDTO | null> {
   const token = getToken();
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
   const common: RequestInit = {
@@ -116,11 +120,7 @@ export async function getMyProfessionalClient(userId?: string): Promise<Professi
 
       for (const c of candidates) {
         const id =
-          c?.id ??
-          c?.professional_uuid ??
-          c?.uuid ??
-          c?.professionalId ??
-          null;
+          c?.id ?? c?.professional_uuid ?? c?.uuid ?? c?.professionalId ?? null;
 
         if (id) {
           return {

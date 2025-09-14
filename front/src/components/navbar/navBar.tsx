@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { navLinks } from "./navLinks";
 import { routes } from "@/routes";
 import { useAuth } from "@/context/AuthContext";
+import SearchBar from "@/components/searchBar/searchBar"; // 🚩 importada
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -36,7 +37,9 @@ export default function Navbar() {
             <div className="grid h-9 w-9 place-content-center rounded-full bg-blue-600 text-white">
               <span className="text-sm font-bold">F</span>
             </div>
-            <span className="text-base font-semibold text-gray-900">FixPoint</span>
+            <span className="text-base font-semibold text-gray-900">
+              FixPoint
+            </span>
           </Link>
           <div className="hidden md:flex items-center gap-4">
             <div className="h-8 w-24 rounded bg-gray-200 animate-pulse" />
@@ -55,7 +58,9 @@ export default function Navbar() {
           <div className="grid h-9 w-9 place-content-center rounded-full bg-blue-600 text-white">
             <span className="text-sm font-bold">F</span>
           </div>
-          <span className="text-base font-semibold text-gray-900">FixPoint</span>
+          <span className="text-base font-semibold text-gray-900">
+            FixPoint
+          </span>
         </Link>
 
         {/* Center: Links */}
@@ -85,7 +90,10 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-4">
           {!isAuthenticated ? (
             <>
-              <Link href={routes.signin} className="text-sm text-gray-700 hover:text-blue-600">
+              <Link
+                href={routes.signin}
+                className="text-sm text-gray-700 hover:text-blue-600"
+              >
                 Ingresar
               </Link>
               <Link
@@ -127,11 +135,24 @@ export default function Navbar() {
           className="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 md:hidden"
           aria-label="Abrir menú"
         >
-          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <svg
+            className="h-6 w-6"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
             {open ? (
-              <path strokeWidth="1.5" strokeLinecap="round" d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             ) : (
-              <path strokeWidth="1.5" strokeLinecap="round" d="M3 6h18M3 12h18M3 18h18" />
+              <path
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                d="M3 6h18M3 12h18M3 18h18"
+              />
             )}
           </svg>
         </button>
@@ -140,7 +161,10 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="border-t bg-white md:hidden">
-          <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-3">
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3">
+            {/* SearchBar en mobile */}
+            <SearchBar />
+
             {navLinks.map((l) => (
               <Link
                 key={l.href}

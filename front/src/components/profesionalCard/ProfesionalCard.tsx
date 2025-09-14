@@ -2,54 +2,44 @@
 
 import React from "react";
 import Link from "next/link";
-import { Professional } from "@/types/profesionalTypes";
+import { ProfessionalResponse } from "@/types/profesionalTypes";
 import { routes } from "@/routes";
 
-
-
-type Props  = {
-  pro: Professional;
-  
+type Props = {
+  pro: ProfessionalResponse;
 };
 
-export function ProfessionalCard({ pro,  }: Props) {
-
-  console.log(pro)
+export function ProfessionalCard({ pro }: Props) {
   return (
-    <article className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
-      <div className="flex items-center gap-4">
+    <div className="rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col">
+      {/* Parte superior: azul suave con foto */}
+      <div className="flex flex-col items-center p-6 bg-blue-50">
         <img
           src={pro.profileImg ?? "/placeholder.png"}
-          alt={ "Profesional"}
-          className="h-16 w-16 rounded-full object-cover"
+          alt="Profesional"
+          className="h-28 w-28 rounded-full object-cover border-4 border-white shadow-md"
         />
-        <div>
-         <h2 className="text-lg font-bold text-blue-900">{pro.user.name}</h2>
-          <p className="text-sm text-blue-700">{pro.speciality}</p>
-          <p className="text-xs text-blue-600">{pro.location ?? "Ubicación no disponible"}</p>
-        </div>
+        <h2 className="mt-4 text-xl font-bold text-blue-600">
+          {pro.user.firstName}
+        </h2>
+        <p className="text-sm text-gray-700">{pro.speciality}</p>
+        <p className="text-sm text-gray-500">
+          {pro.location ?? "Ubicación no disponible"}
+        </p>
       </div>
 
-      <div className="mt-4 text-sm text-blue-800">
-        <p>{pro.aboutMe ?? "Sin descripción."}</p>
+      {/* Parte inferior: azul fuerte */}
+      <div className="bg-blue-600 p-6 flex flex-col flex-1 justify-between text-center">
+        <p className="text-sm text-blue-50 mb-4">
+          {pro.aboutMe ?? "Sin descripción."}
+        </p>
+        <Link
+          href={routes.profesionalDetail(pro.id)}
+          className="inline-block text-sm font-semibold text-blue-600 bg-white hover:bg-blue-50 px-6 py-2 rounded-full shadow transition"
+        >
+          Ver perfil
+        </Link>
       </div>
-
-      <div className="mt-4 flex justify-between text-xs text-blue-700">
-        <span>Rating: {pro.averageRating ?? "-"}</span>
-        <span>Reseñas: {pro.reviewsCount ?? "-"}</span>
-        <span>Radio: {pro.workingRadius} km</span>
-      </div>
-
-      {/* 👉 Botón "Ver" */}
-      <div className="mt-4 flex justify-end">
-        
-    <Link
-  href={routes.profesionalDetail(pro.id)}
-  className="text-sm text-white bg-blue-600 hover:bg-blue-700 px-4 py-1 rounded"
->
-  Ver
-</Link>
-      </div> 
-    </article>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 import { getProfessionalById } from "@/services/getProfessionalsById";
 import { ProfessionalCard } from "@/components/profesionalCard/ProfesionalCard";
 import { IUser } from "@/types/types";
-import { Professional } from "@/types/profesionalTypes";
+import { Professional, ProfessionalResponse } from "@/types/profesionalTypes";
 
 type Props = {
   params: {
@@ -24,8 +24,10 @@ export default async function Page({ params }: Props) {
   }
 
   return (
-    <div className="flex justify-center items-center h-full">
-     <ProfessionalCard key={professional.id} pro={professional} />
-    </div>
+   <div className="flex justify-center items-center min-h-screen">
+  <div className="w-full max-w-3xl p-6">
+    <ProfessionalCard key={professional.id} pro={professional as any} />
+  </div>
+</div>
   );
 }
