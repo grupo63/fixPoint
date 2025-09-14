@@ -1,6 +1,7 @@
 "use client";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { Search } from "lucide-react";
 
 export default function SearchBar() {
   const router = useRouter();
@@ -11,23 +12,19 @@ export default function SearchBar() {
   const [isPending, startTransition] = useTransition();
   const timerRef = useRef<number | null>(null);
 
-  // Si cambiás de ruta, cancelá cualquier redirección pendiente
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
   }, [pathname]);
 
   useEffect(() => {
-    // 1) Si no hay texto y no estamos en /professionals, no hagas nada
     if (q.trim() === "" && pathname !== "/professionals") return;
 
-    // 2) Debounce
     timerRef.current = window.setTimeout(() => {
       const usp = new URLSearchParams(params.toString());
       if (q.trim()) usp.set("q", q.trim());
       else usp.delete("q");
       usp.set("page", "1");
 
-      // 3) Si estamos en otra página y hay texto, redirigí a /professionals
       const dest =
         pathname === "/professionals"
           ? `/professionals?${usp.toString()}`
@@ -46,7 +43,7 @@ export default function SearchBar() {
   }, [q, pathname, params, router]);
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full mr-10 max-w-xs relative">
       <label htmlFor="search" className="sr-only">
         Buscar profesionales
       </label>
@@ -56,9 +53,9 @@ export default function SearchBar() {
         onChange={(e) => setQ(e.target.value)}
         placeholder="Buscar por nombre, oficio o ciudad…"
         className="w-full rounded-full border border-blue-300 px-4 py-3 pr-12 text-sm shadow-sm
-                   focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none"
+                 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none"
       />
-      {/* {isPending && <p className="mt-1 text-sm text-blue-600">Buscando…</p>} */}
+      <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 pointer-events-none" />
     </div>
   );
 }
