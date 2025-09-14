@@ -11,7 +11,6 @@ export default function ProtectedLayout({
 }) {
   const { user } = useAuth();
   const router = useRouter();
-  console.log(user);
 
   const isAuthenticated = !!user; // derivado del contexto
   const isReady = Boolean(user);

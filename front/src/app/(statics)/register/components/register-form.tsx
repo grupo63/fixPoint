@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-// import GoogleOAuthButton from "@/components/auth/GoogleOAthButton";
+import GoogleOAuthButton from "@/components/auth/GoogleOAthButton";
 
 type RoleAPI = "user" | "professional";
 
@@ -255,13 +255,13 @@ export default function RegisterForm() {
           <div className="flex-grow h-px bg-gray-300"></div>
         </div>
 
-        {/* <GoogleOAuthButton
+        <GoogleOAuthButton
           mode="register"
           role={role}
           next="/profile"
           label="Continuar con Google (registrarme)"
           className="w-full flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm hover:bg-gray-50"
-        /> */}
+        />
       </div>
     </form>
   );

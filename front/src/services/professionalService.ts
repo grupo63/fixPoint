@@ -1,5 +1,7 @@
 import { API_BASE } from "@/lib/constants";
 import { apiUrl } from "@/lib/apiUrl";
+import { ProfessionalUpdate } from "@/types/profesionalTypes";
+
 export type Professional = {
   id: string;
   speciality?: string;
@@ -74,7 +76,7 @@ export function uploadProfessionalProfileImageXHR(opts: {
 
 export async function updateProfessional(
   id: string,
-  body: Partial<Professional>
+  body: ProfessionalUpdate
 ): Promise<Professional | null> {
   try {
     const res = await fetch(apiUrl(`professional/${id}`), {
