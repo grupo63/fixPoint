@@ -91,7 +91,7 @@ export default function OnboardingProfessionalForm() {
         className="max-w-lg w-full mx-auto space-y-6 bg-white  shadow-lg rounded-xl p-8"
       >
         {/* Título de bienvenida */}
-        <h1 className="text-2xl font-bold text-center text-blue-700 mb-6">
+        <h1 className="text-2xl font-bold text-center text-[#162748]  mb-6">
           Bienvenido!
           <br />
           Completa tu perfil para continuar
@@ -180,7 +180,7 @@ export default function OnboardingProfessionalForm() {
               type="button"
               onClick={nextStep}
               disabled={!isStepValid()}
-              className="ml-auto px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+              className="ml-auto px-4 py-2  bg-[#ed7d31] text-white rounded-lg disabled:opacity-50"
             >
               Siguiente
             </button>
@@ -188,7 +188,7 @@ export default function OnboardingProfessionalForm() {
             <button
               type="submit"
               disabled={!isStepValid()}
-              className="ml-auto px-4 py-2 bg-green-600 text-white rounded-lg disabled:opacity-50"
+              className="ml-auto px-4 py-2 bg-[#ed7d31] text-white rounded-lg disabled:opacity-50"
             >
               Finalizar
             </button>
