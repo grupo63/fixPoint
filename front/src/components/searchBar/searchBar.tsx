@@ -1,7 +1,7 @@
 "use client";
+
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Search } from "lucide-react";
 
 export default function SearchBar() {
   const router = useRouter();
@@ -11,6 +11,7 @@ export default function SearchBar() {
   const [q, setQ] = useState(params.get("q") ?? "");
   const [isPending, startTransition] = useTransition();
   const timerRef = useRef<number | null>(null);
+  const [showInput, setShowInput] = useState(false);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -43,19 +44,29 @@ export default function SearchBar() {
   }, [q, pathname, params, router]);
 
   return (
-    <div className="w-full mr-10 max-w-xs relative">
-      <label htmlFor="search" className="sr-only">
-        Buscar profesionales
-      </label>
-      <input
-        id="search"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Buscar por nombre, oficio o ciudad…"
-        className="w-full rounded-full border border-blue-300 px-4 py-3 pr-12 text-sm shadow-sm
-                 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none"
-      />
-      <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 pointer-events-none" />
+    <div className="flex items-center gap-4 h-full">
+      <div
+        className={`transition-all duration-500 ease-in-out ${
+          showInput
+            ? "max-w-sm opacity-100 scale-100"
+            : "max-w-0 opacity-0 scale-95"
+        } overflow-hidden`}
+      >
+        <input
+          id="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Buscar por oficio"
+          className="w-full min-w-[280px]  rounded-full border border-gray-300 px-4 py-2 text-sm shadow-sm 
+                     focus:border-orange-500  outline-none"
+        />
+      </div>
+      <button
+        onClick={() => setShowInput(!showInput)}
+        className="bg-[#ed7d31] text-white px-6 py-2 rounded-md font-semibold shadow-md hover:bg-[#b45d27] transition"
+      >
+        Buscar
+      </button>
     </div>
   );
 }

@@ -183,13 +183,6 @@ export default function ProfilePage() {
     return finalUrl;
   };
 
-  console.log("DEBUG upload →", {
-    userRole: user?.role,
-    professionalId,
-    hasPro,
-    roleForUpload,
-  });
-
   if (!user) return null;
 
   return (

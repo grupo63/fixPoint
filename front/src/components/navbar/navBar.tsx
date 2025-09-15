@@ -1,219 +1,135 @@
 "use client";
 
-import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { navLinks } from "./navLinks";
 import { routes } from "@/routes";
-import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false);
-  const pathname = usePathname();
-  const router = useRouter();
-  const [query, setQuery] = useState("");
-
-  const { isReady, isAuthenticated, user, logout } = useAuth();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      router.push(`/search?query=${encodeURIComponent(query)}`);
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    router.push(routes.signin || "/signin");
-  };
-
-  // Evitar parpadeo: hasta que se resuelva isReady, mostramos skeleton
-  if (!isReady) {
-    return (
-      <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
-          <Link href={routes.home} className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-content-center rounded-full bg-blue-600 text-white">
-              <span className="text-sm font-bold">F</span>
-            </div>
-            <span className="text-base font-semibold text-gray-900">
-              FixPoint
-            </span>
-          </Link>
-          <div className="hidden md:flex items-center gap-4">
-            <div className="h-8 w-24 rounded bg-gray-200 animate-pulse" />
-          </div>
-          <div className="md:hidden h-8 w-8 rounded bg-gray-200 animate-pulse" />
-        </nav>
-      </header>
-    );
-  }
-
   return (
-    <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
-        {/* Left: Logo */}
-        <Link href={routes.home} className="flex items-center gap-2">
-          <div className="grid h-9 w-9 place-content-center rounded-full bg-blue-600 text-white">
-            <span className="text-sm font-bold">F</span>
-          </div>
-          <span className="text-base font-semibold text-gray-900">
-            FixPoint
-          </span>
-        </Link>
+    <div className="sticky top-0 z-50 bg-white flex items-center w-full justify-around px-6 py-6">
+      {/* Logo fuera del fondo beige */}
+      <div className="flex-shrink-0 ">
+        <Image
+          src="/fixPoint.png"
+          alt="FixPoint Logo"
+          width={150}
+          height={150}
+        />
+      </div>
 
-        {/* Center: Links */}
-        <div className="hidden md:flex items-center gap-6 flex-1 justify-center">
-          <ul className="flex items-center gap-6">
-            {navLinks.map((l) => {
-              const active = pathname === l.href;
-              return (
-                <li key={l.href}>
-                  <Link
-                    href={l.href}
-                    className={`text-sm transition-colors ${
-                      active
-                        ? "text-blue-600 font-medium"
-                        : "text-gray-600 hover:text-blue-600"
-                    }`}
-                  >
-                    {l.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+      {/* Navbar con fondo beige, separado */}
+      <header
+        className="ml-4 bg-[#f9f7f1] rounded-tl-[40px] rounded-br-[40px] w-[60vw] 
+        px-8 py-4 flex items-center justify-between shadow-sm"
+      >
+        {/* Links */}
+        <ul className="flex items-center gap-10">
+          <li>
+            <Link
+              href={routes.como_funciona}
+              className="text-sm font-medium text-gray-800 hover:underline hover:decoration-2 hover:underline-offset-4 hover:decoration-orange-500"
+            >
+              Como Funciona
+            </Link>
+          </li>
+          <li>
+            <Link
+              href={routes.como_funciona}
+              className="text-sm font-medium text-gray-800 hover:underline hover:decoration-2 hover:underline-offset-4 hover:decoration-orange-500"
+            >
+              Preguntas Frecuentes
+            </Link>
+          </li>
+          <li>
+            <Link
+              href={routes.contacto}
+              className="text-sm font-medium text-gray-800 hover:underline hover:decoration-2 hover:underline-offset-4 hover:decoration-orange-500"
+            >
+              Contacto
+            </Link>
+          </li>
+        </ul>
 
-        {/* Right: acciones (desktop) */}
-        <div className="hidden md:flex items-center gap-4">
-          {!isAuthenticated ? (
-            <>
-              <Link
-                href={routes.signin}
-                className="text-sm text-gray-700 hover:text-blue-600"
-              >
-                Ingresar
-              </Link>
-              <Link
-                href={routes.register}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 transition-colors"
-              >
-                Registrarse
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link
-                href={routes.profile || "/profile"}
-                className="flex items-center gap-2 text-sm text-gray-700 hover:text-blue-600"
-                title="Mi perfil"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  />
-                </svg>
-                Perfil
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors"
-              >
-                Cerrar sesión
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Mobile: hamburger */}
-        <button
-          onClick={() => setOpen(!open)}
-          className="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 md:hidden"
-          aria-label="Abrir menú"
-        >
-          <svg
-            className="h-6 w-6"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
+        {/* Botones */}
+        <div className="flex items-center gap-3">
+          <Link
+            href={routes.signin}
+            className="rounded-tl-[20px] rounded-br-[20px] bg-[#b45d27] px-5 py-2 text-sm font-medium text-white hover:bg-[#ed7d31] transition"
           >
-            {open ? (
-              <path
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            ) : (
-              <path
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                d="M3 6h18M3 12h18M3 18h18"
-              />
-            )}
-          </svg>
-        </button>
-      </nav>
-
-      {/* Mobile menu */}
-      {open && (
-        <div className="border-t bg-white md:hidden">
-          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3">
-            {/* SearchBar en mobile */}
-
-            {navLinks.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                onClick={() => setOpen(false)}
-                className="rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                {l.label}
-              </Link>
-            ))}
-
-            {!isAuthenticated ? (
-              <div className="mt-2 flex items-center gap-3">
-                <Link
-                  href={routes.signin}
-                  onClick={() => setOpen(false)}
-                  className="flex-1 rounded-md px-3 py-2 text-center text-sm text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
-                >
-                  Ingresar
-                </Link>
-                <Link
-                  href={routes.register}
-                  onClick={() => setOpen(false)}
-                  className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-center text-sm font-medium text-white hover:bg-blue-700"
-                >
-                  Registrarse
-                </Link>
-              </div>
-            ) : (
-              <div className="mt-3 flex items-center gap-3">
-                <Link
-                  href={routes.profile || "/profile"}
-                  onClick={() => setOpen(false)}
-                  className="flex-1 rounded-md px-3 py-2 text-center text-sm text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
-                >
-                  Mi perfil
-                </Link>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setOpen(false);
-                  }}
-                  className="flex-1 rounded-md bg-red-500 px-3 py-2 text-center text-sm font-medium text-white hover:bg-red-600"
-                >
-                  Cerrar sesión
-                </button>
-              </div>
-            )}
-          </div>
+            Ingresar
+          </Link>
+          <Link
+            href={routes.register}
+            className="rounded-tl-[20px] rounded-br-[20px] bg-[#5a758a] px-5 py-2 text-sm font-medium text-white hover:bg-[#70a3c9] transition"
+          >
+            Registrarme
+          </Link>
         </div>
-      )}
-    </header>
+      </header>
+    </div>
   );
 }
+
+// "use client";
+
+// import Link from "next/link";
+// import { routes } from "@/routes";
+
+// export default function Navbar() {
+//   return (
+//     <header className="sticky top-5 z-50 bg-[#f9f7f1] border-none  w-[80vw] m-4 rounded-br-[30px] rounded-tl-[30px] pl-2">
+//       <nav className="flex h-16 max-w-7xl items-center justify-between h-20  p-4">
+//         {/* Links a la izquierda */}
+//         <ul className="flex items-center gap-8">
+//           <li>
+//             <Link
+//               href={routes.como_funciona}
+//               className="text-sm font-medium text-gray-800 hover:underline hover:decoration-2 hover:underline-offset-4 hover:decoration-orange-500"
+//             >
+//               Como Funciona
+//             </Link>
+//           </li>
+
+//           <li>
+//             <Link
+//               href={routes.como_funciona}
+//               className="text-sm font-medium text-gray-800 hover:underline hover:decoration-2 hover:underline-offset-4 hover:decoration-orange-500"
+//             >
+//               Preguntas Frecuentes
+//             </Link>
+//           </li>
+//           <li>
+//             <Link
+//               href={routes.contacto}
+//               className="text-sm font-medium text-gray-800 hover:underline hover:decoration-2 hover:underline-offset-4 hover:decoration-orange-500"
+//             >
+//               Contacto {/* Línea activa */}
+//             </Link>
+//           </li>
+//         </ul>
+
+//         {/* Botones a la derecha */}
+//         <div className="flex items-center gap-3 h-full">
+//           <Link
+//             href={routes.signin}
+//             className="h-full flex items-center justify-center
+//                rounded-tl-[20px] rounded-br-[20px]
+//                bg-[#b45d27] px-5 text-sm font-medium text-white
+//                hover:bg-[#ed7d31] transition"
+//           >
+//             Log In
+//           </Link>
+//           <Link
+//             href={routes.register}
+//             className="h-full flex items-center justify-center
+//                rounded-tl-[20px] rounded-br-[20px]
+//                bg-[#5a758a] px-5 text-sm font-medium text-white
+//                hover:bg-[#70a3c9] transition"
+//           >
+//             Register
+//           </Link>
+//         </div>
+//       </nav>
+//     </header>
+//   );
+// }

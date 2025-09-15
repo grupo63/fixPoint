@@ -14,7 +14,7 @@ import React, {
 type RoleAPI = "USER" | "PROFESSIONAL" | string;
 
 export type AuthUser = {
-  id: string; // 👈 acepta ambos
+  id: string;
   email: string;
   role: RoleAPI;
   name?: string | null;
@@ -58,7 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const headers: Record<string, string> = {};
       if (token) headers.Authorization = `Bearer ${token}`;
       const res = await fetch(`${API_BASE.replace(/\/+$/, "")}/auth/me`, {
-        // 👈 /auth/me
         headers,
         credentials: "include",
       });
