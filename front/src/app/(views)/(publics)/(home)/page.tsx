@@ -35,10 +35,6 @@ export default function Home() {
           </p>
 
           <div className="flex flex-wrap gap-4">
-            <button className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl">
-              Registrarse
-            </button>
-
             <Link href="/professionals">
               <button className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl">
                 Ver Profesionales
