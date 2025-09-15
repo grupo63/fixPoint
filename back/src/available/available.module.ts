@@ -12,5 +12,6 @@ import { UsersModule } from 'src/users/users.module';
   imports: [TypeOrmModule.forFeature([Available, Professional]), UsersModule],
   controllers: [AvailableController],
   providers: [AvailableService, AvailableRepository, ProfessionalRepository],
+  exports: [TypeOrmModule],
 })
 export class AvailableModule {}

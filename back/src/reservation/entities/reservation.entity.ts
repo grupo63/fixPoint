@@ -11,10 +11,13 @@ export class Reservation {
   @ManyToOne(() => User, (user) => user.id, { eager: true })
   user: User;
 
-  @ManyToOne(() => Professional, (Professional) => Professional.reservation, {
+  @ManyToOne(() => Professional, (Professional) => Professional.reservations, {
     eager: true,
   })
   professional: Professional;
+
+  @Column()
+  professionalId: string;
 
   @Column({
     type: 'enum',
@@ -25,6 +28,9 @@ export class Reservation {
 
   @Column({ type: 'timestamp', nullable: true })
   date: Date;
+
+  @Column({ type: 'timestamp', default: () => 'NOW()' })
+  endDate: Date;
 
   @Column({ default: false })
   wasReviewed: boolean;
