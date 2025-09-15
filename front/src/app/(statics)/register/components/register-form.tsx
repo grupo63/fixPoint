@@ -34,7 +34,8 @@ export default function RegisterForm() {
 
   const onSuccess = async () => {
     await login(state.email.trim(), state.password);
-    router.push(role === "user" ? "/" : "/onboarding");
+    setTimeout(() => {}, 5000);
+    router.push(role === "user" ? "/professionals" : "/onboarding");
   };
 
   const submit = async (e: React.FormEvent) => {

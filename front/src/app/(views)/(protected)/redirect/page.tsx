@@ -22,7 +22,7 @@ export default function RedirectPage() {
         router.replace("/admin/dashboard");
         break;
       default:
-        router.replace("/");
+        router.replace("/professionals");
     }
   }, [user, router]);
 

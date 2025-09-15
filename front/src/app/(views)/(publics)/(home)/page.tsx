@@ -7,7 +7,7 @@ export default function Home() {
     <main className="relative w-[100vw]">
       {/* VIDEO DE FONDO */}
       <video
-        className="absolute top-20 left-200 h-[90%] w-[40%]  object-cover z-0"
+        className="absolute top-0 left-200 h-[90%] w-[40%]  object-cover z-0"
         autoPlay
         muted
         loop
@@ -18,8 +18,8 @@ export default function Home() {
       </video>
 
       {/* CONTENIDO */}
-      <div className="relative z-20 flex items-center justify-start min-h-screen px-6 mx-10">
-        <div className="bg-[#162748]/95 text-white max-w-4xl w-full p-10 md:p-16 rounded-tl-[80px] rounded-br-[80px] shadow-2xl">
+      <div className="relative z-20 flex items-start justify-start min-h-screen px-6 mx-10">
+        <div className="bg-[#162748]/95 text-white max-w-4xl w-full p-10 mt-15 md:p-16 rounded-tl-[80px] rounded-br-[80px] shadow-2xl">
           <h1 className="text-4xl sm:text-5xl font-bold mb-8 leading-tight">
             Solucioná tu problema
             <br />
