@@ -67,7 +67,7 @@ export default function OnboardingProfessionalForm() {
       try {
         await updateProfessional(user.professional.id, form);
         alert("Perfil completado con exito");
-        router.push("/");
+        router.push("/redirect");
       } catch (err) {
         console.error("❌ Error actualizando el perfil:", err);
         alert("Hubo un problema guardando tu perfil");

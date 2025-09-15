@@ -66,7 +66,7 @@ export class UserRepository {
 
     if (!user) throw new NotFoundException(`User whit id ${id} not found`);
 
-    const { password, role, ...filteredData } = user;
+    const { password, ...filteredData } = user;
     return filteredData;
   }
 

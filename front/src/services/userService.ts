@@ -5,6 +5,51 @@ import { apiUrl } from "@/lib/apiUrl";
 import type { MeResponse, UserProfile } from "@/types/types";
 import { mapMeToUserProfile } from "@/services/mapper/userMapper";
 
+export async function fetchUsers() {
+  const token = getToken();
+  const res = await fetch(apiUrl("/users"), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Error fetching users: ${res.statusText}`);
+  }
+
+  const data = await res.json();
+  console.log("Usuarios:", data);
+  return data;
+}
+
+export async function deactivateUser(id: string, status: boolean) {
+  const endpoint = status ? "" : "/reactivate";
+  const method = status ? "DELETE" : "PATCH";
+  try {
+    const token = getToken();
+    const res = await fetch(apiUrl(`/users/${id}${endpoint}`), {
+      method: `${method}`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Error al dar de baja al usuario: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    console.log("Usuario dado de baja:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ deactivateUser error:", error);
+    throw error;
+  }
+}
+
 /* =========================
    Helpers
    ========================= */

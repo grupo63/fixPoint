@@ -28,6 +28,26 @@ export type MeResponse = {
   profileImg?: string | null;
 };
 
+export type User = {
+  id: string;
+  email: string;
+  provider: string;
+  providerId: string;
+  role: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  phone: string;
+  country: string;
+  address: string;
+  city: string;
+  zipCode: string;
+  isActive: boolean;
+  profileImage: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type UserProfile = {
   userId: string;
   name: string;
