@@ -60,7 +60,12 @@ export class AdminService {
     };
   }
 
-  async listUsers(q: string | undefined, page = 1, limit = 10) {
+  async listUsers(
+    q: string | undefined,
+    status: 'all' | 'active' | 'inactive' = 'all',
+    page = 1,
+    limit = 10,
+  ) {
     const qb = this.users.createQueryBuilder('u').select([
       'u.id', 'u.email', 'u.role', 'u.firstName', 'u.lastName', 'u.isActive', 'u.createdAt',
     ]);
@@ -70,9 +75,44 @@ export class AdminService {
       qb.andWhere('(u.email ILIKE :like OR u."firstName" ILIKE :like OR u."lastName" ILIKE :like)', { like });
     }
 
-    qb.orderBy('u.createdAt', 'DESC').take(limit).skip((page - 1) * limit);
+    if (status === 'active')   qb.andWhere('u.isActive = :a', { a: true });
+    if (status === 'inactive') qb.andWhere('u.isActive = :a', { a: false });
+    // "all" => sin filtro
+
+    qb.orderBy('u.createdAt', 'DESC')
+      .take(limit)
+      .skip((page - 1) * limit);
+
     const [items, total] = await qb.getManyAndCount();
     return { items, total, page, limit };
+  }
+
+  /**
+   * Métricas simples para gráficas
+   *  - distribution: total vs activos vs inactivos
+   *  - createdLast14d: nuevos usuarios por día (últimos 14 días)
+   */
+  async usersStats() {
+    const [total, active, inactive] = await Promise.all([
+      this.users.count(),
+      this.users.count({ where: { isActive: true } }),
+      this.users.count({ where: { isActive: false } }),
+    ]);
+
+    const rows = await this.users.createQueryBuilder('u')
+      .select(`to_char(date_trunc('day', u."createdAt"), 'YYYY-MM-DD')`, 'day')
+      .addSelect('COUNT(*)', 'count')
+      .where(`u."createdAt" >= NOW() - INTERVAL '14 days'`)
+      .groupBy('day')
+      .orderBy('day', 'ASC')
+      .getRawMany<{ day: string; count: string }>();
+
+    const createdLast14d = rows.map(r => ({ day: r.day, count: Number(r.count) }));
+
+    return {
+      distribution: { total, active, inactive },
+      createdLast14d,
+    };
   }
 
   async setUserRole(id: string, role: 'user' | 'professional' | 'admin') {

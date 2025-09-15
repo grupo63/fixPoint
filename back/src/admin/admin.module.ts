@@ -8,11 +8,11 @@ import { Service } from '../service/entities/service.entity';
 import { Category } from '../category/entities/category.entity';
 import { Reservation } from '../reservation/entities/reservation.entity';
 import { Review } from '../reviews/entities/review.entity';
-import { AdminOnlyGuard } from './admin.guard';
+import { RolesGuard } from '../auth/guards/roles.guards';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, Professional, Service, Category, Reservation, Review])],
   controllers: [AdminController],
-  providers: [AdminService, AdminOnlyGuard], // <- aquí
+  providers: [AdminService, RolesGuard],
 })
 export class AdminModule {}
