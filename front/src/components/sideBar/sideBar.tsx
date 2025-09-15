@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import SidebarUser from "./SidebarUser";
 import { routes } from "@/routes";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Sidebar() {
   const { user } = useAuth();
@@ -25,13 +26,15 @@ export default function Sidebar() {
       <div>
         {/* Logo */}
         <div className="px-6 py-6 text-2xl font-bold tracking-wide">
-          <Image
-            src="/logo-azul.png"
-            alt="FixPoint logo"
-            width={180}
-            height={80}
-            priority
-          />
+          <Link href="/">
+            <Image
+              src="/logo-azul.png"
+              alt="FixPoint logo"
+              width={180}
+              height={80}
+              priority
+            />
+          </Link>
         </div>
 
         {/* Menu */}
