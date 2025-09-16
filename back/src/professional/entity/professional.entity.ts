@@ -3,6 +3,7 @@ import {} from 'src/reservation/dto/create-reservation.dto';
 import { Reservation } from 'src/reservation/entities/reservation.entity';
 import { Review } from 'src/reviews/entities/review.entity';
 import { Service } from 'src/service/entities/service.entity';
+import { ProfessionalWork } from 'src/upload-img/entity/uploadImg.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
   Column,
@@ -88,8 +89,8 @@ export class Professional {
   })
   user: User;
 
-  // @OneToMany(() => ProfessionalImg, (profImage) => ProfessionalImg.professional)
-  // professionalImg: ProfessionalImg[]; //recordar explicitar esta relacion en la tabla de profImage
+  @OneToMany(() => ProfessionalWork, (workImage) => workImage.professional)
+  workImg: ProfessionalWork[];
 
   @OneToMany(() => Available, (available) => available.professional)
   available: Available[];
