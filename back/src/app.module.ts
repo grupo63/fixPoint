@@ -17,6 +17,8 @@ import { UploadImgModule } from './upload-img/upload-img.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { BrowseModule } from './browse/browse.module';
 import { AdminModule } from './admin/admin.module';
+import { SubscriptionModule } from './subscription/subscription.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { AdminModule } from './admin/admin.module';
     ReviewsModule,
     BrowseModule,
     AdminModule,
+    SubscriptionModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
