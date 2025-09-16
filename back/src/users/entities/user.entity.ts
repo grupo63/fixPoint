@@ -12,6 +12,7 @@ import { Professional } from 'src/professional/entity/professional.entity';
 import { Review } from 'src/reviews/entities/review.entity';
 import { Reservation } from 'src/reservation/entities/reservation.entity';
 import { TemporaryRole } from '../types/temporary-role';
+import { Subscription } from 'src/subscription/entities/subscription.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -82,4 +83,7 @@ export class User {
 
   @OneToMany(() => Reservation, (reservation) => reservation.user)
   reservations: Reservation[];
+
+  @OneToMany(() => Subscription, (subscription) => subscription.user)
+  subscription: Subscription[];
 }
