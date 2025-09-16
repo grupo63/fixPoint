@@ -8,7 +8,7 @@ type Props = {
 };
 
 export default async function Page({ params }: Props) {
-  const { id } = params;
+  const { id } = await params;
   const professional = await getProfessionalById(id);
 
   if (!professional) return <p>No se encontró el profesional.</p>;

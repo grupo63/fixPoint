@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { routes } from "@/routes";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
   return (

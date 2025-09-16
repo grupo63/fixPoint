@@ -34,9 +34,9 @@ export default function OnboardingProfessionalForm() {
 
   const [form, setForm] = useState<ProfessionalUpdate>({
     aboutMe: "",
-    speciallity: "",
+    speciality: "",
     location: "",
-    working_radius: 10,
+    workingRadius: 10,
   });
 
   const handleChange =
@@ -49,7 +49,7 @@ export default function OnboardingProfessionalForm() {
       const value = e.target.value;
       setForm((prev) => ({
         ...prev,
-        [key]: key === "working_radius" ? Number(value) : value,
+        [key]: key === "workingRadius" ? Number(value) : value,
       }));
     };
 
@@ -77,10 +77,10 @@ export default function OnboardingProfessionalForm() {
   };
 
   const isStepValid = () => {
-    if (step === 1) return form.speciallity.trim() !== "";
-    if (step === 2) return form.aboutMe.trim() !== "";
-    if (step === 3) return form.location.trim() !== "";
-    if (step === 4) return form.working_radius > 0;
+    if (step === 1) return form.speciality?.trim() !== "";
+    if (step === 2) return form.aboutMe?.trim() !== "";
+    if (step === 3) return form.location?.trim() !== "";
+    if (step === 4) return (form.workingRadius ?? 0) > 0;
     return true;
   };
 
@@ -103,8 +103,8 @@ export default function OnboardingProfessionalForm() {
               Especialidad
             </label>
             <select
-              value={form.speciallity}
-              onChange={handleChange("speciallity")}
+              value={form.speciality}
+              onChange={handleChange("speciality")}
               className="w-full border rounded-lg px-3 py-2"
             >
               <option value="">Seleccioná una opción</option>
@@ -155,8 +155,8 @@ export default function OnboardingProfessionalForm() {
             </label>
             <input
               type="number"
-              value={form.working_radius}
-              onChange={handleChange("working_radius")}
+              value={form.workingRadius}
+              onChange={handleChange("workingRadius")}
               placeholder="Ej: 10"
               className="w-full border rounded-lg px-3 py-2"
             />
