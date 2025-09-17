@@ -58,6 +58,15 @@ export class UserRepository {
     return users.map(({ password, ...userNoPassord }) => userNoPassord);
   }
 
+  async getUsersByRole(role: string) {
+    const users = await this.userRepository
+      .createQueryBuilder('user')
+      .where('LOWER(user.role) = LOWER(:role)', { role })
+      .getMany();
+
+    return users.map(({ password, ...userNoPassword }) => userNoPassword);
+  }
+
   async getUserById(id: string) {
     const user = await this.userRepository.findOne({
       where: { id },

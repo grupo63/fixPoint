@@ -42,6 +42,18 @@ export class UsersController {
 
   @ApiBearerAuth()
   @ApiOperation({
+    summary: 'Get users by role',
+    description: 'Retrive users by role',
+  })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TemporaryRole.ADMIN)
+  @Get(':role')
+  getUsersByRole(@Query('role') role: string) {
+    return this.usersService.getUsersByRole(role);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
     summary: 'Get one user by ID',
     description: 'Retrieve a single user by their unique ID.',
   })
