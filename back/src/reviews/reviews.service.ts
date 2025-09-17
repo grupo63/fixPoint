@@ -26,7 +26,7 @@ export class ReviewService {
     const reservation = await this.reservationService.findOne(
       createReviewDto.reservationId,
     );
-    if (reservation.status !== ReservationStatusEnum.CANCELLED) {
+    if (reservation.status !== ReservationStatusEnum.COMPLETED) {
       throw new BadRequestException(
         'A review can only be created for a completed reservation.',
       );

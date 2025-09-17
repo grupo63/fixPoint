@@ -103,5 +103,5 @@ export class Professional {
   reviews: Review[];
 
   @OneToMany(() => Reservation, (reservation) => reservation.professional)
-  reservation: Reservation[];
+  reservations: Reservation[];
 }

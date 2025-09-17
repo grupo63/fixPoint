@@ -35,6 +35,9 @@ export class Available {
   })
   isRecurring: boolean;
 
+  @Column({ type: 'varchar', length: 20, default: 'Available' })
+  status: 'Available' | 'Not Available';
+
   @ManyToOne(() => Professional, (professional) => professional.available)
   @JoinColumn({ name: 'professionalId' })
   professional: Professional;
