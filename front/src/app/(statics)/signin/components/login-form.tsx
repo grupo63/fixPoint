@@ -1,8 +1,11 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
+
 import GoogleOAuthButton from "@/components/auth/GoogleOAthButton";
 
 export default function LoginForm() {
@@ -13,6 +16,34 @@ export default function LoginForm() {
 
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // 🔔 Detecta cuenta Google no registrada: ?oauth=unregistered
+  useEffect(() => {
+    const oauth = searchParams.get("oauth");
+    const emailQ = searchParams.get("email") || "";
+
+    if (oauth === "unregistered") {
+      try {
+        sessionStorage.setItem("notify_unregistered", "1");
+        if (emailQ) localStorage.setItem("prefill_email_register", emailQ);
+      } catch {}
+
+      // ✅ Toast en vez de alert
+      toast.error("Esta cuenta no está registrada. Por favor, regístrate.", {
+        duration: 4000,
+      });
+
+      const nextUrl = emailQ
+        ? `/register?email=${encodeURIComponent(emailQ)}`
+        : "/register";
+
+      // Pequeño delay para que el toast se vea antes de la redirección
+      setTimeout(() => {
+        router.replace(nextUrl);
+      }, 3000);
+    }
+  }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +54,8 @@ export default function LoginForm() {
       router.replace("/redirect");
     } catch (error: any) {
       setErrorMsg(error?.message || "Credenciales inválidas");
+      // (opcional) también podés mostrar toast en errores de login:
+      // toast.error(error?.message || "Credenciales inválidas");
     } finally {
       setLoading(false);
     }
@@ -34,6 +67,7 @@ export default function LoginForm() {
         <h1 className="text-3xl font-thin text-gray-300 text-start">
           Iniciar sesión
         </h1>
+
         <div className="grid grid-cols-1 gap-6">
           {/* Email */}
           <div>
@@ -86,13 +120,13 @@ export default function LoginForm() {
           <span className="text-xs text-gray-500">o</span>
           <div className="h-px flex-1 bg-gray-300" />
         </div>
+<GoogleOAuthButton
+  mode="login"
+  next="/professionals"   // 👈 antes tenías "/"
+  label="Continuar con Google"
+  className="w-full flex items-center justify-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100"
+/>
 
-        <GoogleOAuthButton
-          mode="login"
-          next="/"
-          label="Continuar con Google"
-          className="w-full flex items-center justify-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100"
-        />
       </form>
     </div>
   );

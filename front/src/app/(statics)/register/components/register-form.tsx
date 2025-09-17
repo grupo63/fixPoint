@@ -1,11 +1,11 @@
+// src/app/(statics)/register/components/register-form.tsx
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import GoogleOAuthButton from "@/components/auth/GoogleOAthButton";
 import RoleTabs from "./RolTabRegister";
-import router from "next/router";
 
 type RoleAPI = "user" | "professional";
 
@@ -16,7 +16,9 @@ const API_BASE =
 
 export default function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
+
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState<RoleAPI>("user");
   const [showPassword, setShowPassword] = useState(false);
@@ -29,18 +31,37 @@ export default function RegisterForm() {
     confirmPassword: "",
   });
 
-  const onSuccess = async () => {
-    await login(state.email.trim(), state.password);
-    const urlRedirect: string = role === "user" ? "/" : "/onboarding";
-    router.push(urlRedirect);
-  };
+  // Prefill email + aviso si llegamos como unregistered
+  useEffect(() => {
+    const emailQ = searchParams.get("email") || "";
+    const stored =
+      typeof window !== "undefined"
+        ? localStorage.getItem("prefill_email_register") || ""
+        : "";
+    const prefill = emailQ || stored;
 
-  const onBack = () => {
-    router.push("/signin");
-  };
+    if (prefill && !state.email) {
+      setState((s) => ({ ...s, email: prefill }));
+    }
+
+    const oauth = searchParams.get("oauth");
+    const flag =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("notify_unregistered")
+        : null;
+
+    if (oauth === "unregistered" || flag === "1") {
+      try {
+        sessionStorage.removeItem("notify_unregistered");
+      } catch {}
+      ;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handle =
-    (k: keyof typeof state) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    (k: keyof typeof state) =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
       setState((s) => ({ ...s, [k]: e.target.value }));
 
   const submit = async (e: React.FormEvent) => {
@@ -56,15 +77,12 @@ export default function RegisterForm() {
     if (!firstName || !lastName || !email || !pwd || !state.confirmPassword) {
       errors.push("Completá todos los campos.");
     }
-
     if (firstName.length < 3 || firstName.length > 50) {
       errors.push("El nombre debe tener entre 3 y 50 caracteres.");
     }
-
     if (lastName.length < 3 || lastName.length > 50) {
       errors.push("El apellido debe tener entre 3 y 50 caracteres.");
     }
-
     if (email.length > 50) {
       errors.push("El email no puede superar los 50 caracteres.");
     }
@@ -76,7 +94,6 @@ export default function RegisterForm() {
       /[A-Z]/.test(pwd) &&
       /[0-9]/.test(pwd) &&
       /[^A-Za-z0-9]/.test(pwd);
-
     if (!strong) {
       errors.push(
         "La contraseña debe tener 8–20 caracteres, e incluir al menos 1 minúscula, 1 mayúscula, 1 número y 1 símbolo."
@@ -97,7 +114,7 @@ export default function RegisterForm() {
       lastName,
       email,
       password: pwd,
-      role, // "user" o "professional"
+      role, // "user" | "professional"
     };
 
     setLoading(true);
@@ -113,14 +130,9 @@ export default function RegisterForm() {
       });
 
       let bodyText = "";
-      let data: any = null;
-
       try {
         bodyText = await res.text();
-        data = JSON.parse(bodyText);
-      } catch {
-        // si el back no devuelve JSON, seguimos igual
-      }
+      } catch {}
 
       if (!res.ok) {
         console.error("Signup error:", res.status, res.statusText, bodyText);
@@ -132,18 +144,25 @@ export default function RegisterForm() {
         return;
       }
 
-      // 🔒 Normalizamos SIEMPRE: todo nuevo usuario arranca sin foto
-      if (data) {
-        data.profileImage = null;
+      // Éxito:
+      if (role === "professional") {
+        // 🔐 Como /onboarding es protegido, iniciamos sesión automáticamente
+        try {
+          await login(email, pwd);
+          router.replace("/onboarding?newPro=1");
+        } catch (e) {
+          // Si fallara el auto-login, lo llevamos al login con un aviso
+          alert("Cuenta creada. Iniciá sesión para continuar el onboarding.");
+          router.replace("/signin?registered=1");
+        }
+      } else {
+        alert("✅ Cuenta creada con éxito. Ahora iniciá sesión.");
+        // (opcional) prefill para el login
+        try {
+          localStorage.setItem("prefill_email_login", email);
+        } catch {}
+        router.replace("/signin?registered=1");
       }
-
-      // y marcamos que aún no subió foto
-      try {
-        localStorage.setItem("fp_avatar_uploaded", "0");
-      } catch {}
-
-      alert("✅ Cuenta creada con éxito");
-      onSuccess();
     } catch (err: any) {
       console.error(err);
       alert(err?.message ?? "Error inesperado al registrar");
@@ -201,6 +220,18 @@ export default function RegisterForm() {
         />
       </div>
 
+      {/* Toggle mostrar/ocultar contraseña (opcional) */}
+      <div className="text-sm">
+        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showPassword}
+            onChange={() => setShowPassword((v) => !v)}
+          />
+          Mostrar contraseña
+        </label>
+      </div>
+
       <button
         type="submit"
         disabled={loading}
@@ -218,7 +249,7 @@ export default function RegisterForm() {
       <GoogleOAuthButton
         mode="register"
         role={role}
-        next="/profile"
+        next={role === "professional" ? "/onboarding?newPro=1" : "/profile"}
         label="Continuar con Google"
         className="w-full flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm hover:bg-gray-100"
       />

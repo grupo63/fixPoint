@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ProfessionalResponse } from "@/types/profesionalTypes";
 import { routes } from "@/routes";
 import { ChevronRight } from "lucide-react";
+import ReserveButton from "@/components/professional/ReserveButton";
 
 type Props = {
   pro: ProfessionalResponse;
@@ -12,7 +13,7 @@ type Props = {
 
 export function ProfessionalCard({ pro }: Props) {
   return (
-    <div className="flex justify-center items-center ">
+    <div className="flex justify-center items-center">
       <div className="relative flex items-start gap-4 bg-white rounded-2xl p-5 shadow-sm border border-gray-50 w-100 h-40 hover:shadow-md">
         {/* Avatar */}
         <img
@@ -28,21 +29,28 @@ export function ProfessionalCard({ pro }: Props) {
               {pro.user.firstName} {pro.user.lastName}
             </h2>
             <p className="text-sm text-gray-500 mb-2">{pro.speciality}</p>
-            <p className="text-sm text-gray-900 mb-2">{pro.aboutMe}</p>
+            <p className="text-sm text-gray-900 mb-2 line-clamp-2">{pro.aboutMe}</p>
+
+            {/* Ubicación */}
+            {pro.location && (
+              <span className="inline-block border border-gray-300 text-xs font-semibold px-3 py-1 rounded-full w-fit">
+                {pro.location}
+              </span>
+            )}
           </div>
 
-          {/* Ubicación */}
-          {pro.location && (
-            <span className="inline-block border border-gray-300 text-xs font-semibold  px-3 py-1 rounded-full w-fit">
-              {pro.location}
-            </span>
-          )}
+          {/* Acción: Reservar */}
+          {/* <div className="mt-3">
+            <ReserveButton professionalId={pro.id} />
+          </div> */}
         </div>
 
-        {/* Flechita */}
+        {/* Flechita al detalle */}
         <Link
           href={routes.profesionalDetail(pro.id)}
           className="absolute top-5 right-5 text-gray-400 hover:text-gray-600"
+          aria-label="Ver detalle del profesional"
+          title="Ver detalle del profesional"
         >
           <ChevronRight size={20} />
         </Link>
