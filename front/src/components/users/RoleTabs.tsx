@@ -26,6 +26,7 @@ export default function RoleTabs({ onChange }: Props) {
   const [active, setActive] = useState<Role>("all");
 
   const handleTabClick = (value: Role) => {
+    value;
     setActive(value);
     onChange(value);
   };

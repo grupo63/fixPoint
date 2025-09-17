@@ -139,7 +139,10 @@ export async function getMyProfessionalClient(
   userId?: string
 ): Promise<ProfessionalDTO | null> {
   const token = getToken();
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: HeadersInit = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+
   const common: RequestInit = {
     method: "GET",
     credentials: "include",
@@ -206,4 +209,22 @@ export async function getMyProfessionalClient(
 
   // ❌ No consultamos /professional o /professionals sin filtro.
   return null;
+}
+
+//Users por rol
+export async function fetchUsersByRole(role: string) {
+  try {
+    const res = await fetch(`http://localhost:3001/users/role?role=${role}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Error ${res.status}: ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (err) {
+    console.error("Error al obtener usuarios por rol:", err);
+    throw err;
+  }
 }
