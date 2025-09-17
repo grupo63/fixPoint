@@ -101,31 +101,54 @@ export class AuthController {
       throw new BadRequestException('Google profile incomplete (sin email o providerId)');
     }
 
-    const user = await this.authService.loginOrCreateGoogleUser(
-      {
-        providerId,
-        email: googleUser.email,
-        name: googleUser.name ?? '',
-        picture: googleUser.picture,
-        given_name: googleUser.given_name,
-        family_name: googleUser.family_name,
-      },
-      roleHint,
-      action,
-    );
+    // ✅ Definimos FRONT_URL para redirecciones
+    const FRONT_URL = process.env.FRONT_URL || 'http://localhost:3000';
 
-    const accessToken = this.jwtService.sign({
-      id: (user as any).id,
-      email: (user as any).email,
-      role: (user as any).role,
-    });
+    try {
+      // Crea/loguea según tu servicio
+      const user = await this.authService.loginOrCreateGoogleUser(
+        {
+          providerId,
+          email: googleUser.email,
+          name: googleUser.name ?? '',
+          picture: googleUser.picture,
+          given_name: googleUser.given_name,
+          family_name: googleUser.family_name,
+        },
+        roleHint,
+        action,
+      );
 
-    // Redirige al front → /oauth/success (ahí se guarda token y se navega)
-    const base = process.env.FRONT_URL || 'http://localhost:3000';
-    const redirectUrl =
-      `${base}/oauth/success?token=${encodeURIComponent(accessToken)}` +
-      (next ? `&next=${encodeURIComponent(next)}` : '');
-    return res.redirect(redirectUrl);
+      // Firmamos token y redirigimos al front
+      const accessToken = this.jwtService.sign({
+        id: (user as any).id,
+        email: (user as any).email,
+        role: (user as any).role,
+      });
+
+      const redirectUrl =
+        `${FRONT_URL}/oauth/success?token=${encodeURIComponent(accessToken)}` +
+        (next ? `&next=${encodeURIComponent(next)}` : '');
+      return res.redirect(redirectUrl);
+
+    } catch (err: any) {
+      // ✅ Detectar “cuenta Google no registrada” y redirigir al front, en vez de 400 JSON
+      const status = err?.status ?? err?.statusCode;
+      const msg = String(err?.message || '').toLowerCase();
+      const looksUnregistered =
+        status === 400 &&
+        (msg.includes('no google account is registered') ||
+         msg.includes('please sign up first'));
+
+      if (looksUnregistered) {
+        const q = new URLSearchParams({ oauth: 'unregistered' });
+        if (googleUser?.email) q.set('email', googleUser.email);
+        return res.redirect(`${FRONT_URL}/signin?${q.toString()}`);
+      }
+
+      // Otros errores → relanzar (o redirigir a una página de error si preferís)
+      throw err;
+    }
   }
 
   @Get('me')
