@@ -62,9 +62,17 @@ export type ProfessionalResponse = {
   };
 };
 
+// export type ProfessionalUpdate = {
+//   aboutMe: string;
+//   speciallity: string;
+//   location: string;
+//   working_radius: number;
+// };
 export type ProfessionalUpdate = {
-  aboutMe: string;
-  speciallity: string;
-  location: string;
-  working_radius: number;
+  speciality?: string;
+  aboutMe?: string;
+  longitud?: number;
+  latitude?: number;
+  workingRadius?: number;
+  location?: string;
 };

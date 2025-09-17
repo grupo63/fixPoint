@@ -6,6 +6,8 @@ import { User } from "@/types/types";
 import UsersList from "./usersTable";
 import RoleTabs from "./RoleTabs";
 
+type Role = "all" | "professional" | "client";
+
 export default function UsersWrapper() {
   const [users, setUsers] = useState<User[]>([]);
   const [filterRole, setFilterRole] = useState<
@@ -30,7 +32,11 @@ export default function UsersWrapper() {
   }, []);
 
   const filteredUsers =
-    filterRole === "all" ? users : users.filter((u) => u.role === filterRole);
+    filterRole === "all"
+      ? users
+      : users.filter((u) => u.role.toLowerCase() === filterRole);
+
+  console.log(users.map((u) => u.role));
 
   if (loading) return <p>Cargando usuarios...</p>;
   if (error) return <p className="text-red-500">{error}</p>;

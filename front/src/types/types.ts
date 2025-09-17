@@ -1,6 +1,6 @@
 import { StaticImport } from "next/dist/shared/lib/get-img-props";
 
-export type Role = "CLIENTE" | "PROFESIONAL" | "ADMIN";
+export type Role = "CLIENTE" | "PROFESIONAL" | "ADMIN" | "all";
 
 export type IUser = {
   id: string;

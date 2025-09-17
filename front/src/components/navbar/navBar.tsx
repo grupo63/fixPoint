@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { routes } from "@/routes";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
   return (
@@ -50,7 +51,8 @@ export default function Navbar() {
           </li>
         </ul>
 
-        {/* Botones */}
+        {}
+
         <div className="flex items-center gap-3">
           <Link
             href={routes.signin}

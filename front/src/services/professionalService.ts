@@ -97,6 +97,7 @@ export async function updateProfessional(
     }
 
     const data: Professional = await res.json();
+    console.log(data);
     return data;
   } catch (error) {
     console.error("🔥 Excepción en updateProfessional:", error);

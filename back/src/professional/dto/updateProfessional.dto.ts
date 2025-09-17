@@ -10,7 +10,7 @@ export class UpdateProfessionalDto {
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  speciallity?: string;
+  speciality?: string;
 
   @ApiPropertyOptional({
     description: 'Short description about the professional',
@@ -29,7 +29,7 @@ export class UpdateProfessionalDto {
   })
   @IsOptional()
   @IsNumber()
-  longitude?: number;
+  longitud?: number;
 
   @ApiPropertyOptional({
     description: 'Latitude of the professional’s location',
@@ -45,7 +45,7 @@ export class UpdateProfessionalDto {
   })
   @IsOptional()
   @IsNumber()
-  working_radius?: number;
+  workingRadius?: number;
 
   @ApiPropertyOptional({
     description: 'City or region where the professional is based',
