@@ -21,6 +21,10 @@ export class UsersService {
     return this.userRepository.getUsers(page, limit);
   }
 
+  getUsersByRole(role: string) {
+    return this.userRepository.getUsersByRole(role);
+  }
+
   getUserById(id: string) {
     return this.userRepository.getUserById(id);
   }

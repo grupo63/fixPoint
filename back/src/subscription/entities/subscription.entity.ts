@@ -43,12 +43,12 @@ export class Subscription {
   createdAt: Date;
 
   //Relacion con User
-  // @ManyToOne(() => User, (user) => user.subscription, {
-  //   onDelete: 'CASCADE',
-  //   nullable: false,
-  // })
-  // @JoinColumn({ name: 'userId' })
-  // user: User;
+  @ManyToOne(() => User, (user) => user.subscriptions, {
+    onDelete: 'CASCADE',
+    nullable: false,
+  })
+  @JoinColumn({ name: 'userId' })
+  user: User;
 
   @OneToMany(() => Payment, (payment) => payment.subscription, {
     cascade: true,
