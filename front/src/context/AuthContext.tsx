@@ -1,4 +1,3 @@
-// src/context/AuthContext.tsx
 "use client";
 
 import { Professional } from "@/services/professionalService";

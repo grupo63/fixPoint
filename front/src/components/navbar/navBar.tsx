@@ -51,7 +51,8 @@ export default function Navbar() {
           </li>
         </ul>
 
-        {/* Botones */}
+        {}
+
         <div className="flex items-center gap-3">
           <Link
             href={routes.signin}
