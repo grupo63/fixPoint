@@ -6,9 +6,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Professional } from 'src/professional/entity/professional.entity';
 import { User } from 'src/users/entities/user.entity';
 import { CloudinaryConfig } from 'src/config/cloudinary';
+import { ProfessionalWork } from './entity/uploadImg.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Professional, User])], // 👈 necesario para @InjectRepository
+  imports: [TypeOrmModule.forFeature([Professional, User, ProfessionalWork])], // 👈 necesario para @InjectRepository
   controllers: [UploadImgController],
   providers: [UploadImgService, UploadImgRepository, CloudinaryConfig],
 })

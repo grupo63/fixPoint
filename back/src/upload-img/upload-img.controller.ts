@@ -1,7 +1,10 @@
 import {
+  Body,
   Controller,
   FileTypeValidator,
+  Get,
   MaxFileSizeValidator,
+  NotFoundException,
   Param,
   ParseFilePipe,
   Put,
@@ -18,11 +21,18 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Repository } from 'typeorm';
+import { Professional } from 'src/professional/entity/professional.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Controller('upload-img')
 @ApiTags('Upload')
 export class UploadImgController {
-  constructor(private readonly uploadImgService: UploadImgService) {}
+  constructor(
+    private readonly uploadImgService: UploadImgService,
+    @InjectRepository(Professional)
+    private readonly professionalRepo: Repository<Professional>,
+  ) {}
 
   @Put(':id/profile-image')
   @ApiOperation({
@@ -142,5 +152,77 @@ export class UploadImgController {
     file: Express.Multer.File,
   ) {
     return this.uploadImgService.uploadUserProfileImg(file, id);
+  }
+
+  @Put('professional/:id/workImg')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Upload a work image for a professional',
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        description: { type: 'string', nullable: true },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async workImg(
+    @Param('id') professionalId: string, // id del professional viene por URL
+    @Body('description') description: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 200 * 1024 }),
+          new FileTypeValidator({
+            fileType: /^(image\/jpeg|image\/png|image\/webp)$/i,
+          }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.uploadImgService.workImg(file, professionalId, description);
+  }
+  @Get('professional/:id/workImg')
+  @ApiOperation({ summary: 'Get work images of a professional' })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'UUID of the professional',
+    example: '04a4fc16-2676-401c-8cf4-f9f3864c6afb',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of work images',
+    schema: {
+      example: [
+        {
+          id: 'img-1',
+          imgUrl: 'https://res.cloudinary.com/.../1.jpg',
+          description: 'Puerta de madera terminada',
+        },
+        {
+          id: 'img-2',
+          imgUrl: 'https://res.cloudinary.com/.../2.jpg',
+          description: 'Armario restaurado',
+        },
+      ],
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Professional not found' })
+  async getWorkImages(@Param('id') professionalId: string) {
+    const professional = await this.professionalRepo.findOne({
+      where: { id: professionalId },
+      relations: ['workImg'],
+    });
+
+    if (!professional) throw new NotFoundException('Professional not found');
+
+    return professional.workImg.map((w) => ({
+      id: w.id,
+      imgUrl: w.imgUrl,
+      description: w.description,
+    }));
   }
 }
