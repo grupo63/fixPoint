@@ -26,20 +26,20 @@ export class SubscriptionRepository {
     createSub: CreateSubscriptionDto,
   ): Promise<Subscription> {
     const user = await this.userRepo.findOne({
-      where: { id: createSub.userd },
+      where: { id: createSub.userId },
     });
     if (!user)
-      throw new NotFoundException(`User with id ${createSub.userd} not found`);
+      throw new NotFoundException(`User with id ${createSub.userId} not found`);
 
     const existingActiveSub = await this.subscriptionRepo.findOne({
       where: {
-        user: { id: createSub.userd },
+        user: { id: createSub.userId },
         status: SubscriptionStatus.ACTIVE,
       },
     });
     if (existingActiveSub)
       throw new BadRequestException(
-        `User with id ${createSub.userd} is already active`,
+        `User with id ${createSub.userId} is already active`,
       );
 
     const subscription = await this.subscriptionRepo.save({
@@ -51,6 +51,20 @@ export class SubscriptionRepository {
     });
 
     return subscription;
+  }
+
+  async getSubscriptions(page: number, limit: number): Promise<Subscription[]> {
+    const skip = (page - 1) * limit;
+    const subs = await this.subscriptionRepo.find({
+      relations: ['user'],
+      order: {
+        createdAt: 'DESC',
+      },
+      take: limit,
+      skip: skip,
+    });
+
+    return subs;
   }
 
   async findById(subscriptionId: string): Promise<Subscription> {
@@ -75,6 +89,14 @@ export class SubscriptionRepository {
         status: SubscriptionStatus.ACTIVE,
       },
       relations: ['user'],
+    });
+  }
+
+  async findAllActive(): Promise<Subscription[]> {
+    return this.subscriptionRepo.find({
+      where: { status: SubscriptionStatus.ACTIVE },
+      relations: ['user'],
+      order: { createdAt: 'DESC' },
     });
   }
 
@@ -121,8 +143,49 @@ export class SubscriptionRepository {
     const queryBuilder =
       this.subscriptionRepo.createQueryBuilder('subscription');
 
-    if (userId)
-      queryBuilder.where('subscription.user.id = :userId', { userId });
+    if (userId) queryBuilder.where('subscription.userId = :userId', { userId });
+
+    const [
+      totalSubscriptions,
+      activeSubscriptions,
+      cancelledSubscriptions,
+      revenueResult,
+    ] = await Promise.all([
+      queryBuilder.getCount(),
+      queryBuilder
+        .clone()
+        .andWhere('subscription.status = :status', {
+          status: SubscriptionStatus.ACTIVE,
+        })
+        .getCount(),
+      queryBuilder
+        .clone()
+        .andWhere('subscription.status = :status', {
+          status: SubscriptionStatus.CANCELLED,
+        })
+        .getCount(),
+      queryBuilder
+        .clone()
+        .select('SUM(subscription.price)', 'total')
+        .getRawOne(),
+    ]);
+
+    return {
+      totalSubscriptions,
+      activeSubscriptions,
+      cancelledSubscriptions,
+      totalRevenue: parseFloat((revenueResult?.total as string) || '0'),
+    };
+  }
+
+  async getAllSubStats(): Promise<{
+    totalSubscriptions: number;
+    activeSubscriptions: number;
+    cancelledSubscriptions: number;
+    totalRevenue: number;
+  }> {
+    const queryBuilder =
+      this.subscriptionRepo.createQueryBuilder('subscription');
 
     const [
       totalSubscriptions,
