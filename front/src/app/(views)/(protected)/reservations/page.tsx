@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import ReservationForm from "@/components/reservations/ReservationForm";
-import ReservationList from "@/components/reservations/ReservationList";
+import ReservationForm from "@/components/reservations/reservationForm";
+import ReservationList from "@/components/reservations/reservationList";
 import { useAuth } from "@/context/AuthContext";
 
 type Reservation = {
