@@ -1,16 +1,13 @@
-import LoginForm from "./components/login-form";
-import ContactAd from "./components/contact-ad";
+import { Suspense } from "react";
+import SigninPageClient from "./SigninPageClient";
+
+// Si hicieras static export y siguiera molestando el prerender, podés usar:
+// export const dynamic = "force-dynamic";
 
 export default function SignInPage() {
   return (
-    <main className="flex flex-col md:flex-row items-start justify-around gap-10 p-8 bg-white">
-      <div className="w-full md:w-1/3">
-        <ContactAd />
-      </div>
-
-      <div className="w-full md:w-1/3">
-        <LoginForm />
-      </div>
-    </main>
+    <Suspense fallback={<div className="p-6 text-center">Cargando…</div>}>
+      <SigninPageClient />
+    </Suspense>
   );
 }

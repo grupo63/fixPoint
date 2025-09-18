@@ -1,21 +1,25 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import ReservationForm from "@/components/reservations/reservationForm";
+import { useSearchParams } from "next/navigation";
 
 export default function NewReservationPage() {
   const sp = useSearchParams();
-  const professionalId = sp.get("professionalId") || undefined;
-  const serviceId = sp.get("serviceId") || undefined;
+
+  const professionalId = sp.get("professionalId") ?? "";
+  const serviceId = sp.get("serviceId") ?? "";
+  const slotISO = sp.get("slotISO") ?? "";
+  const availabilityId = sp.get("availabilityId") ?? ""; // opcional (si lo usás)
 
   return (
-    <div className="container max-w-3xl mx-auto px-4 py-6 space-y-6">
-      <h1 className="text-2xl font-bold">Nueva reserva</h1>
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      <h1 className="text-2xl font-semibold mb-4">Nueva reserva</h1>
       <ReservationForm
         defaultProfessionalId={professionalId}
         defaultServiceId={serviceId}
-        hideProfessionalField={!!professionalId}
-        // NOTA: acá NO pasamos onSubmit → el form hará POST y luego navegará a /reservations
+        defaultSlotISO={slotISO}
+        defaultAvailabilityId={availabilityId} // si tu form no lo usa, podés quitarlo
+        className="bg-white rounded-xl shadow p-5"
       />
     </div>
   );

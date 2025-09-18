@@ -7,21 +7,45 @@ import {
   Tag,
   MessageCircle,
   Star,
+  Wrench,
+  Calendar,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import SidebarUser from "./SidebarUser";
 import { routes } from "@/routes";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-export default function Sidebar() {
+function NavLink({
+  href,
+  active,
+  children,
+}: { href: string; active?: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={[
+        "flex items-center gap-3 px-4 py-2 rounded-xl transition",
+        active ? "bg-[#5e7a8d] text-white" : "hover:bg-[#5e7a8d]",
+      ].join(" ")}
+    >
+      {children}
+    </Link>
+  );
+}
+
+export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
   const { user } = useAuth();
-  const rol = user?.role?.toUpperCase(); // Asegura mayúsculas
+  const pathname = usePathname();
 
+  const rol = (user?.role || "").toString().toUpperCase();
   const isAdmin = rol === "ADMIN";
+  const isPro = rol === "PROFESSIONAL";
 
   return (
-    <aside className="sticky h-[95vh] top-5 w-64 bg-[#162748] text-white flex flex-col justify-between rounded-tr-[50px] rounded-bl-[50px] m-4 z-99">
+    <aside className="sticky h-[95vh] top-5 w-64 bg-[#162748] text-white flex flex-col justify-between rounded-tr-[50px] rounded-bl-[50px] m-4 z-[99]">
       {/* TOP */}
       <div>
         {/* Logo */}
@@ -41,80 +65,101 @@ export default function Sidebar() {
         <nav className="mt-4 space-y-2 px-4">
           {isAdmin ? (
             <>
-              {/* Solo ADMIN */}
-              <a
-                href="#"
-                className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-[#5e7a8d] transition"
+              <NavLink
+                href={routes.admin_dashboard ?? "#"}
+                active={pathname === (routes.admin_dashboard ?? "#")}
               >
                 <LayoutDashboard className="w-5 h-5" />
                 <span>Dashboard</span>
-              </a>
+              </NavLink>
 
-              {/* Administración */}
               <div className="mt-6 text-xs uppercase tracking-wide text-blue-200">
                 Administración
               </div>
 
-              <a
+              <NavLink
                 href={routes.admin_users}
-                className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-[#5e7a8d] transition"
+                active={pathname === routes.admin_users}
               >
                 <Users className="w-5 h-5" />
                 <span>Usuarios</span>
-              </a>
+              </NavLink>
 
-              <a
+              <NavLink
                 href={routes.admin_categories}
-                className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-[#5e7a8d] transition"
+                active={pathname === routes.admin_categories}
               >
                 <Tag className="w-5 h-5" />
                 <span>Categorías</span>
-              </a>
+              </NavLink>
 
-              {/* Configuración */}
               <div className="mt-6 text-xs uppercase tracking-wide text-blue-200">
                 Configuración
               </div>
 
-              <a
-                href="#"
-                className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-[#5e7a8d] transition"
+              <NavLink
+                href={routes.admin_subscriptions ?? "#"}
+                active={pathname === (routes.admin_subscriptions ?? "#")}
               >
                 <CreditCard className="w-5 h-5" />
                 <span>Suscripciones</span>
-              </a>
+              </NavLink>
             </>
           ) : (
             <>
-              {/* Para otros roles */}
-              <a
+              {/* Visible para todos los no-admin */}
+              <NavLink
                 href={routes.profesionales}
-                className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-[#5e7a8d] transition"
+                active={pathname === routes.profesionales}
               >
                 <Star className="w-5 h-5" />
                 <span>Profesionales</span>
-              </a>
-              <a
-                href="#"
-                className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-[#5e7a8d] transition"
+              </NavLink>
+
+              {/* SOLO PROFESIONAL */}
+              {isPro && (
+                <>
+                  <NavLink
+                    href={routes.services ?? "/services"}
+                    active={pathname === (routes.services ?? "/services")}
+                  >
+                    <Wrench className="w-5 h-5" />
+                    <span>Servicios</span>
+                  </NavLink>
+
+                  <NavLink
+                    href={routes.availability ?? "/availability"}
+                    active={pathname === (routes.availability ?? "/availability")}
+                  >
+                    <Calendar className="w-5 h-5" />
+                    <span>Disponibilidad</span>
+                  </NavLink>
+                </>
+              )}
+
+              {/* Links generales (para cualquier no-admin) */}
+              <NavLink
+                href={routes.chats ?? "#"}
+                active={pathname === (routes.chats ?? "#")}
               >
                 <MessageCircle className="w-5 h-5" />
                 <span>Chats</span>
-              </a>
-              <a
-                href="#"
-                className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-[#5e7a8d] transition"
+              </NavLink>
+
+              <NavLink
+                href={routes.plan ?? "#"}
+                active={pathname === (routes.plan ?? "#")}
               >
                 <CreditCard className="w-5 h-5" />
                 <span>Plan</span>
-              </a>
+              </NavLink>
             </>
           )}
         </nav>
       </div>
 
-      {/* Usuario abajo */}
-      {user && <SidebarUser user={user} />}
+      {/* Usuario abajo (opcional) */}
+      {showUser && user ? <SidebarUser user={user} /> : null}
     </aside>
   );
 }

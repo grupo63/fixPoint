@@ -13,6 +13,7 @@ export class AvailableRepository {
     @InjectRepository(Professional)
     private readonly professionalRepo: Repository<Professional>,
   ) {}
+
   async createA(professionalId: string, dto: CreateAvailabilityDto) {
     const professional = await this.professionalRepo.findOne({
       where: { id: professionalId },
@@ -31,6 +32,27 @@ export class AvailableRepository {
     return this.availableRepo.findOne({
       where: { id },
       relations: ['professional'],
+    });
+  }
+
+  /**
+   * Lista disponibilidades de un profesional.
+   * Si se pasa `dayOfWeek`, filtra por ese día.
+   * Nota: usa where anidado por relación (TypeORM >= 0.3).
+   */
+  async listByProfessional(
+    professionalId: string,
+    dayOfWeek?: number,
+  ): Promise<Available[]> {
+    const where: any = { professional: { id: professionalId } };
+    if (typeof dayOfWeek === 'number' && !Number.isNaN(dayOfWeek)) {
+      where.dayOfWeek = dayOfWeek;
+    }
+
+    return this.availableRepo.find({
+      where,
+      order: { dayOfWeek: 'ASC', startTime: 'ASC' },
+      // relations: ['professional'], // descomenta si querés incluir el profesional en el listado
     });
   }
 }

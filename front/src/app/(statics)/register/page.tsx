@@ -1,18 +1,13 @@
-import RegisterForm from "./components/register-form";
-import ContactAd from "../signin/components/contact-ad";
+import { Suspense } from "react";
+import RegisterPageClient from "./RegisterPageClient";
+
+// Si usás static export y seguía fallando el prerender, podés habilitar esto:
+// export const dynamic = "force-dynamic";
 
 export default function RegisterPage() {
   return (
-    <main className="flex flex-col md:flex-row items-start justify-around gap-10 p-8 bg-white">
-      {/* Columna izquierda - Publicidad */}
-      <div className="w-full md:w-1/3">
-        <ContactAd />
-      </div>
-
-      {/* Columna derecha - Formulario */}
-      <div className="w-full md:w-1/3">
-        <RegisterForm />
-      </div>
-    </main>
+    <Suspense fallback={<div className="p-6 text-center">Cargando…</div>}>
+      <RegisterPageClient />
+    </Suspense>
   );
 }
