@@ -1,14 +1,20 @@
 import { Module } from '@nestjs/common';
-import { PaymentsService } from './payments.service';
-import { PaymentsController } from './payments.controller';
+import Stripe from 'stripe';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Payment } from './entities/payment.entity';
-import { config as dotenvConfig } from 'dotenv';
+import { PaymentRepository } from './payments.repository';
+import { PaymentsService } from './payments.service';
+import { PaymentsController } from './payments.controller';
 import { JwtModule } from '@nestjs/jwt';
-import { PaymentsRepository } from './payments.repository';
 import { UsersModule } from 'src/users/users.module';
 
-dotenvConfig({ path: '.env' });
+const stripeProvider = {
+  provide: 'STRIPE',
+  useFactory: () =>
+    new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2025-08-27.basil' as Stripe.LatestApiVersion,
+    }),
+};
 
 @Module({
   imports: [
@@ -20,6 +26,7 @@ dotenvConfig({ path: '.env' });
     UsersModule,
   ],
   controllers: [PaymentsController],
-  providers: [PaymentsService, PaymentsRepository],
+  providers: [stripeProvider, PaymentRepository, PaymentsService],
+  exports: [PaymentsService],
 })
 export class PaymentsModule {}
