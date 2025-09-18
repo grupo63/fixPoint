@@ -1,4 +1,8 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreatePaymentDto } from './create-payment.dto';
+import { IsString, IsOptional, IsInt, Min } from 'class-validator';
+export class RefundPaymentDto {
+  @IsString()
+  paymentIntentId: string; // pi_...
 
-export class UpdatePaymentDto extends PartialType(CreatePaymentDto) {}
+  @IsOptional() @IsInt() @Min(1)
+  amount?: number; // parcial
+}
