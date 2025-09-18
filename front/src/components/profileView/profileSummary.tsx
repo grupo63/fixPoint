@@ -196,14 +196,22 @@ function formatMemberSince(iso?: string | null) {
   if (!iso) return "Fecha no disponible";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "Fecha no disponible";
-  return new Intl.DateTimeFormat("es-AR", {
-    month: "long",
-    year: "numeric",
-  }).format(date);
+  return new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(date);
 }
 
 const safeSrc = (s?: string | null) =>
   typeof s === "string" && s.trim().length > 0 ? s : null;
+
+// 👇 bonito para mostrar el rol
+function formatRole(role?: string | null) {
+  if (!role) return "—";
+  const map: Record<string, string> = {
+    PROFESSIONAL: "Profesional",
+    USER: "Usuario",
+    ADMIN: "Admin",
+  };
+  return map[role] ?? role;
+}
 
 export default function ProfileSummary({
   user,
@@ -213,8 +221,7 @@ export default function ProfileSummary({
   disableUpload = false,
   title = "Mi Perfil",
 }: Props) {
-  const { firstName, email, role, phone, city, address, zipCode, createdAt } =
-    user;
+  const { firstName, email, role, phone, city, address, zipCode, createdAt } = user;
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -266,23 +273,15 @@ export default function ProfileSummary({
   return (
     <section className="w-full flex justify-center py-8 px-4">
       <div className="w-full max-w-3xl rounded-2xl bg-white border shadow-lg p-6 md:p-8 space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800 text-center">
-          {title}
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-800 text-center">{title}</h2>
 
         <div className="flex flex-col items-center gap-4">
           {/* Avatar */}
           <div className="h-32 w-32 rounded-full overflow-hidden bg-gray-100 ring-4 ring-[#ed7d31] shadow-md">
             {shown ? (
-              <img
-                src={shown}
-                alt="Foto de perfil"
-                className="h-full w-full object-cover"
-              />
+              <img src={shown} alt="Foto de perfil" className="h-full w-full object-cover" />
             ) : (
-              <div className="h-full w-full grid place-items-center text-xs text-gray-400">
-                Sin foto
-              </div>
+              <div className="h-full w-full grid place-items-center text-xs text-gray-400">Sin foto</div>
             )}
           </div>
 
@@ -306,9 +305,7 @@ export default function ProfileSummary({
               onClick={doUpload}
               disabled={!canUpload}
               className={`px-4 py-1.5 text-sm rounded-md text-white transition active:scale-95 ${
-                canUpload
-                  ? "bg-[#ed7d31] hover:bg-[#d86c26]"
-                  : "bg-gray-300 cursor-not-allowed"
+                canUpload ? "bg-[#ed7d31] hover:bg-[#d86c26]" : "bg-gray-300 cursor-not-allowed"
               }`}
             >
               {loading ? "Subiendo…" : "Subir"}
@@ -324,22 +321,16 @@ export default function ProfileSummary({
 
         {/* Datos personales */}
         <div className="text-center space-y-1">
-          <h3 className="text-xl font-semibold text-gray-800">
-            {firstName || email}
-          </h3>
-          <p className="text-sm text-gray-600">{email}</p>
-
-          <p className="text-sm text-gray-500">
-            Miembro desde: {formatMemberSince(createdAt)}
-          </p>
+          <h3 className="text-xl font-semibold text-gray-800">{firstName || email}</h3>
+          {/* 👇 antes mostraba el email; ahora muestra el rol */}
+          <p className="text-sm text-gray-600">Rol: {formatRole(role)}</p>
+          <p className="text-sm text-gray-500">Miembro desde: {formatMemberSince(createdAt)}</p>
         </div>
 
         {/* Contacto + ubicación */}
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="bg-[#f9fafb] rounded-xl p-4 border border-gray-200">
-            <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Contacto
-            </h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-1">Contacto</h4>
             <p className="text-sm">
               <span className="font-medium">Teléfono:</span> {phone ?? "—"}
             </p>
@@ -348,9 +339,7 @@ export default function ProfileSummary({
             </p>
           </div>
           <div className="bg-[#f9fafb] rounded-xl p-4 border border-gray-200">
-            <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Ubicación
-            </h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-1">Ubicación</h4>
             <p className="text-sm">
               <span className="font-medium">Ciudad:</span> {city ?? "—"}
             </p>
@@ -358,8 +347,7 @@ export default function ProfileSummary({
               <span className="font-medium">Dirección:</span> {address ?? "—"}
             </p>
             <p className="text-sm">
-              <span className="font-medium">Código Postal:</span>{" "}
-              {zipCode ?? "—"}
+              <span className="font-medium">Código Postal:</span> {zipCode ?? "—"}
             </p>
           </div>
         </div>

@@ -40,9 +40,10 @@ export default function RegisterForm() {
         : "";
     const prefill = emailQ || stored;
 
-    if (prefill && !state.email) {
-      setState((s) => ({ ...s, email: prefill }));
-    }
+    // ❌ quitamos el setState para que no se cargue tu mail por defecto
+    // if (prefill && !state.email) {
+    //   setState((s) => ({ ...s, email: prefill }));
+    // }
 
     const oauth = searchParams.get("oauth");
     const flag =

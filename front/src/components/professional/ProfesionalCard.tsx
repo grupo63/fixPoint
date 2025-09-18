@@ -40,9 +40,7 @@ export function ProfessionalCard({ pro }: Props) {
           </div>
 
           {/* Acción: Reservar */}
-          {/* <div className="mt-3">
-            <ReserveButton professionalId={pro.id} />
-          </div> */}
+          
         </div>
 
         {/* Flechita al detalle */}

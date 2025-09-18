@@ -1,178 +1,355 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import type { CreateReservationDTO } from "@/types/reservation";
-import { createReservation } from "@/services/reservationService";
 
-type Service = { id: string; name: string };
-
-type Props = {
-  onSubmit?: (dto: CreateReservationDTO) => Promise<void> | void; // /reservations
-  defaultProfessionalId?: string;    // /reservations/new
-  defaultServiceId?: string;
-  hideProfessionalField?: boolean;   // oculta input si llega por URL
+/** ===== Tipos ===== */
+type Service = {
+  id: string;
+  professionalId: string;
+  title?: string;
+  name?: string;
+  price?: number;
+  durationMin?: number;
 };
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:3001";
+type WeeklyAvailability = {
+  id: string;
+  dayOfWeek: number;   // 0..6 (Dom..Sáb) o 1..7 (Lun..Dom)
+  startTime: string;   // "HH:mm"
+  endTime: string;     // "HH:mm"
+};
 
-const isUUID = (v: any) => typeof v === "string" && /^[0-9a-fA-F-]{36}$/.test(v);
+type Props = {
+  defaultProfessionalId?: string;
+  defaultServiceId?: string;
+  defaultSlotISO?: string; // si viene preseleccionado
+  className?: string;
+};
 
-function pickName(obj: any): string {
-  return (
-    obj?.name ||
-    obj?.title ||
-    obj?.serviceName ||
-    `${obj?.user?.firstName ?? ""} ${obj?.user?.lastName ?? ""}`.trim() ||
-    "Sin nombre"
-  );
+const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+/** ===== Utils fecha/hora (local) ===== */
+const pad = (n: number) => String(n).padStart(2, "0");
+const toLocalDateInputValue = (d: Date) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const addMinutes = (d: Date, m: number) => new Date(d.getTime() + m * 60_000);
+const formatHHmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function parseHHmm(base: Date, hhmm: string) {
+  const [hh, mm] = hhmm.split(":").map(Number);
+  return new Date(base.getFullYear(), base.getMonth(), base.getDate(), hh || 0, mm || 0, 0, 0);
+}
+function sameLocalDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+/** ===== Fetch helpers ===== */
+
+// GET servicios del profesional
+async function fetchServicesByProfessional(proId: string): Promise<Service[]> {
+  const url = `${API}/services?professionalId=${encodeURIComponent(proId)}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error((await res.text()) || "No se pudieron obtener los servicios");
+  return res.json();
+}
+
+// GET disponibilidad semanal del profesional
+async function listWeeklyAvailability(proId: string): Promise<WeeklyAvailability[]> {
+  // Usamos el endpoint que añadiste en el back:
+  const url = `${API}/available/professional/${encodeURIComponent(proId)}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error((await res.text()) || "No se pudo obtener la disponibilidad");
+  const arr = await res.json();
+  return (arr as any[]).map((r) => ({
+    id: String(r?.id),
+    dayOfWeek: Number(r?.dayOfWeek),
+    startTime: String(r?.startTime ?? ""),
+    endTime: String(r?.endTime ?? ""),
+  })).filter((r) => r.id && r.startTime && r.endTime && !Number.isNaN(r.dayOfWeek));
+}
+
+// 0..6 (JS) → 0..6 ó 1..7 (API), detectando por los datos
+function jsDowToApiDow(jsDow: number, weekly: WeeklyAvailability[]) {
+  const set = new Set(weekly.map((w) => w.dayOfWeek));
+  const looksOneToSeven = [...set].every((n) => n >= 1 && n <= 7);
+  return looksOneToSeven ? (jsDow === 0 ? 7 : jsDow) : jsDow;
+}
+
+// Construye slots de stepMin que quepan dentro del bloque y no sean del pasado
+function buildDailySlots(
+  weekly: WeeklyAvailability[],
+  day: Date,
+  stepMin: number,
+  durationMin: number
+) {
+  const out: { start: Date; label: string }[] = [];
+  const apiDow = jsDowToApiDow(day.getDay(), weekly);
+  const rows = weekly.filter((r) => Number(r.dayOfWeek) === apiDow);
+
+  for (const r of rows) {
+    const from = parseHHmm(day, r.startTime);
+    const to = parseHHmm(day, r.endTime);
+
+    let cursor = new Date(from);
+    while (cursor <= to) {
+      const finish = addMinutes(cursor, durationMin);
+      const fits = finish.getTime() <= to.getTime() + 1;
+      const notPast = cursor.getTime() >= Date.now();
+      if (fits && notPast) out.push({ start: new Date(cursor), label: formatHHmm(cursor) });
+      cursor = addMinutes(cursor, stepMin);
+    }
+  }
+
+  out.sort((a, b) => a.start.getTime() - b.start.getTime());
+  // dedup
+  const dedup: typeof out = [];
+  let last = "";
+  for (const s of out) {
+    const k = s.start.toISOString();
+    if (k !== last) dedup.push(s);
+    last = k;
+  }
+  return dedup;
+}
+
+/** ===== Componente ===== */
 export default function ReservationForm({
-  onSubmit,
-  defaultProfessionalId,
-  defaultServiceId,
-  hideProfessionalField = false,
+  defaultProfessionalId = "",
+  defaultServiceId = "",
+  defaultSlotISO = "",
+  className,
 }: Props) {
+  const router = useRouter();
   const { user } = useAuth();
-  const [professionalId, setProfessionalId] = useState(defaultProfessionalId || "");
-  const [serviceId, setServiceId] = useState(defaultServiceId || "");
+
+  const [professionalId] = useState(defaultProfessionalId);
   const [services, setServices] = useState<Service[]>([]);
-  const [date, setDate] = useState(""); // yyyy-mm-dd
-  const [time, setTime] = useState(""); // HH:mm
-  const [loadingServices, setLoadingServices] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [serviceId, setServiceId] = useState(defaultServiceId);
 
-  const token = useMemo(
-    () => (typeof window !== "undefined" ? localStorage.getItem("token") || undefined : undefined),
-    []
+  // Día y slot
+  const initialDay = useMemo(() => {
+    if (defaultSlotISO) {
+      const d = new Date(defaultSlotISO);
+      if (!Number.isNaN(d.getTime())) return toLocalDateInputValue(d);
+    }
+    return toLocalDateInputValue(new Date());
+  }, [defaultSlotISO]);
+
+  const [day, setDay] = useState<string>(initialDay);
+  const [slotISO, setSlotISO] = useState<string>(defaultSlotISO || "");
+
+  // Loading / errores
+  const [svcLoading, setSvcLoading] = useState(false);
+  const [availLoading, setAvailLoading] = useState(false);
+  const [svcErr, setSvcErr] = useState<string | null>(null);
+  const [availErr, setAvailErr] = useState<string | null>(null);
+  const [submitErr, setSubmitErr] = useState<string | null>(null);
+
+  // Slots generados
+  const [slots, setSlots] = useState<{ start: Date; label: string }[]>([]);
+
+  const selectedService = useMemo(
+    () => services.find((s) => s.id === serviceId),
+    [services, serviceId]
   );
+  const durationMin = selectedService?.durationMin ?? 60;
 
-  // cargar servicios del profesional seleccionado
+  const canSubmit = !!user?.id && !!professionalId && !!serviceId && !!slotISO;
+
+  /** 1) Cargar servicios del profesional */
   useEffect(() => {
-    const loadServices = async () => {
-      if (!professionalId) { setServices([]); return; }
-      setLoadingServices(true);
-      setError(null);
-      try {
-        // A) /professionals/{id}/services
-        let r = await fetch(`${API_BASE}/professionals/${professionalId}/services`, {
-          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-          cache: "no-store",
-        });
-        if (!r.ok) {
-          // B) /services?professionalId=...
-          r = await fetch(`${API_BASE}/services?professionalId=${encodeURIComponent(professionalId)}`, {
-            headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-            cache: "no-store",
-          });
-        }
-        if (!r.ok) throw new Error("No se pudieron cargar los servicios");
-        const data = await r.json();
-        const list = (Array.isArray(data) ? data : data?.items || []).map((s: any) => ({
-          id: s.id,
-          name: pickName(s),
-        })) as Service[];
-        setServices(list);
-        if (!defaultServiceId) setServiceId(list[0]?.id || "");
-      } catch (e: any) {
-        setError(e?.message ?? "Error al cargar servicios");
-      } finally {
-        setLoadingServices(false);
-      }
-    };
-    void loadServices();
-  }, [professionalId, token, defaultServiceId]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    // validar userId del contexto
-    const userId = user?.id ? String(user.id) : "";
-    if (!isUUID(userId)) {
-      setError("Tu sesión no trae un UUID válido de usuario. (userId inválido)");
+    if (!professionalId) {
+      setServices([]);
+      setServiceId("");
       return;
     }
-    if (!professionalId) { setError("Falta el profesional"); return; }
-    if (!isUUID(professionalId)) { setError("professionalId inválido"); return; }
-    if (!serviceId) { setError("Elegí un servicio"); return; }
-    if (!isUUID(serviceId)) { setError("serviceId inválido"); return; }
-    if (!date || !time) { setError("Completá fecha y hora"); return; }
-
-    // ISO con Z (lo que exige el back)
-    const iso = new Date(`${date}T${time}:00`).toISOString();
-
-    const dto: CreateReservationDTO = {
-      userId,
-      professionalId,
-      serviceId,
-      date: iso,
-    };
-
-    setSubmitting(true);
-    try {
-      if (onSubmit) {
-        await onSubmit(dto);                // /reservations
-      } else {
-        await createReservation(dto, token); // /reservations/new
-        window.location.assign("/reservations");
+    (async () => {
+      try {
+        setSvcErr(null);
+        setSvcLoading(true);
+        const list = await fetchServicesByProfessional(professionalId);
+        setServices(list);
+        if (defaultServiceId) {
+          const exists = list.some((s) => s.id === defaultServiceId);
+          setServiceId(exists ? defaultServiceId : list[0]?.id ?? "");
+        } else {
+          setServiceId((prev) => (prev ? prev : list[0]?.id ?? ""));
+        }
+      } catch (e: any) {
+        setSvcErr(e?.message ?? "Error cargando servicios");
+        setServices([]);
+        setServiceId("");
+      } finally {
+        setSvcLoading(false);
       }
+    })();
+  }, [professionalId, defaultServiceId]);
+
+  /** 2) Cargar disponibilidad semanal → generar slots del día */
+  useEffect(() => {
+    (async () => {
+      try {
+        setAvailErr(null);
+        setAvailLoading(true);
+        setSlots([]);
+
+        if (!professionalId || !day) return;
+
+        const weekly = await listWeeklyAvailability(professionalId);
+        const [y, m, d] = day.split("-").map(Number);
+        const dateObj = new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0);
+
+        const built = buildDailySlots(weekly, dateObj, 30, durationMin);
+        setSlots(built);
+
+        // mantener slot de query si pertenece a este día; sino, autoseleccionar primero
+        if (defaultSlotISO) {
+          const q = new Date(defaultSlotISO);
+          if (sameLocalDay(q, dateObj)) {
+            setSlotISO(q.toISOString());
+            return;
+          }
+        }
+        if (built[0]) setSlotISO(built[0].start.toISOString());
+        else setSlotISO("");
+      } catch (e: any) {
+        setAvailErr(e?.message ?? "Error cargando disponibilidad");
+        setSlots([]);
+        setSlotISO("");
+      } finally {
+        setAvailLoading(false);
+      }
+    })();
+  }, [professionalId, day, durationMin, defaultSlotISO]);
+
+  /** 3) Submit → POST /reservations con la fecha/hora */
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit) return;
+
+    try {
+      setSubmitErr(null);
+      const payload = {
+        userId: String(user!.id),
+        professionalId,
+        serviceId,
+        date: slotISO, // ISO 8601 del inicio del turno
+      };
+
+      const res = await fetch(`${API}/reservations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        try {
+          const j = JSON.parse(text);
+          throw new Error(j?.message || text || "No se pudo crear la reserva");
+        } catch {
+          throw new Error(text || "No se pudo crear la reserva");
+        }
+      }
+
+      router.replace("/reservations");
     } catch (e: any) {
-      setError(String(e?.message ?? e));
-    } finally {
-      setSubmitting(false);
+      setSubmitErr(e?.message ?? "Error creando la reserva");
     }
-  };
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4 rounded-2xl border">
-      {!hideProfessionalField && (
-        <label className="flex flex-col">
-          <span className="text-sm text-gray-600">Profesional (UUID)</span>
-          <input
-            className="input input-bordered"
-            value={professionalId}
-            onChange={(e) => setProfessionalId(e.target.value)}
-            placeholder="uuid del profesional"
-          />
-        </label>
-      )}
+    <form onSubmit={onSubmit} className={className}>
+      {/* Profesional oculto si ya viene por query */}
+      <input type="hidden" value={professionalId} readOnly />
 
-      <label className="flex flex-col">
-        <span className="text-sm text-gray-600">Servicio</span>
+      {/* Servicio */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">Servicio</label>
         <select
-          className="select select-bordered"
+          className="w-full border rounded-lg px-3 py-2 disabled:opacity-60"
           value={serviceId}
           onChange={(e) => setServiceId(e.target.value)}
-          disabled={loadingServices || !professionalId}
+          disabled={svcLoading || !!svcErr || services.length === 0}
         >
-          {!professionalId && <option value="">Elegí primero un profesional</option>}
-          {services.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
+          {svcLoading ? (
+            <option>Cargando…</option>
+          ) : svcErr ? (
+            <option value="">{svcErr}</option>
+          ) : services.length === 0 ? (
+            <option value="">No hay servicios disponibles</option>
+          ) : (
+            services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.title || s.name || s.id}
+              </option>
+            ))
+          )}
         </select>
-      </label>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col">
-          <span className="text-sm text-gray-600">Fecha</span>
-          <input type="date" className="input input-bordered" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
-        <label className="flex flex-col">
-          <span className="text-sm text-gray-600">Hora</span>
-          <input type="time" className="input input-bordered" value={time} onChange={(e) => setTime(e.target.value)} />
-        </label>
+        {!!selectedService?.durationMin && (
+          <p className="text-[11px] text-gray-500 mt-1">
+            Duración: {selectedService.durationMin} minutos.
+          </p>
+        )}
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {/* Fecha */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">Fecha</label>
+        <input
+          type="date"
+          className="w-full border rounded-lg px-3 py-2"
+          value={day}
+          min={toLocalDateInputValue(new Date())}
+          onChange={(e) => setDay(e.target.value)}
+        />
+      </div>
 
-      <button disabled={submitting} className="btn btn-primary">
-        {submitting ? "Creando…" : "Reservar"}
+      {/* Slots */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">Horarios disponibles</label>
+
+        {availLoading ? (
+          <p className="text-sm text-gray-500">Cargando disponibilidad…</p>
+        ) : availErr ? (
+          <p className="text-sm text-red-600">{availErr}</p>
+        ) : slots.length === 0 ? (
+          <p className="text-sm text-gray-500">No hay horarios disponibles para este día.</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {slots.map((s) => {
+              const iso = s.start.toISOString();
+              const active = slotISO === iso;
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  onClick={() => setSlotISO(iso)}
+                  className={[
+                    "px-3 py-2 rounded-lg border text-sm transition",
+                    active
+                      ? "bg-[#162748] text-white border-[#162748]"
+                      : "bg-white text-gray-800 hover:bg-gray-50 border-gray-200",
+                  ].join(" ")}
+                  title={`Seleccionar ${s.label}`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {submitErr && <p className="text-sm text-red-600 mb-3">{submitErr}</p>}
+
+      <button
+        type="submit"
+        disabled={!canSubmit}
+        className="w-full px-4 py-2 bg-[#162748] text-white rounded-lg disabled:opacity-50"
+      >
+        Reservar
       </button>
     </form>
   );
