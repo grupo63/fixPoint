@@ -1,26 +1,45 @@
 import { Injectable } from '@nestjs/common';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+import { SubscriptionRepository } from './subscription.repository';
 
 @Injectable()
 export class SubscriptionService {
-  create(createSubscriptionDto: CreateSubscriptionDto) {
-    return 'This action adds a new subscription';
+  constructor(private readonly subscriptionRepo: SubscriptionRepository) {}
+
+  createSubscription(createSub: CreateSubscriptionDto) {
+    return this.subscriptionRepo.createSubscription(createSub);
   }
 
-  findAll() {
-    return `This action returns all subscription`;
+  getSubscriptions(page: number, limit: number) {
+    return this.subscriptionRepo.getSubscriptions(page, limit);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} subscription`;
+  findById(subscriptionId: string) {
+    return this.subscriptionRepo.findById(subscriptionId);
   }
 
-  update(id: number, updateSubscriptionDto: UpdateSubscriptionDto) {
-    return `This action updates a #${id} subscription`;
+  findActiveByUserId(userId: string) {
+    return this.subscriptionRepo.findActiveByUserId(userId);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} subscription`;
+  findAllActive() {
+    return this.subscriptionRepo.findAllActive();
+  }
+
+  cancelSubscription(subscriptionId: string) {
+    return this.subscriptionRepo.cancelSubscription(subscriptionId);
+  }
+
+  activateSubscription(subscriptionId: string) {
+    return this.subscriptionRepo.activateSubscription(subscriptionId);
+  }
+
+  getSubStats(userId: string) {
+    return this.subscriptionRepo.getSubStats(userId);
+  }
+
+  getAllSubStats() {
+    return this.subscriptionRepo.getAllSubStats();
   }
 }
