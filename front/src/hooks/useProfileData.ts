@@ -18,12 +18,16 @@ export type ProfileBundle = {
   me: MeResponse | null;
   professional: ProfessionalDTO | null;
   isProfessional: boolean;
-  roleUpper: string;       // para debug
-  roleSource: RoleSource;  // para debug
+  roleUpper: string; // para debug
+  roleSource: RoleSource; // para debug
 };
 
 function readToken(): string | null {
-  try { return localStorage.getItem("token"); } catch { return null; }
+  try {
+    return localStorage.getItem("token");
+  } catch {
+    return null;
+  }
 }
 
 function decodeRoleFromJWT(bearer?: string | null): string | null {
@@ -31,15 +35,27 @@ function decodeRoleFromJWT(bearer?: string | null): string | null {
     if (!bearer) return null;
     const [, payload] = bearer.split(".");
     if (!payload) return null;
-    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
-    return (json.role || json.roles?.[0] || json.auth || json.authorities?.[0] || "").toString();
-  } catch { return null; }
+    const json = JSON.parse(
+      atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+    );
+    return (
+      json.role ||
+      json.roles?.[0] ||
+      json.auth ||
+      json.authorities?.[0] ||
+      ""
+    ).toString();
+  } catch {
+    return null;
+  }
 }
 
 export function useProfileData(): ProfileBundle {
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<MeResponse | null>(null);
-  const [professional, setProfessional] = useState<ProfessionalDTO | null>(null);
+  const [professional, setProfessional] = useState<ProfessionalDTO | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
   const [roleUpper, setRoleUpper] = useState<string>("");
   const [roleSource, setRoleSource] = useState<RoleSource>("none");
@@ -67,7 +83,9 @@ export function useProfileData(): ProfileBundle {
             setRoleUpper(roleU);
             setRoleSource("users/:id");
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
 
         if (!roleU) {
           const token = readToken();
@@ -80,7 +98,10 @@ export function useProfileData(): ProfileBundle {
 
         // 3) Professional SÓLO si el rol es PROFESSIONAL
         if (roleU === "PROFESSIONAL") {
-          const pro = await getMyProfessionalClient(meResp.id).catch(() => null);
+          const pro = await getMyProfessionalClient(meResp.id).catch(
+            () => null
+          );
+
           if (!alive) return;
           setProfessional(pro ?? null);
         } else {
@@ -93,11 +114,21 @@ export function useProfileData(): ProfileBundle {
       }
     })();
 
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // ✅ Regla clara: es professional sólo si el rol lo dice
   const isProfessional = roleUpper === "PROFESSIONAL";
 
-  return { loading, error, me, professional, isProfessional, roleUpper, roleSource };
+  return {
+    loading,
+    error,
+    me,
+    professional,
+    isProfessional,
+    roleUpper,
+    roleSource,
+  };
 }

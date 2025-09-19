@@ -1,6 +1,6 @@
 "use client";
 
-import { Professional } from "@/services/professionalService";
+import { Professional } from "@/types/types";
 import React, {
   createContext,
   useCallback,
@@ -23,19 +23,7 @@ export type AuthUser = {
   city?: string;
   address?: string;
   zipCode?: string;
-  professional?: {
-    id: string;
-    user: {
-      id: string;
-      firstName: string;
-      lastName: string;
-      email: string;
-      phone?: string;
-      city?: string;
-      address?: string;
-      zipCode?: string;
-    };
-  };
+  professional?: Professional;
 };
 
 type AuthContextType = {
