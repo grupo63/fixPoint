@@ -97,6 +97,7 @@ export type Professional = {
   location?: string;
   aboutMe?: string;
   isActive: boolean;
+  workingRadius?: number;
 };
 
 // Paginación genérica (coincide con lo que devuelve tu back en /browse/*)
@@ -106,4 +107,8 @@ export type Paginated<T> = {
   limit: number;
   totalPages: number;
   data: T[];
+};
+
+export type UserWithProfessional = User & {
+  professional?: Professional | null;
 };
