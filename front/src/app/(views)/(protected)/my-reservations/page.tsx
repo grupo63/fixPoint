@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import ReservationList from "@/components/reservations/ReservationList"; // ojo mayúsculas/minúsculas
+import ReservationList from "@/components/reservations/reservationList"; // ojo mayúsculas/minúsculas
 import type { Reservation } from "@/types/reservation";
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL; // sin slash final
