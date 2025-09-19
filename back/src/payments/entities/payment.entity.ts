@@ -1,58 +1,62 @@
-// back/src/payments/entities/payment.entity.ts
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { Subscription } from 'src/subscription/entities/subscription.entity';
-import { PaymentStatus } from '../types/enums';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
+import { Subscription } from 'src/subscription/entities/subscription.entity'; // 👈 usa SIEMPRE el mismo import
+
+export enum PaymentStatus {
+  REQUIRES_PAYMENT_METHOD = 'requires_payment_method',
+  PROCESSING = 'processing',
+  SUCCEEDED = 'succeeded',
+  CANCELED = 'canceled',
+  REFUNDED = 'refunded',
+}
+
 @Entity('payments')
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
-  @ManyToOne(() => Subscription, (s) => s.payments, {
-    nullable: true,            // poné false si SIEMPRE hay suscripción
-    onDelete: 'SET NULL',      // evita borrados en cascada de pagos históricos
-  })
-  @JoinColumn({
-    name: 'subscriptionId',    // nombre de la FK en esta tabla
-    referencedColumnName: 'id' // PK real de Subscription (según tu entidad)
-  })
-  subscription?: Subscription;
-
+  // FK escalar
   @Index()
   @Column({ type: 'uuid', nullable: true })
   subscriptionId?: string;
 
-  @Column({ type: 'int' })
-  amount: number;              // centavos: 1999 = $19.99
+  // Relación real que espera tu Subscription
+  @ManyToOne(() => Subscription, (s) => s.payments, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'subscriptionId' }) // usa subscriptionId como FK
+  subscription?: Subscription;
 
-  @Column({ type: 'varchar', length: 10 })
-  currency: string;            // 'ars', 'usd', ...
+  @Column({ type: 'int', default: 0 })
+  amount!: number;
+
+  @Column({ type: 'varchar', default: 'usd' })
+  currency!: string;
 
   @Index({ unique: true })
-  @Column({ type: 'varchar', length: 64 })
-  providerPaymentId: string;   // pi_...
+  @Column({ type: 'varchar', nullable: true })
+  providerPaymentId?: string; // pi_...
 
   @Index()
-  @Column({ type: 'varchar', length: 64, nullable: true })
-  providerInvoiceId?: string;  // in_... (suscripciones)
+  @Column({ type: 'varchar', nullable: true })
+  providerInvoiceId?: string; // in_...
 
-  @Column({ type: 'enum', enum: PaymentStatus })
-  status: PaymentStatus;
+  @Index({ unique: true })
+  @Column({ type: 'varchar', nullable: true })
+  providerCheckoutSessionId?: string; // cs_...
 
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @Column({ type: 'varchar', nullable: true })
+  checkoutMode?: 'payment' | 'subscription';
 
   @Column({ type: 'int', default: 0 })
   refundedAmount!: number;
+
+  @Column({ type: 'varchar' })
+  status!: PaymentStatus;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }

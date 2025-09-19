@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Payment } from './entities/payment.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class PaymentRepository {
@@ -10,14 +10,23 @@ export class PaymentRepository {
     private readonly repo: Repository<Payment>,
   ) {}
 
-  create(data: Partial<Payment>) {
-    return this.repo.create(data);
+  findByProviderPaymentId(pi: string) {
+    return this.repo.findOne({ where: { providerPaymentId: pi } });
   }
-  save(p: Payment) {
-    return this.repo.save(p);
+
+  findByProviderInvoiceId(inv: string) {
+    return this.repo.findOne({ where: { providerInvoiceId: inv } });
   }
-  findByProviderPaymentId(providerPaymentId: string) {
-    return this.repo.findOne({ where: { providerPaymentId } });
+
+  findByCheckoutSessionId(id: string) {
+    return this.repo.findOne({ where: { providerCheckoutSessionId: id } });
   }
-  // agrega más métodos si los necesitás (paginación, por userId, etc.)
+
+  save(payment: Payment) {
+    return this.repo.save(payment);
+  }
+
+  create(partial: Partial<Payment>) {
+    return this.repo.create(partial);
+  }
 }
