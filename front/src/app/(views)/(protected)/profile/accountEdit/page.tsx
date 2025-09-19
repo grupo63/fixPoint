@@ -5,6 +5,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { routes } from "@/routes";
+import parsePhoneNumberFromString, { CountryCode } from "libphonenumber-js";
+
+function validatePhone(
+  phone: string,
+  country: CountryCode = "AR"
+): string | null {
+  try {
+    const phoneNumber = parsePhoneNumberFromString(phone, country);
+    if (!phoneNumber || !phoneNumber.isValid()) {
+      return "Número de teléfono inválido para el país seleccionado";
+    }
+    return null; // válido
+  } catch {
+    return "Número de teléfono inválido";
+  }
+}
 
 export default function AccountEditPage() {
   const { user, token, setUser } = useAuth();
@@ -45,6 +61,13 @@ export default function AccountEditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // --- Validar teléfono antes de enviar ---
+    const phoneError = validatePhone(phone, "AR");
+    if (phoneError) {
+      alert(phoneError); // o usar un state para mostrar error inline
+      return; // corta la ejecución del submit
+    }
+
     setLoading(true);
 
     try {
@@ -214,6 +237,7 @@ export default function AccountEditPage() {
             onChange={(e) => setPhone(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             placeholder="+54 11 1234 5678"
+            required
           />
         </div>
 

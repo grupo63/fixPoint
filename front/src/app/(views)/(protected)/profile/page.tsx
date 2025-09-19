@@ -165,7 +165,6 @@ export default function ProfilePage() {
         );
       }
 
-      // --- SOLO REFRESCAMOS PROFESIONAL ---
       if (hasPro && typeof refetchProfile === "function") {
         await refetchProfile(); // asegura que se vean los datos nuevos
       }
@@ -173,7 +172,6 @@ export default function ProfilePage() {
     return finalUrl;
   };
 
-  // --- Inicializamos valores para usuarios ---
   const formInitialValues = useMemo(() => {
     if (!user) return {};
 
@@ -206,7 +204,6 @@ export default function ProfilePage() {
     };
   }, [user, professional]);
 
-  // --- Creamos un objeto separado solo para profesionales ---
   const professionalInitialValues = useMemo(() => {
     if (!professional) return {};
     const proUser = professional.user || {};
@@ -228,7 +225,7 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
+    <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
       <ProfileSummary
         user={user}
         imageUrl={avatarUrl}
@@ -241,7 +238,6 @@ export default function ProfilePage() {
           href={{
             pathname: routes.profile_account_edit,
             query: {
-              // --- PASAMOS LOS VALORES CORRECTOS SEGÚN ROL ---
               initialValues: JSON.stringify(
                 hasPro ? professionalInitialValues : formInitialValues
               ),
