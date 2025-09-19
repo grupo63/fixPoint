@@ -1,14 +1,20 @@
 import {
   Injectable,
-  BadRequestException,
   Inject,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import Stripe from 'stripe';
-import { PaymentStatus } from './types/enums';
-import { CreatePaymentIntentDto } from './dto/create-payment.dto';
-import { RefundPaymentDto } from './dto/update-payment.dto';
 import { PaymentRepository } from './payments.repository';
+import { PaymentStatus } from './entities/payment.entity';
+import {
+  CreateCheckoutPaymentDto,
+  CreateCheckoutSubscriptionDto,
+} from './dto/create-payment.dto';
+import { Repository } from 'typeorm';
+import { Subscription } from 'src/subscription/entities/subscription.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { RefundPaymentDto } from './dto/update-payment.dto';
 
 @Injectable()
 export class PaymentsService {
@@ -17,180 +23,142 @@ export class PaymentsService {
   constructor(
     @Inject('STRIPE') private readonly stripe: Stripe,
     private readonly paymentRepo: PaymentRepository,
+    @InjectRepository(Subscription)
+    private readonly subscriptionRepo: Repository<Subscription>,
   ) {}
 
-  /** Crea el PaymentIntent en Stripe y persiste el vínculo en tu DB */
-  async createPaymentIntent(dto: CreatePaymentIntentDto) {
-    const idempotencyKey = `pi-${dto.subscriptionId ?? 'single'}-${Date.now()}`;
+  async createCheckoutPaymentSession(dto: CreateCheckoutPaymentDto) {
+    const currency =
+      (dto.currency || '').toLowerCase() === 'ar'
+        ? 'ars'
+        : (dto.currency || '').toLowerCase();
 
-    // Normalizar moneda
-    dto.currency = (dto.currency || '').toLowerCase();
-    if (dto.currency === 'ar') dto.currency = 'ars';
-
-    // 1) Crear el PaymentIntent en Stripe (sin redirecciones)
-    const intent = await this.stripe.paymentIntents.create(
-      {
-        amount: dto.amount,
-        currency: dto.currency,
-        description: dto.description,
-        receipt_email: dto.receiptEmail,
-        metadata: {
-          ...dto.metadata,
-          subscriptionId: dto.subscriptionId ?? '',
-          // ojo: todavía NO sabemos paymentId (tu UUID), lo agregamos luego
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency,
+            product_data: { name: dto.description },
+            unit_amount: dto.amount,
+          },
+          quantity: 1,
         },
-        automatic_payment_methods: {
-          enabled: true,
-          allow_redirects: 'never',
-        },
-      },
-      { idempotencyKey },
-    );
+      ],
+      success_url: dto.successUrl,
+      cancel_url: dto.cancelUrl,
+      customer_email: dto.receiptEmail,
+      metadata: dto.metadata,
+      automatic_tax: { enabled: false },
+    });
 
-    // 2) Persistir tu fila local con lo que devuelve Stripe
     const payment = this.paymentRepo.create({
-      ...(dto.subscriptionId ? { subscriptionId: dto.subscriptionId } : {}),
-      amount: intent.amount,
-      currency: intent.currency,
-      providerPaymentId: intent.id,                  // pi_...
-      status: intent.status as PaymentStatus,
-    });
-    await this.paymentRepo.save(payment);
-
-    // 3) Ahora que tenemos tu UUID, lo subimos a Stripe como metadata.paymentId
-    try {
-      await this.stripe.paymentIntents.update(intent.id, {
-        metadata: {
-          ...(intent.metadata ?? {}),
-          paymentId: payment.id,                     // 🔑 vínculo fuerte
-        },
-      });
-    } catch (e) {
-      // No rompas la creación si falla el update de metadata; dejá log
-      this.logger.warn(`No se pudo actualizar metadata.paymentId en Stripe: ${(e as Error).message}`);
-    }
-
-    return {
-      paymentId: payment.id,
-      clientSecret: intent.client_secret,
-      paymentIntentId: intent.id,
-    };
-  }
-
-  getStripe(): Stripe {
-    return this.stripe;
-  }
-
-  /**
-   * Sincroniza una fila local con Stripe usando el payment_intent.id (pi_...).
-   * Si no encuentra por providerPaymentId, cae al metadata.paymentId.
-   */
-  async syncFromStripe(paymentIntentId: string) {
-    // 1) Traer el PaymentIntent real desde Stripe
-    const intentResp = await this.stripe.paymentIntents.retrieve(paymentIntentId);
-    const pi = intentResp as unknown as Stripe.PaymentIntent;
-
-    // 2) Ubicar tu fila local (primero por providerPaymentId; si no, por metadata.paymentId)
-    let payment = await this.paymentRepo.findByProviderPaymentId(paymentIntentId);
-
-    if (!payment) {
-      const metaPaymentId = (pi.metadata?.paymentId as string | undefined) ?? undefined;
-      if (!metaPaymentId) throw new BadRequestException('Payment not found');
-
-      // Usa los métodos que tengas disponibles en tu repositorio
-      // @ts-ignore
-      payment =
-        (await (this.paymentRepo as any).findById?.(metaPaymentId)) ??
-        (await (this.paymentRepo as any).findOne?.({ where: { id: metaPaymentId } }));
-
-      if (!payment) throw new BadRequestException('Payment not found');
-    }
-
-    // 3) (Opcional) sumar reembolsos consultando los cargos directamente (tipado 100% seguro)
-    //    Si tu entidad no tiene refundedAmount, este bloque no rompe; simplemente no se persiste.
-    let refunded = 0;
-    try {
-      const chargeList = await this.stripe.charges.list({
-        payment_intent: pi.id,
-        limit: 100,
-        expand: ['data.refunds'], // para tener refunds embebidos en cada charge
-      });
-
-      for (const ch of chargeList.data) {
-        for (const r of ch.refunds?.data ?? []) {
-          refunded += r.amount ?? 0;
-        }
-      }
-    } catch {
-      // Si fallara, no bloqueamos la sync; refunded queda en 0
-    }
-
-    // 4) Determinar nuevo estado (si tu enum tiene REFUNDED y es total, usarlo)
-    const hasRefundedStatus = (PaymentStatus as any).REFUNDED !== undefined;
-    const isFullyRefunded = refunded >= (pi.amount ?? 0);
-
-    const newStatus: PaymentStatus =
-      hasRefundedStatus && isFullyRefunded
-        ? (PaymentStatus as any).REFUNDED
-        : (pi.status as PaymentStatus);
-
-    // 5) Actualizar tu fila local
-    payment.status = newStatus;
-    payment.amount = pi.amount;
-    payment.currency = pi.currency;
-
-    // Guardar refundedAmount si tu entidad lo tiene
-    if ('refundedAmount' in payment) {
-      (payment as any).refundedAmount = refunded;
-    }
-
-    // Refuerza el vínculo si faltaba
-    if (!payment.providerPaymentId) {
-      payment.providerPaymentId = pi.id;
-    }
-
-    await this.paymentRepo.save(payment);
-    return payment;
-  }
-
-
-  async refund(dto: RefundPaymentDto) {
-    const charges = await this.stripe.charges.list({
-      payment_intent: dto.paymentIntentId,
-      limit: 1,
-    });
-    const charge = charges.data[0];
-    if (!charge) throw new BadRequestException('No charge to refund');
-
-    const refund = await this.stripe.refunds.create({
-      charge: charge.id,
       amount: dto.amount,
+      currency,
+      status: PaymentStatus.PROCESSING,
+      providerCheckoutSessionId: session.id,
+      checkoutMode: 'payment',
     });
+    await this.paymentRepo.save(payment);
 
-    // Refrescar tu fila (captura refundedAmount y status)
-    await this.syncFromStripe(dto.paymentIntentId);
-
-    return { refundId: refund.id, status: refund.status };
+    return { url: session.url, sessionId: session.id, paymentId: payment.id };
   }
 
-  /** usado por webhook de invoices (suscripciones) */
-  async upsertFromInvoice(invoice: Stripe.Invoice) {
-    const paymentIntent = invoice['payment_intent'];
-    const piId =
-      typeof paymentIntent === 'string' ? paymentIntent : paymentIntent?.id;
+  async createCheckoutSubscriptionSession(dto: CreateCheckoutSubscriptionDto) {
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: dto.priceId,
+          quantity: dto.quantity ?? 1,
+        },
+      ],
+      success_url: dto.successUrl,
+      cancel_url: dto.cancelUrl,
+      metadata: { ...dto.metadata, userId: dto.userId ?? '' },
+      subscription_data: {
+        trial_period_days: dto.trialDays ?? undefined,
+        metadata: { userId: dto.userId ?? '' },
+      },
+      allow_promotion_codes: true,
+    });
 
-    if (typeof piId !== 'string') {
-      throw new Error('Payment intent ID is not a string');
+    const payment = this.paymentRepo.create({
+      amount: 0,
+      currency: 'usd',
+      status: PaymentStatus.PROCESSING,
+      providerCheckoutSessionId: session.id,
+      checkoutMode: 'subscription',
+      subscriptionId: undefined,
+    });
+    await this.paymentRepo.save(payment);
+
+    return { url: session.url, sessionId: session.id, paymentId: payment.id };
+  }
+
+  async getCheckoutSession(sessionId: string) {
+    return this.stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['payment_intent', 'subscription', 'customer'],
+    });
+  }
+
+  async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+    const csId = session.id;
+
+    const payment = await this.paymentRepo.findByCheckoutSessionId(csId);
+    if (!payment) {
+      this.logger.warn(
+        `[checkout.session.completed] No local payment for session ${csId}`,
+      );
+      return;
     }
+
+    if (session.mode === 'subscription') {
+      const subId =
+        typeof session.subscription === 'string'
+          ? session.subscription
+          : session.subscription?.id;
+      if (subId) payment.subscriptionId = subId;
+
+      const invId =
+        typeof session.invoice === 'string'
+          ? session.invoice
+          : session.invoice?.id;
+      if (invId) payment.providerInvoiceId = invId;
+
+    }
+
+    if (session.mode === 'payment') {
+      const piId =
+        typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : session.payment_intent?.id;
+      if (piId) payment.providerPaymentId = piId;
+    }
+
+    await this.paymentRepo.save(payment);
+  }
+
+  async upsertFromInvoice(invoice: Stripe.Invoice) {
+    const paymentIntent = (invoice as any)['payment_intent'];
+    const piId = typeof paymentIntent === 'string' ? paymentIntent : paymentIntent?.id;
     if (!piId) return;
 
-    const existing = await this.paymentRepo.findByProviderPaymentId(piId);
+    const subField = (invoice as any)['subscription'];
+    const subId =
+      typeof subField === 'string' ? subField : (subField?.id ?? undefined);
+
     const amount = invoice.amount_paid ?? invoice.amount_due ?? 0;
 
+    const existing = await this.paymentRepo.findByProviderPaymentId(piId);
     if (existing) {
-      existing.status =
-        invoice.status === 'paid' ? PaymentStatus.SUCCEEDED : existing.status;
-      existing.providerInvoiceId = invoice.id; // id de la invoice en Stripe
+      existing.status = invoice.status === 'paid' ? PaymentStatus.SUCCEEDED : existing.status;
+      existing.providerInvoiceId = invoice.id;
+      existing.amount = amount || existing.amount;
+      existing.currency = invoice.currency || existing.currency;
+      if (subId) existing.subscriptionId = subId;
       await this.paymentRepo.save(existing);
       return existing;
     }
@@ -204,64 +172,148 @@ export class PaymentsService {
         invoice.status === 'paid'
           ? PaymentStatus.SUCCEEDED
           : PaymentStatus.PROCESSING,
-      // subscriptionId: (si mapeás sub_... -> uuid)
+      subscriptionId: subId,
     });
     return this.paymentRepo.save(payment);
   }
 
-  // payments.service.ts (dentro de la clase PaymentsService)
-  async confirm(paymentIntentId: string, paymentMethod: string) {
-    // 1) Confirmar el PaymentIntent en Stripe
-    const intent = await this.stripe.paymentIntents.confirm(paymentIntentId, {
-      payment_method: paymentMethod,
+  getStripe(): Stripe {
+    return this.stripe;
+  }
+
+  async getSubscriptionStatusForUser(userId: string) {
+    const subscription = await this.subscriptionRepo.findOne({
+      where: { user: { id: userId } },
+      relations: ['user'],
     });
 
-    // 2) Buscar tu fila local (primero por providerPaymentId)
-    let payment = await this.paymentRepo.findByProviderPaymentId(paymentIntentId);
-
-    // 3) Fallback: si no hay fila, intentar con metadata.paymentId (tu UUID)
-    if (!payment) {
-      const metaPaymentId = (intent.metadata?.paymentId as string | undefined) ?? undefined;
-      if (metaPaymentId) {
-        // Usa el/los métodos reales de tu repo
-        // @ts-ignore
-        payment =
-          (await (this.paymentRepo as any).findById?.(metaPaymentId)) ??
-          (await (this.paymentRepo as any).findOne?.({ where: { id: metaPaymentId } }));
-      }
-    }
-
-    // 4) Si no hay fila local, devolvemos el estado de Stripe (y logeamos)
-    if (!payment) {
-      this.logger.warn(
-        `confirm(): no se encontró fila local para ${paymentIntentId}; devolviendo estado de Stripe.`,
-      );
-      return { stripe: { id: intent.id, status: intent.status } };
-    }
-
-    // 5) Actualizar fila local con lo que devolvió Stripe
-    //    (usá el mismo enum PaymentStatus que usa tu entidad)
-    payment.status = intent.status as any;
-    payment.amount = intent.amount;
-    payment.currency = intent.currency;
-    if (!payment.providerPaymentId) payment.providerPaymentId = intent.id;
-
-    await this.paymentRepo.save(payment);
-
-    // 6) (Opcional) Sincronización completa para capturar refunds, etc.
-    try {
-      await this.syncFromStripe(intent.id);
-    } catch (e) {
-      this.logger.warn(`confirm(): sync post-confirm falló: ${(e as Error).message}`);
+    if (!subscription) {
+      return { status: 'no_subscription' };
     }
 
     return {
-      id: payment.id,
-      providerPaymentId: payment.providerPaymentId,
-      status: payment.status,
-      amount: payment.amount,
-      currency: payment.currency,
+      status: subscription.status,
+      subscriptionId: subscription.id,
     };
   }
 
+  async refund(dto: RefundPaymentDto) {
+    const stripe = this.getStripe();
+
+    const refund = await stripe.refunds.create({
+      payment_intent: dto.paymentIntentId,
+      amount: dto.amount,
+    });
+
+    const charge = refund.charge
+      ? (typeof refund.charge === 'string'
+        ? await stripe.charges.retrieve(refund.charge)
+        : refund.charge)
+      : null;
+
+    const total = charge?.amount ?? 0;
+    const refundedSoFar = charge?.amount_refunded ?? refund.amount ?? 0;
+    const isFullRefund = charge?.refunded === true || refundedSoFar >= total;
+    const refundableRemaining = Math.max(total - refundedSoFar, 0);
+
+    return {
+      refundId: refund.id,
+      status: refund.status,
+      amount: refund.amount ?? null,
+      currency: refund.currency ?? null,
+      paymentIntentId: typeof refund.payment_intent === 'string'
+        ? refund.payment_intent
+        : refund.payment_intent?.id,
+      chargeId: typeof refund.charge === 'string' ? refund.charge : refund.charge?.id,
+      isFullRefund,
+      refundedSoFar,
+      refundableRemaining,
+    };
+  }
+
+  async applyCheckoutCompleted(session: Stripe.Checkout.Session) {
+    let payment = await this.paymentRepo.findByCheckoutSessionId(session.id);
+
+    let piId: string | undefined;
+    if (typeof session.payment_intent === 'string') piId = session.payment_intent;
+    else if (
+      session.payment_intent &&
+      typeof session.payment_intent === 'object'
+    )
+      piId = session.payment_intent.id;
+
+    if (!payment && piId) {
+      payment = await this.paymentRepo.findByProviderPaymentId(piId);
+    }
+
+    if (!payment) {
+      payment = this.paymentRepo.create({
+        providerCheckoutSessionId: session.id,
+        checkoutMode: session.mode as any,
+        currency: (session.currency as string) ?? 'usd',
+        amount: session.amount_total ?? 0,
+        status: PaymentStatus.PROCESSING,
+      });
+    }
+    payment.providerCheckoutSessionId = session.id;
+    payment.checkoutMode = session.mode as any;
+    if (typeof session.currency === 'string')
+      payment.currency = session.currency;
+    if (typeof session.amount_total === 'number')
+      payment.amount = session.amount_total;
+
+    if (piId) payment.providerPaymentId = piId;
+
+    await this.paymentRepo.save(payment);
+  }
+
+  async syncFromStripe(paymentIntentId: string) {
+
+    const pi = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+
+    let payment =
+      await this.paymentRepo.findByProviderPaymentId(paymentIntentId);
+
+    if (!payment) {
+      payment = this.paymentRepo.create({
+        providerPaymentId: (pi as any).id,
+        amount: (pi as any).amount ?? 0,
+        currency: ((pi as any).currency as string) ?? 'usd',
+        status: PaymentStatus.PROCESSING,
+      });
+    }
+
+    payment.amount = (pi as any).amount ?? payment.amount;
+    payment.currency = ((pi as any).currency as string) ?? payment.currency;
+
+    const charges = await this.stripe.charges.list({
+      payment_intent: paymentIntentId,
+      limit: 100,
+    });
+    const refunded = (charges.data ?? []).reduce(
+      (acc, ch) => acc + (ch.amount_refunded ?? 0),
+      0,
+    );
+    payment.refundedAmount = refunded;
+
+    switch ((pi as any).status as string) {
+      case 'succeeded':
+        payment.status = PaymentStatus.SUCCEEDED;
+        break;
+      case 'processing':
+        payment.status = PaymentStatus.PROCESSING;
+        break;
+      case 'requires_payment_method':
+        payment.status = PaymentStatus.REQUIRES_PAYMENT_METHOD;
+        break;
+      case 'canceled':
+        payment.status = PaymentStatus.CANCELED;
+        break;
+      default:
+        break;
+    }
+
+    await this.paymentRepo.save(payment);
+    return payment;
+  }
 }

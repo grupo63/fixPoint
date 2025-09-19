@@ -1,32 +1,26 @@
+// src/payments/payments.module.ts
 import { Module } from '@nestjs/common';
+import { PaymentsController } from './payments.controller';
+import { PaymentsService } from './payments.service';
+import { PaymentRepository } from './payments.repository';
 import Stripe from 'stripe';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Payment } from './entities/payment.entity';
-import { PaymentRepository } from './payments.repository';
-import { PaymentsService } from './payments.service';
-import { PaymentsController } from './payments.controller';
-import { JwtModule } from '@nestjs/jwt';
-import { UsersModule } from 'src/users/users.module';
+import { Subscription } from '../subscription/entities/subscription.entity';
 
 const stripeProvider = {
   provide: 'STRIPE',
-  useFactory: () =>
-    new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: '2025-08-27.basil' as Stripe.LatestApiVersion,
-    }),
+  useFactory: () => new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2025-08-27.basil', // o la que uses
+  }),
 };
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Payment]),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '2h' },
-    }),
-    UsersModule,
+    TypeOrmModule.forFeature([Payment, Subscription]), // 👈 agrega Subscription
   ],
   controllers: [PaymentsController],
-  providers: [stripeProvider, PaymentRepository, PaymentsService],
+  providers: [PaymentsService, PaymentRepository, stripeProvider],
   exports: [PaymentsService],
 })
 export class PaymentsModule {}
