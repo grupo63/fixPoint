@@ -5,9 +5,11 @@ import ProfileSummary from "@/components/profileView/profileSummary";
 import { useAuth } from "@/context/AuthContext";
 import { useProfileData } from "@/hooks/useProfileData";
 
+import Link from "next/link";
+import { routes } from "@/routes";
+
 /* ---------- Helpers de upload ---------- */
 
-// Extrae la primera URL válida desde cualquier forma de respuesta
 function pickUrl(data: any): string {
   if (!data || typeof data !== "object") return "";
   const c = [
@@ -34,7 +36,6 @@ function pickUrl(data: any): string {
   return "";
 }
 
-// Arma la request al endpoint correcto (USER/PRO) y devuelve la URL
 async function uploadAvatarDecider({
   role,
   userId,
@@ -66,9 +67,7 @@ async function uploadAvatarDecider({
       : `${API_BASE}/upload-img/users/${userId}/profile-image`;
 
   const form = new FormData();
-  form.append("file", file, file.name); // back: FileInterceptor('file')
-
-  console.log("[uploadAvatar] PUT", url, { role, userId, professionalId });
+  form.append("file", file, file.name);
 
   const res = await fetch(url, { method: "PUT", headers, body: form });
   const raw = await res.text();
@@ -89,7 +88,6 @@ async function uploadAvatarDecider({
     );
   }
 
-  console.log("[uploadAvatar] OK", data);
   return pickUrl(data) || "";
 }
 
@@ -101,24 +99,21 @@ export default function ProfilePage() {
 
   const user = auth?.user;
   const token = auth?.token;
-  const setUser = auth?.setUser; // si existe, lo usamos para refrescar contexto
+  const setUser = auth?.setUser;
 
   const professional = profileData?.professional;
-  const refetchProfile = profileData?.refetch; // si tu hook lo expone
+  const refetchProfile = profileData?.refetch;
 
   const professionalId = useMemo(() => {
     if (!professional) return "";
-    const p: any = professional;
-    return p?.id ?? p?.professional_uuid ?? p?.uuid ?? p?.professionalId ?? "";
+    return professional?.id ?? "";
   }, [professional]);
 
-  const hasPro =
-    typeof professionalId === "string" && professionalId.length > 0;
+  const hasPro = !!professionalId;
   const roleForUpload: "USER" | "PROFESSIONAL" = hasPro
     ? "PROFESSIONAL"
     : "USER";
 
-  // key distinta para cachear por usuario/pro
   const storageKey = useMemo(
     () =>
       hasPro
@@ -127,7 +122,6 @@ export default function ProfilePage() {
     [hasPro, professionalId, user?.id]
   );
 
-  // URL inicial (contexto o cache local)
   const initialUrl =
     (hasPro
       ? professional?.profileImg ?? null
@@ -136,17 +130,13 @@ export default function ProfilePage() {
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialUrl);
 
-  // Si el contexto cambia (por ejemplo, después de un refetch), sincronizamos
   useEffect(() => {
     const contextUrl = hasPro
-      ? (professional?.profileImg as string | undefined) ?? null
-      : (user?.profileImg as string | undefined) ??
-        (user?.avatar as string | undefined) ??
-        null;
+      ? professional?.profileImg ?? null
+      : user?.profileImg ?? user?.avatar ?? null;
     if (contextUrl && contextUrl !== avatarUrl) setAvatarUrl(contextUrl);
   }, [hasPro, professional?.profileImg, user?.profileImg, user?.avatar]);
 
-  // Si no hay en contexto pero había cache en localStorage, usarlo
   useEffect(() => {
     if (!avatarUrl && typeof window !== "undefined") {
       const cached = localStorage.getItem(storageKey);
@@ -169,30 +159,99 @@ export default function ProfilePage() {
         localStorage.setItem(storageKey, finalUrl);
       } catch {}
 
-      // Actualizá el contexto si podés
       if (!hasPro && typeof setUser === "function") {
         setUser((prev: any) =>
           prev ? { ...prev, profileImg: finalUrl, avatar: finalUrl } : prev
         );
       }
-      // Si tu hook tiene refetch, refrescamos el profesional
+
+      // --- SOLO REFRESCAMOS PROFESIONAL ---
       if (hasPro && typeof refetchProfile === "function") {
-        refetchProfile().catch(() => {});
+        await refetchProfile(); // asegura que se vean los datos nuevos
       }
     }
     return finalUrl;
   };
+
+  // --- Inicializamos valores para usuarios ---
+  const formInitialValues = useMemo(() => {
+    if (!user) return {};
+
+    if (professional) {
+      const proUser = professional.user || {};
+      return {
+        firstName: proUser.firstName || "",
+        lastName: proUser.lastName || "",
+        phone: proUser.phone || "",
+        city: proUser.city || "",
+        address: proUser.address || "",
+        zipCode: proUser.zipCode || "",
+        country: proUser.country || "",
+        speciality: professional.speciality || "",
+        aboutMe: professional.aboutMe || "",
+        workingRadius: professional.workingRadius ?? 10,
+        profileImg: professional.profileImg || "",
+      };
+    }
+
+    return {
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      phone: user.phone || "",
+      city: user.city || "",
+      address: user.address || "",
+      zipCode: user.zipCode || "",
+      country: user.country || "",
+      profileImg: user.profileImg || user.avatar || "",
+    };
+  }, [user, professional]);
+
+  // --- Creamos un objeto separado solo para profesionales ---
+  const professionalInitialValues = useMemo(() => {
+    if (!professional) return {};
+    const proUser = professional.user || {};
+    return {
+      firstName: proUser.firstName || "",
+      lastName: proUser.lastName || "",
+      phone: proUser.phone || "",
+      city: proUser.city || "",
+      address: proUser.address || "",
+      zipCode: proUser.zipCode || "",
+      country: proUser.country || "",
+      speciality: professional.speciality || "",
+      aboutMe: professional.aboutMe || "",
+      workingRadius: professional.workingRadius ?? 10,
+      profileImg: professional.profileImg || "",
+    };
+  }, [professional]);
 
   if (!user) return null;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <ProfileSummary
-        user={user as any}
+        user={user}
         imageUrl={avatarUrl}
         onUploadFile={handleUploadFile}
         onUploaded={(url) => setAvatarUrl(url)}
       />
+
+      <div className="mt-6">
+        <Link
+          href={{
+            pathname: routes.profile_account_edit,
+            query: {
+              // --- PASAMOS LOS VALORES CORRECTOS SEGÚN ROL ---
+              initialValues: JSON.stringify(
+                hasPro ? professionalInitialValues : formInitialValues
+              ),
+            },
+          }}
+          className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+        >
+          Editar perfil
+        </Link>
+      </div>
     </div>
   );
 }

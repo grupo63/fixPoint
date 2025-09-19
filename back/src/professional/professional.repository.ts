@@ -30,8 +30,8 @@ export class ProfessionalRepository {
       .take(limitNum);
 
     if (speciality) {
-      query.andWhere('LOWER(professional.speciality) = LOWER(:speciality)', {
-        speciality: speciality.trim(),
+      query.andWhere('LOWER(professional.speciality) LIKE LOWER(:speciality)', {
+        speciality: `%${speciality.trim()}%`,
       });
     }
 
