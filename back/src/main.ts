@@ -3,12 +3,21 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
-import { raw } from 'express';
+import cookieParser from 'cookie-parser'; // ✅ default import
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
-  // ✅ Configuración de validaciones globales
+  // ✅ Middleware temporal para loguear Authorization
+  app.use((req, res, next) => {
+    
+    next();
+  });
+
+  // ✅ Cookies
+  app.use(cookieParser());
+
+  // ✅ Validaciones globales
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -17,13 +26,18 @@ async function bootstrap() {
     }),
   );
 
-  // ✅ Habilitar CORS para permitir conexión del frontend
+  // ✅ CORS
   app.enableCors({
-    origin: 'http://localhost:3000', // URL del front
+    origin: [
+      'http://localhost:3000',
+      process.env.FRONT_URL || 'http://localhost:3000',
+    ],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
-  // ✅ Configuración Swagger
+  // ✅ Swagger
   const swaggerConfig = new DocumentBuilder()
     .setTitle('fixpoint')
     .setDescription('Built with nest.js')
@@ -34,11 +48,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api', app, document);
 
-  // ✅ Levantar el servidor
-  // Elimina usuarios con password null antes de migrar
+  // ✅ Server
   const dataSource = app.get(DataSource);
-  // await dataSource.query(`DELETE FROM "USERS" WHERE "password" IS NULL`);
-
   await app.listen(process.env.PORT ?? 3001);
 }
 void bootstrap();

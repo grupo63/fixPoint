@@ -13,6 +13,7 @@ export const routes = {
   contacto: "/contact",
   servicios: "/services",
   onboarding: "/onboarding",
+  
 
   admin: "/admin",
   admin_categories: "/admin/categories",

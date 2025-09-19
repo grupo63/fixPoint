@@ -9,16 +9,15 @@ import { AuthService } from './auth.service';
 import { AuthRepository } from './auth.repository';
 import { User } from 'src/users/entities/user.entity';
 import { GoogleStrategy } from './strategies/google.strategy';
-import { UsersService } from 'src/users/users.service';
 import { UsersModule } from 'src/users/users.module';
 import { Professional } from 'src/professional/entity/professional.entity';
-// import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtStrategy } from './strategies/jwt.strategy'; // ✅
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Professional]),
     ConfigModule.forRoot({ isGlobal: true }),
-    PassportModule.register({ session: false }), // [ADD]
+    PassportModule.register({ defaultStrategy: 'jwt', session: false }), // ✅
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -30,7 +29,7 @@ import { Professional } from 'src/professional/entity/professional.entity';
     UsersModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthRepository, GoogleStrategy], // [ADD]
-  exports: [AuthService, JwtModule],
+  providers: [AuthService, AuthRepository, GoogleStrategy, JwtStrategy], // ✅
+  exports: [AuthService, JwtModule, PassportModule], // exportamos Passport si otros módulos lo usan
 })
 export class AuthModule {}
