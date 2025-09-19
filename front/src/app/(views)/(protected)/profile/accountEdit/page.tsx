@@ -237,6 +237,7 @@ export default function AccountEditPage() {
             onChange={(e) => setPhone(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             placeholder="+54 11 1234 5678"
+            required
           />
         </div>
 
