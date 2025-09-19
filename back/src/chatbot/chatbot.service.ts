@@ -1,63 +1,115 @@
 import { Injectable } from '@nestjs/common';
-import { LLMFactory } from './providers/llm.factory';
-import { MessageDto } from './dto/message.dto';
-import { FAQ_DATA } from './faq/faq.data';
+import { FAQ_DATA, FAQEntry } from './faq/faq.data';
 
 function normalize(s: string) {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replace(/[^a-z0-9\sáéíóúüñ]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
 }
 
-function jaccard(a: string, b: string): number {
-  const A = new Set(normalize(a).split(' '));
-  const B = new Set(normalize(b).split(' '));
-  const inter = new Set([...A].filter(x => B.has(x)));
-  const union = new Set([...A, ...B]);
-  return inter.size / Math.max(1, union.size);
+// Auto-detección muy simple (heurística)
+function detectLang(q: string): 'es' | 'en' {
+  const n = normalize(q);
+  const hitsEs = ['que','cómo','como','dónde','donde','política','perfil','reserva','plomeria','cerrajer','electricidad','pintura']
+    .filter(w => n.includes(w)).length;
+  const hitsEn = ['what','how','where','policy','profile','booking','plumbing','locksmith','electrical','painting']
+    .filter(w => n.includes(w)).length;
+  return hitsEs >= hitsEn ? 'es' : 'en';
 }
 
 @Injectable()
 export class ChatbotService {
-  constructor(private readonly llmFactory: LLMFactory) {}
+  private readonly data: FAQEntry[] = FAQ_DATA;
 
-  private matchFAQ(userText: string) {
-    let best = { score: 0, item: null as null | (typeof FAQ_DATA)[number] };
-    for (const item of FAQ_DATA) {
-      const base = jaccard(userText, item.q);
-      const tagBoost = (item.tags ?? []).reduce((acc, t) => Math.max(acc, jaccard(userText, t)), 0);
-      const score = base * 0.8 + tagBoost * 0.2;
-      if (score > best.score) best = { score, item };
-    }
-    return best.score >= 0.35 ? best.item : null; // ajusta umbral si quieres
+  // 👉 faltaba este método
+  list(lang?: 'es' | 'en') {
+    if (!lang) return this.data;
+    // salida plana por idioma para el front
+    return this.data.map(e => ({
+      id: e.id,
+      category: e.category,
+      tags: e.tags,
+      q: e.i18n[lang].q,
+      a: e.i18n[lang].a,
+    }));
   }
 
-  async answer(messages: MessageDto[]): Promise<{ reply: string; source: 'faq' | 'llm' }> {
-    const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content ?? '';
-    const faq = this.matchFAQ(lastUser);
-    if (faq) return { reply: faq.a, source: 'faq' };
+  ask(message: string, lang: 'auto' | 'es' | 'en' = 'auto') {
+    const targetLang: 'es' | 'en' = lang === 'auto' ? detectLang(message) : lang;
+    const nQ = normalize(message);
 
-    const llm = this.llmFactory.build();
-    const reply = await llm.complete(messages);
-    return { reply, source: 'llm' };
-  }
+    const stripPunct = (s: string) =>
+      normalize(s).replace(/[^\p{L}\p{N}\s]/gu, '').trim();
+    const words = (s: string) =>
+      stripPunct(s).split(/\s+/).filter(Boolean);
 
-  async answerStream(messages: MessageDto[], onChunk: (c: string) => void): Promise<{ source: 'faq' | 'llm' }> {
-    const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content ?? '';
-    const faq = this.matchFAQ(lastUser);
-    if (faq) {
-      for (const ch of faq.a) {
-        await new Promise(r => setTimeout(r, 1));
-        onChunk(ch);
-      }
-      return { source: 'faq' };
+    const qWords = new Set(words(message));
+    const candidates = this.data;
+
+    // 1) Exact match (pregunta)
+    let best = candidates.find(
+      f => stripPunct(f.i18n[targetLang].q) === stripPunct(message),
+    );
+    if (best) return pack(best);
+
+    // 2) Substring sobre la pregunta (no answer)
+    best = candidates.find(f =>
+      normalize(f.i18n[targetLang].q).includes(nQ),
+    );
+    if (best) return pack(best);
+
+    // 3) Overlap de tags
+    const byTag = candidates
+      .map(f => {
+        const overlap = f.tags.reduce(
+          (acc, t) => acc + (qWords.has(normalize(t)) ? 1 : 0),
+          0,
+        );
+        return { f, overlap };
+      })
+      .sort((a, b) => b.overlap - a.overlap);
+    if (byTag[0]?.overlap > 0) return pack(byTag[0].f);
+
+    // 4) Scoring por palabras contra PREGUNTA + tags (no incluir answer)
+    let maxScore = 0;
+    let scored: FAQEntry | undefined;
+    for (const f of candidates) {
+      const hay = new Set(words(f.i18n[targetLang].q + ' ' + f.tags.join(' ')));
+      let s = 0;
+      qWords.forEach(w => { if (hay.has(w)) s++; });
+      if (s > maxScore) { maxScore = s; scored = f; }
     }
-    const llm = this.llmFactory.build();
-    await llm.stream(messages, onChunk);
-    return { source: 'llm' };
+    if (maxScore > 0 && scored) return pack(scored);
+
+    // 5) Fallback
+    return {
+      answer:
+        targetLang === 'es'
+          ? 'Lo siento, aún no tengo una respuesta para eso.'
+          : "Sorry, I don't have an answer for that yet.",
+      matchedQuestion: null,
+      lang: targetLang,
+      confidence: 0.2,
+      related: [],
+    };
+
+    // helper: empaquetar con sugerencias
+    function pack(chosen: FAQEntry) {
+      const related = candidates
+        .filter(
+          f =>
+            f.id !== chosen.id &&
+            (f.category === chosen.category ||
+              f.tags.some(t => chosen.tags.includes(t))),
+        )
+        .slice(0, 3)
+        .map(f => ({ id: f.id, q: f.i18n[targetLang].q }));
+
+      return {
+        answer: chosen.i18n[targetLang].a,
+        matchedQuestion: chosen.i18n[targetLang].q,
+        lang: targetLang,
+        confidence: 0.9,
+        related,
+      };
+    }
   }
 }

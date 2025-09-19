@@ -17,6 +17,7 @@ import { UploadImgModule } from './upload-img/upload-img.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { BrowseModule } from './browse/browse.module';
 import { AdminModule } from './admin/admin.module';
+import { ChatbotModule } from './chatbot/chatbot.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { AdminModule } from './admin/admin.module';
     ReviewsModule,
     BrowseModule,
     AdminModule,
+    ChatbotModule,
   ],
   controllers: [AppController],
   providers: [AppService],
