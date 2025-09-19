@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -13,44 +13,57 @@ export default function AccountEditPage() {
 
   if (!user) return null;
 
-  // Determinar el "baseUser" según el rol
-  const baseUser = useMemo(() => {
-    if (user.role?.toLowerCase() === "professional") {
-      return user.user || null; // profesionales tienen info de usuario dentro de 'user'
-    }
-    return user; // usuarios normales
-  }, [user]);
+  // --- Estados del formulario ---
+  const [firstName, setFirstName] = useState(user?.firstName || "");
+  const [lastName, setLastName] = useState(user?.lastName || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [city, setCity] = useState(user?.city || "");
+  const [address, setAddress] = useState(user?.address || "");
+  const [postalCode, setPostalCode] = useState(user?.zipCode || "");
+  const [speciality, setSpeciality] = useState(
+    user?.professional?.speciality || ""
+  );
+  const [aboutMe, setAboutMe] = useState(user?.professional?.aboutMe || "");
+  const [workingRadius, setWorkingRadius] = useState(
+    user?.professional?.workingRadius ?? 10
+  );
 
-  // Estados del formulario
-  const [firstName, setFirstName] = useState(baseUser?.firstName || "");
-  const [lastName, setLastName] = useState(baseUser?.lastName || "");
-  const [phone, setPhone] = useState(baseUser?.phone || "");
-  const [city, setCity] = useState(baseUser?.city || "");
-  const [address, setAddress] = useState(baseUser?.address || "");
-  const [postalCode, setPostalCode] = useState(baseUser?.zipCode || "");
+  // --- Sincronizar formulario cuando user cambia en contexto ---
+  useEffect(() => {
+    setFirstName(user?.firstName || "");
+    setLastName(user?.lastName || "");
+    setPhone(user?.phone || "");
+    setCity(user?.city || "");
+    setAddress(user?.address || "");
+    setPostalCode(user?.zipCode || "");
+    if (user.role?.toLowerCase() === "professional") {
+      setSpeciality(user.professional?.speciality || "");
+      setAboutMe(user.professional?.aboutMe || "");
+      setWorkingRadius(user.professional?.workingRadius ?? 10);
+    }
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const role = user.role ? user.role.toLowerCase() : "";
+      const role = user.role?.toLowerCase() || "";
 
-      // Determinar userId para la request
-      let userId = "";
-      if (role === "user") {
-        userId = user.id;
-      } else if (role === "professional") {
-        userId = user.user?.id || user.userId || "";
-        if (!userId) throw new Error("No se encontró userId del profesional");
-      } else {
+      if (role !== "user" && role !== "professional") {
         alert("Los administradores no pueden actualizar su perfil");
         setLoading(false);
         return;
       }
 
+      const userId = user.id;
+      const professionalId = user.professional?.id || "";
+
+      if (!userId) throw new Error("No se encontró userId");
+
       const sanitizedPhone = phone.replace(/\D/g, "");
 
+      // --- Actualizar tabla users ---
       const body: any = {
         firstName,
         lastName,
@@ -61,11 +74,11 @@ export default function AccountEditPage() {
         zipCode: postalCode,
       };
 
-      const url = `${
+      const usersUrl = `${
         process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001"
       }/users/${userId}`;
 
-      const res = await fetch(url, {
+      const resUser = await fetch(usersUrl, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -74,21 +87,56 @@ export default function AccountEditPage() {
         body: JSON.stringify(body),
       });
 
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
+      if (!resUser.ok) {
+        const error = await resUser.json().catch(() => ({}));
         throw new Error(error?.message || "Error al actualizar perfil");
       }
 
-      const updatedUser = await res.json();
+      const updatedUser = await resUser.json();
 
-      // 🔹 Fusionamos con el usuario previo para no perder datos como role
+      // 🔹 Actualizar contexto con datos del usuario
       if (setUser) {
         setUser((prev: any) => ({
           ...prev,
           ...updatedUser,
-          role: prev.role, // aseguramos que no se pierda
-          user: prev.user || updatedUser.user, // si es profesional mantenemos la relación
+          role: prev.role,
+          professional: prev.professional || updatedUser.professional,
         }));
+      }
+
+      // --- Actualizar datos profesionales ---
+      if (role === "professional" && professionalId) {
+        const professionalBody: any = { speciality, aboutMe, workingRadius };
+
+        const profUrl = `${
+          process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001"
+        }/professional/${professionalId}`;
+
+        const resPro = await fetch(profUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(professionalBody),
+        });
+
+        if (!resPro.ok) {
+          const error = await resPro.json().catch(() => ({}));
+          console.error(
+            "Error al actualizar datos de profesional",
+            error?.message || resPro.statusText
+          );
+        } else {
+          // Refrescar user desde backend para mantener user.professional actualizado
+          const API_BASE =
+            process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
+          const refreshed = await fetch(`${API_BASE}/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const refreshedData = await refreshed.json();
+          if (setUser) setUser(refreshedData);
+        }
       }
 
       router.push(routes.profile);
@@ -150,7 +198,7 @@ export default function AccountEditPage() {
           </label>
           <input
             type="email"
-            value={baseUser?.email || ""}
+            value={user?.email || ""}
             disabled
             className="w-full rounded-lg border border-gray-300 bg-gray-100 px-4 py-2 text-gray-500 cursor-not-allowed"
           />
@@ -205,6 +253,44 @@ export default function AccountEditPage() {
             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
         </div>
+
+        {user.role?.toLowerCase() === "professional" && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Especialidad
+              </label>
+              <input
+                type="text"
+                value={speciality}
+                onChange={(e) => setSpeciality(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sobre mí
+              </label>
+              <textarea
+                value={aboutMe}
+                onChange={(e) => setAboutMe(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Radio de trabajo (km)
+              </label>
+              <input
+                type="number"
+                value={workingRadius}
+                onChange={(e) => setWorkingRadius(Number(e.target.value))}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                min={1}
+              />
+            </div>
+          </>
+        )}
 
         <div className="flex gap-3 justify-end">
           <Link

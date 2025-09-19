@@ -4,10 +4,21 @@ import { ProfessionalUpdate } from "@/types/profesionalTypes";
 
 export type Professional = {
   id: string;
-  speciality?: string;
-  location?: string;
+  speciality?: string | null;
+  aboutMe?: string | null;
+  workingRadius?: number;
   profileImg?: string | null;
-};
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    city?: string;
+    address?: string;
+    zipCode?: string;
+  };
+}; //agregue un monton de cosas.
 
 export async function fetchProfessionalById(
   id: string,
