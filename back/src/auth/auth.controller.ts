@@ -156,4 +156,38 @@ export class AuthController {
   getProfile(@Req() req) {
     return this.userService.getUserById(req.user.id);
   }
+    // 🧪 Diagnóstico: verifica manualmente el token del header Authorization
+  // NO usa guard (así vemos si el secret coincide o si el token está vencido).
+  @Get('debug-token')
+  debugToken(@Req() req: any) {
+    try {
+      const auth: string = req.headers?.authorization || '';
+      const token = auth.startsWith('Bearer ') ? auth.slice('Bearer '.length) : '';
+
+      if (!token) {
+        return { ok: false, error: 'Falta Authorization: Bearer <token>' };
+      }
+
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET || 'dev-secret',
+      });
+
+      // Log útil
+      console.log('AUTH /debug-token → payload =', payload);
+
+      return { ok: true, payload };
+    } catch (e: any) {
+      console.error('AUTH /debug-token ERROR:', e?.message || e);
+      return { ok: false, error: e?.message || String(e) };
+    }
+  }
+
+  // 🧪 (Opcional) Ver directamente qué te arma el guard 'jwt'
+  @UseGuards(JwtAuthGuard)
+  @Get('me-raw')
+  meRaw(@Req() req: any) {
+    console.log('AUTH /me-raw → req.user =', req.user);
+    return req.user;
+  }
+
 }
