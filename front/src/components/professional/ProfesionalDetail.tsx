@@ -6,6 +6,7 @@ import ChatModal from "./chatModal";
 import ReserveButton from "@/components/professional/ReserveButton";
 import ServiceAvailability from "@/components/professional/ServiceAvailability";
 import { ProfessionalResponse } from "@/types/profesionalTypes";
+import { useAuth } from "@/context/AuthContext";
 
 type ServiceItem = {
   id: string;
@@ -14,15 +15,21 @@ type ServiceItem = {
   description?: string | null;
   category?: { id: string; name: string } | null;
   durationMin?: number | null;
-  professionalId?: string;              // 👈 agregar
-  professional?: { id: string } | null; // 👈 agregar
+  professionalId?: string;
+  professional?: { id: string } | null;
 };
-
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
   const [showModal, setShowModal] = useState(false);
+
+  // --- auth / visibilidad de botones ---
+  const { user } = useAuth();
+  const role = (user?.role as string | undefined)?.toLowerCase?.();
+  const isProfessional = role === "professional" || role === "profesional";
+  const isOwner = !!user?.id && user.id === pro.user.id; // dueño del perfil
+  const showReserve = !isProfessional && !isOwner; // sólo usuarios no-profesionales y no dueños
 
   // --- Servicios del profesional ---
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -33,60 +40,58 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
   const [openById, setOpenById] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-  if (!pro?.id) return;
-  let cancelled = false;
+    if (!pro?.id) return;
+    let cancelled = false;
 
-  (async () => {
-    try {
-      setSvcErr(null);
-      setSvcLoading(true);
+    (async () => {
+      try {
+        setSvcErr(null);
+        setSvcLoading(true);
 
-      // Intentamos varias rutas plausibles del back
-      const urls = [
-        `${API}/services?professionalId=${encodeURIComponent(pro.id)}`,
-        `${API}/professionals/${encodeURIComponent(pro.id)}/services`,
-        `${API}/services/professional/${encodeURIComponent(pro.id)}`,
-      ];
+        const urls = [
+          `${API}/services?professionalId=${encodeURIComponent(pro.id)}`,
+          `${API}/professionals/${encodeURIComponent(pro.id)}/services`,
+          `${API}/services/professional/${encodeURIComponent(pro.id)}`,
+        ];
 
-      let raw: ServiceItem[] = [];
-      let lastErr: any = null;
+        let raw: ServiceItem[] = [];
+        let lastErr: any = null;
 
-      for (const url of urls) {
-        try {
-          const res = await fetch(url, { cache: "no-store" });
-          if (!res.ok) {
-            lastErr = new Error(await res.text());
-            continue;
+        for (const url of urls) {
+          try {
+            const res = await fetch(url, { cache: "no-store" });
+            if (!res.ok) {
+              lastErr = new Error(await res.text());
+              continue;
+            }
+            raw = await res.json();
+            break;
+          } catch (e) {
+            lastErr = e;
           }
-          raw = await res.json();
-          break;
-        } catch (e) {
-          lastErr = e;
         }
+
+        // Filtro defensivo por si el back ignora el query param
+        const onlyMine = (raw || []).filter(
+          (s) => s.professionalId === pro.id || s.professional?.id === pro.id
+        );
+
+        if (!cancelled) setServices(onlyMine);
+        if (!raw?.length && lastErr) console.warn("services fetch:", lastErr);
+      } catch (e: any) {
+        if (!cancelled) {
+          setSvcErr(e?.message ?? "Error cargando servicios");
+          setServices([]);
+        }
+      } finally {
+        if (!cancelled) setSvcLoading(false);
       }
+    })();
 
-      // Filtro defensivo por si el back ignora el query param
-      const onlyMine = (raw || []).filter(
-        (s) => s.professionalId === pro.id || s.professional?.id === pro.id
-      );
-
-      if (!cancelled) setServices(onlyMine);
-      if (!raw?.length && lastErr) console.warn("services fetch:", lastErr);
-    } catch (e: any) {
-      if (!cancelled) {
-        setSvcErr(e?.message ?? "Error cargando servicios");
-        setServices([]);
-      }
-    } finally {
-      if (!cancelled) setSvcLoading(false);
-    }
-  })();
-
-  return () => {
-    cancelled = true;
-  };
-}, [pro?.id]);
-
+    return () => {
+      cancelled = true;
+    };
+  }, [pro?.id]);
 
   const toggleOpen = (id: string) =>
     setOpenById((m) => ({ ...m, [id]: !m[id] }));
@@ -121,12 +126,14 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Reserva genérica (sin elegir servicio todavía) */}
-          <ReserveButton
-            professionalId={pro.id}
-            label="Reservar"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-[#162748] text-white text-sm font-medium hover:opacity-90 transition"
-          />
+          {/* Mostrar "Reservar" general sólo si showReserve === true */}
+          {showReserve && (
+            <ReserveButton
+              professionalId={pro.id}
+              label="Reservar"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-[#162748] text-white text-sm font-medium hover:opacity-90 transition"
+            />
+          )}
           <button
             onClick={() => setShowModal(true)}
             className="bg-[#ed7d31] hover:bg-[#b45d27] text-white px-5 py-2.5 rounded-full shadow-md transition-all duration-200 flex items-center gap-2 text-sm font-medium"
@@ -136,7 +143,7 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
         </div>
       </div>
 
-      {/* Tags (placeholder) */}
+      {/* Tags */}
       <div className="flex flex-wrap gap-3">
         {["Creativo", "Responsable", "Confiable"].map((tag) => (
           <span
@@ -157,7 +164,7 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
         </p>
       </div>
 
-      {/* Servicios (debajo de Sobre mí) */}
+      {/* Servicios */}
       <div className="bg-white border border-gray-100 rounded-xl p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Servicios</h2>
 
@@ -193,18 +200,20 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
                   )}
 
                   <div className="mt-3 flex items-center justify-between">
-                    <p className="text-[11px] text-gray-400">
+                    {/* <p className="text-[11px] text-gray-400">
                       serviceId: <code>{s.id}</code>
-                    </p>
+                    </p> */}
                     <div className="flex items-center gap-2">
-                      {/* Reservar directo con este servicio (sin slot preseleccionado) */}
-                      <ReserveButton
-                        professionalId={pro.id}
-                        serviceId={s.id}
-                        label="Reservar"
-                        className="text-sm px-3 py-1.5 rounded-lg bg-[#162748] text-white hover:opacity-90"
-                      />
-                      {/* Toggle disponibilidad */}
+                      {/* Mostrar "Reservar" por servicio sólo si showReserve === true */}
+                      {/* {showReserve && (
+                        <ReserveButton
+                          professionalId={pro.id}
+                          serviceId={s.id}
+                          label="Reservar"
+                          className="text-sm px-3 py-1.5 rounded-lg bg-[#162748] text-white hover:opacity-90"
+                        />
+                      )} */}
+                      {/* Toggle disponibilidad (visible para todos) */}
                       <button
                         type="button"
                         onClick={() => toggleOpen(s.id)}
@@ -220,7 +229,7 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
                       <ServiceAvailability
                         professionalId={pro.id}
                         serviceId={s.id}
-                        // durationMin={s.durationMin ?? 60} // descomenta si tu servicio trae duración
+                        // durationMin={s.durationMin ?? 60}
                       />
                       <p className="text-[11px] text-gray-500 mt-2">
                         Elegí un horario para continuar. Te llevaremos a la página de

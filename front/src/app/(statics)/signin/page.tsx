@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import SigninPageClient from "./SigninPageClient";
+import SigninPageClient from "@/app/(statics)/signin/SigninPageClient";
 
 // Si hicieras static export y siguiera molestando el prerender, podés usar:
 // export const dynamic = "force-dynamic";

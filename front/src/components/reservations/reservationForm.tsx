@@ -56,7 +56,6 @@ async function fetchServicesByProfessional(proId: string): Promise<Service[]> {
 
 // GET disponibilidad semanal del profesional
 async function listWeeklyAvailability(proId: string): Promise<WeeklyAvailability[]> {
-  // Usamos el endpoint que añadiste en el back:
   const url = `${API}/available/professional/${encodeURIComponent(proId)}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error((await res.text()) || "No se pudo obtener la disponibilidad");
@@ -121,7 +120,12 @@ export default function ReservationForm({
   className,
 }: Props) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token: ctxToken } = useAuth() as any;
+
+  // 🔐 preparar bearer si existe (desde contexto o localStorage)
+  const bearer =
+    ctxToken ||
+    (typeof window !== "undefined" ? localStorage.getItem("access_token") : null);
 
   const [professionalId] = useState(defaultProfessionalId);
   const [services, setServices] = useState<Service[]>([]);
@@ -225,39 +229,45 @@ export default function ReservationForm({
 
   /** 3) Submit → POST /reservations con la fecha/hora */
   async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!canSubmit) return;
-
-    try {
-      setSubmitErr(null);
-      const payload = {
-        userId: String(user!.id),
-        professionalId,
-        serviceId,
-        date: slotISO, // ISO 8601 del inicio del turno
-      };
-
-      const res = await fetch(`${API}/reservations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        try {
-          const j = JSON.parse(text);
-          throw new Error(j?.message || text || "No se pudo crear la reserva");
-        } catch {
-          throw new Error(text || "No se pudo crear la reserva");
-        }
-      }
-
-      router.replace("/reservations");
-    } catch (e: any) {
-      setSubmitErr(e?.message ?? "Error creando la reserva");
-    }
+  e.preventDefault();
+  if (!canSubmit) {
+    setSubmitErr("Iniciá sesión para reservar.");
+    return;
   }
+
+  try {
+    setSubmitErr(null);
+
+    const payload = {
+      userId: String(user!.id),
+      professionalId,
+      serviceId,
+      date: slotISO, // ISO 8601 del inicio del turno
+    };
+
+    const res = await fetch(`${API}/reservations`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "No se pudo crear la reserva");
+    }
+
+    // ✅ Éxito: mostramos alerta y luego navegamos
+    alert("Reserva creada con éxito ✅");
+    router.replace("/professionals"); // o "/" si querés volver a Professionales
+  } catch (e: any) {
+    setSubmitErr(e?.message ?? "Error creando la reserva");
+  }
+}
+
 
   return (
     <form onSubmit={onSubmit} className={className}>

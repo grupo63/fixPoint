@@ -9,6 +9,7 @@ import {
   Star,
   Wrench,
   Calendar,
+  CalendarCheck, // ✅ nuevo icono para "Reservas"
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import SidebarUser from "./SidebarUser";
@@ -21,7 +22,11 @@ function NavLink({
   href,
   active,
   children,
-}: { href: string; active?: boolean; children: React.ReactNode }) {
+}: {
+  href: string;
+  active?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <Link
       href={href}
@@ -43,6 +48,7 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
   const rol = (user?.role || "").toString().toUpperCase();
   const isAdmin = rol === "ADMIN";
   const isPro = rol === "PROFESSIONAL";
+  const isLogged = !!user;
 
   return (
     <aside className="sticky h-[95vh] top-5 w-64 bg-[#162748] text-white flex flex-col justify-between rounded-tr-[50px] rounded-bl-[50px] m-4 z-[99]">
@@ -108,34 +114,52 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
           ) : (
             <>
               {/* Visible para todos los no-admin */}
-              <NavLink
-                href={routes.profesionales}
-                active={pathname === routes.profesionales}
-              >
-                <Star className="w-5 h-5" />
-                <span>Profesionales</span>
-              </NavLink>
+<NavLink
+  href={routes.profesionales}
+  active={pathname === routes.profesionales}
+>
+  <Star className="w-5 h-5" />
+  <span>Profesionales</span>
+</NavLink>
 
-              {/* SOLO PROFESIONAL */}
-              {isPro && (
-                <>
-                  <NavLink
-                    href={routes.services ?? "/services"}
-                    active={pathname === (routes.services ?? "/services")}
-                  >
-                    <Wrench className="w-5 h-5" />
-                    <span>Servicios</span>
-                  </NavLink>
+{/* 👇 Mis Reservas → solo para usuarios logueados que NO son profesionales */}
+{isLogged && !isPro && (
+  <NavLink
+    href="/my-reservations"
+    active={pathname === "/my-reservations"}
+  >
+    <Calendar className="w-5 h-5" />
+    <span>Mis Reservas</span>
+  </NavLink>
+)}
 
-                  <NavLink
-                    href={routes.availability ?? "/availability"}
-                    active={pathname === (routes.availability ?? "/availability")}
-                  >
-                    <Calendar className="w-5 h-5" />
-                    <span>Disponibilidad</span>
-                  </NavLink>
-                </>
-              )}
+{/* SOLO PROFESIONAL */}
+{isPro && (
+  <>
+    <NavLink
+      href={routes.services ?? "/services"}
+      active={pathname === (routes.services ?? "/services")}
+    >
+      <Wrench className="w-5 h-5" />
+      <span>Servicios</span>
+    </NavLink>
+    <NavLink
+      href={routes.availability ?? "/availability"}
+      active={pathname === (routes.availability ?? "/availability")}
+    >
+      <Calendar className="w-5 h-5" />
+      <span>Disponibilidad</span>
+    </NavLink>
+    <NavLink
+      href={routes.reservas ?? "/reservas"}
+      active={pathname === (routes.reservas ?? "/reservas")}
+    >
+      <CalendarCheck className="w-5 h-5" />
+      <span>Reservas</span>
+    </NavLink>
+  </>
+)}
+
 
               {/* Links generales (para cualquier no-admin) */}
               <NavLink
