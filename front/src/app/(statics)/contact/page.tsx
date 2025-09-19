@@ -5,7 +5,9 @@ import { useState } from "react";
 export default function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -27,9 +29,15 @@ export default function ContactPage() {
         .
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-4 bg-gray-50 p-6 rounded-xl shadow">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 bg-gray-50 p-6 rounded-xl shadow"
+      >
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700"
+          >
             Nombre
           </label>
           <input
@@ -44,7 +52,10 @@ export default function ContactPage() {
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700"
+          >
             Correo electrónico
           </label>
           <input
@@ -59,7 +70,10 @@ export default function ContactPage() {
         </div>
 
         <div>
-          <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="message"
+            className="block text-sm font-medium text-gray-700"
+          >
             Mensaje
           </label>
           <textarea
@@ -83,8 +97,32 @@ export default function ContactPage() {
 
       <div className="mt-10">
         <h2 className="text-xl font-semibold mb-2">Otros medios de contacto</h2>
-        <p>Email: <a href="mailto:info@fixpoint.com.ar" className="text-blue-600">info@fixpoint.com.ar</a></p>
-        <p>Teléfono: <a href="tel:+541145678900" className="text-blue-600">+54 11 4567-8900</a></p>
+        <p>
+          Email:{" "}
+          <a href="mailto:info@fixpoint.com.ar" className="text-blue-600">
+            info@fixpoint.com.ar
+          </a>
+        </p>
+        <p>
+          Teléfono:{" "}
+          <a href="tel:+541145678900" className="text-blue-600">
+            +54 11 4567-8900
+          </a>
+        </p>
+
+        <div className="mt-6">
+          <h3 className="text-lg font-medium mb-2">Ubicación</h3>
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3284.0182801980036!2d-58.384177124813256!3d-34.6036992574964!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4aa9f0a6da5edb%3A0x11bead4e234e558b!2sObelisco!5e0!3m2!1ses-419!2sar!4v1758200839913!5m2!1ses-419!2sar"
+            width="100%"
+            height="300"
+            style={{ border: 0 }}
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            className="rounded-xl shadow"
+          />
+        </div>
       </div>
     </main>
   );

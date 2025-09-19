@@ -15,27 +15,43 @@ type RoleAPI = "USER" | "PROFESSIONAL" | string;
 export type AuthUser = {
   id: string;
   email: string;
-  role: RoleAPI;
-  name?: string | null;
+  role: "USER" | "PROFESSIONAL" | string;
   firstName?: string | null;
   lastName?: string | null;
   profileImage?: string | null;
-  professional?: Professional;
+  phone?: string;
+  city?: string;
+  address?: string;
+  zipCode?: string;
+  professional?: {
+    id: string;
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone?: string;
+      city?: string;
+      address?: string;
+      zipCode?: string;
+    };
+  };
 };
 
 type AuthContextType = {
   isReady: boolean;
   isAuthenticated: boolean;
   user: AuthUser | null;
+  token: string | null;
+  setUser: React.Dispatch<React.SetStateAction<AuthUser | null>>;
 
   login: (email: string, password: string) => Promise<void>;
-  signin: (email: string, password: string) => Promise<void>; // 👈 alias opcional
+  signin: (email: string, password: string) => Promise<void>; // alias
   logout: () => void;
 
   setAuthFromToken: (token: string) => Promise<void>;
   setAuthenticatedFromCookie: (me: AuthUser | null) => void;
 
-  // 👇 NUEVO: actualizar solo la imagen de perfil en memoria (y opcionalmente persistir)
   setUserProfileImage: (url: string) => void;
 };
 
@@ -51,7 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
 
-  // --- helpers internos ---
   const fetchMe = useCallback(async (token?: string | null) => {
     try {
       const headers: Record<string, string> = {};
@@ -71,18 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hydrateFromStorage = useCallback(async () => {
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (!token) {
-      const me = await fetchMe(null); // cookie-based fallback
-      if (me) {
-        setUser(me);
-        setIsAuthenticated(true);
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
-      }
-      setIsReady(true);
-      return;
-    }
 
     const me = await fetchMe(token);
     if (me) {
@@ -100,7 +103,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void hydrateFromStorage();
   }, [hydrateFromStorage]);
 
-  // --- API pública ---
   const setAuthFromToken = useCallback(
     async (token: string) => {
       localStorage.setItem("token", token);
@@ -155,7 +157,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [setAuthFromToken]
   );
 
-  // 👇 alias opcional para compatibilidad con código existente
   const signin = useCallback(
     (email: string, password: string) => login(email, password),
     [login]
@@ -167,30 +168,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(false);
   }, []);
 
-  // 👇 NUEVO: actualiza solo la imagen del usuario y bustea caché para que se vea al instante
   const setUserProfileImage = useCallback((url: string) => {
     setUser((prev) => {
       if (!prev) return prev;
-      const busted = url
-        ? url.includes("?")
-          ? `${url}&t=${Date.now()}`
-          : `${url}?t=${Date.now()}`
-        : null;
-      const next = { ...prev, profileImage: busted };
-
-      // (opcional) persistir si guardás el user en storage propio
-      try {
-        const raw = localStorage.getItem("auth_user");
-        if (raw) {
-          const stored = JSON.parse(raw);
-          localStorage.setItem(
-            "auth_user",
-            JSON.stringify({ ...stored, profileImage: next.profileImage })
-          );
-        }
-      } catch {}
-
-      return next;
+      const busted = url ? `${url}?t=${Date.now()}` : null;
+      return { ...prev, profileImage: busted };
     });
   }, []);
 
@@ -199,12 +181,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isReady,
       isAuthenticated,
       user,
+      token:
+        typeof window !== "undefined" ? localStorage.getItem("token") : null,
+      setUser, // <--- muy importante para actualizar usuario desde AccountEditPage
       login,
-      signin, // 👈 exportamos alias
+      signin,
       logout,
       setAuthFromToken,
       setAuthenticatedFromCookie,
-      setUserProfileImage, // 👈 NUEVO en el contexto
+      setUserProfileImage,
     }),
     [
       isReady,
@@ -224,8 +209,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
   return ctx;
 }
