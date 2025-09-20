@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
+    "@stripe/stripe-js": "^7.9.0",
     "framer-motion": "^12.23.12",
     "libphonenumber-js": "^1.12.17",
     "lucide-react": "^0.542.0",
