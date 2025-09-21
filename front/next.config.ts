@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string | undefined;
 const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
@@ -8,9 +9,9 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
-  async rewrites() {
+   async rewrites() {
     return [
-      { source: "/api/:path*", destination: "http://localhost:3001/:path*" },
+      { source: "/api/:path*", destination: `${API_BASE}/:path*` },
     ];
   },
 
