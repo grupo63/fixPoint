@@ -36,9 +36,9 @@ export class UploadImgController {
 
   @Put(':id/profile-image')
   @ApiOperation({
-    summary: 'upload profile image',
+    summary: 'Upload professional profile image',
     description:
-      'Uploads a profile image for a professional identified by their ID. The image is validated, stored in Cloudinary, and the `profileImg` field of the `Professional` entity is updated.',
+      'Uploads a profile image for a professional identified by their ID. Image is stored (Cloudinary) and professional.profileImg is updated (service también sincroniza users.profileImage).',
   })
   @ApiParam({
     name: 'id',
@@ -52,10 +52,7 @@ export class UploadImgController {
     schema: {
       type: 'object',
       properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
+        file: { type: 'string', format: 'binary' },
       },
     },
   })
@@ -63,14 +60,6 @@ export class UploadImgController {
     status: 200,
     description:
       'Profile image successfully uploaded. Returns the updated professional entity.',
-    schema: {
-      example: {
-        id: '7e6e4e3d-2b2f-4d5c-9e5f-12a2b3c4d5e6',
-        name: 'John Doe',
-        profileImg:
-          'https://res.cloudinary.com/demo/image/upload/v1693456789/professionals/7e6e4e3d/profile.jpg',
-      },
-    },
   })
   @ApiResponse({ status: 404, description: 'Professional not found' })
   @UseInterceptors(FileInterceptor('file'))
@@ -96,9 +85,9 @@ export class UploadImgController {
 
   @Put('users/:id/profile-image')
   @ApiOperation({
-    summary: 'upload profile image',
+    summary: 'Upload user profile image',
     description:
-      'Uploads a profile image for a user identified by their ID. The image is validated, stored in Cloudinary, and the `profileImg` field of the `User` entity is updated.',
+      'Uploads a profile image for a user identified by their ID. Image is stored and users.profileImage is updated (service también sincroniza professional.profileImg si existe).',
   })
   @ApiParam({
     name: 'id',
@@ -112,25 +101,13 @@ export class UploadImgController {
     schema: {
       type: 'object',
       properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
+        file: { type: 'string', format: 'binary' },
       },
     },
   })
   @ApiResponse({
     status: 200,
-    description:
-      'Profile image successfully uploaded. Returns the updated user entity.',
-    schema: {
-      example: {
-        id: '7e6e4e3d-2b2f-4d5c-9e5f-12a2b3c4e9g7',
-        name: 'Juan Garcia',
-        profileImg:
-          'https://res.cloudinary.com/demo/image/upload/v1693456789/users/7e6e4e3d/profile.jpg',
-      },
-    },
+    description: 'Profile image successfully uploaded. Returns the updated user entity.',
   })
   @ApiResponse({ status: 404, description: 'User not found' })
   @UseInterceptors(FileInterceptor('file'))
@@ -168,7 +145,7 @@ export class UploadImgController {
   })
   @UseInterceptors(FileInterceptor('file'))
   async workImg(
-    @Param('id') professionalId: string, // id del professional viene por URL
+    @Param('id') professionalId: string,
     @Body('description') description: string,
     @UploadedFile(
       new ParseFilePipe({
@@ -184,6 +161,7 @@ export class UploadImgController {
   ) {
     return this.uploadImgService.workImg(file, professionalId, description);
   }
+
   @Get('professional/:id/workImg')
   @ApiOperation({ summary: 'Get work images of a professional' })
   @ApiParam({
@@ -195,22 +173,7 @@ export class UploadImgController {
   @ApiResponse({
     status: 200,
     description: 'List of work images',
-    schema: {
-      example: [
-        {
-          id: 'img-1',
-          imgUrl: 'https://res.cloudinary.com/.../1.jpg',
-          description: 'Puerta de madera terminada',
-        },
-        {
-          id: 'img-2',
-          imgUrl: 'https://res.cloudinary.com/.../2.jpg',
-          description: 'Armario restaurado',
-        },
-      ],
-    },
   })
-  @ApiResponse({ status: 404, description: 'Professional not found' })
   async getWorkImages(@Param('id') professionalId: string) {
     const professional = await this.professionalRepo.findOne({
       where: { id: professionalId },
