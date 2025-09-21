@@ -18,7 +18,7 @@ export default function StatCard({
   value,
 }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4 w-full max-w-[220px]">
+    <div className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4 w-full">
       {/* Icono con fondo */}
       <div
         className="h-10 w-10 flex items-center justify-center rounded-md text-white shrink-0"

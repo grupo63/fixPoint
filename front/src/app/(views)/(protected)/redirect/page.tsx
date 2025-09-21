@@ -21,8 +21,11 @@ export default function RedirectPage() {
       case "admin":
         router.replace("/admin/dashboard");
         break;
-      default:
-        router.replace("/professionals");
+      case "professional":
+        router.replace("/dashboard");
+        break;
+      // default:
+      //   router.replace("/signin");
     }
   }, [user, router]);
 

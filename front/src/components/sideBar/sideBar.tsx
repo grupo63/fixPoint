@@ -114,68 +114,79 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
           ) : (
             <>
               {/* Visible para todos los no-admin */}
-<NavLink
-  href={routes.profesionales}
-  active={pathname === routes.profesionales}
->
-  <Star className="w-5 h-5" />
-  <span>Profesionales</span>
-</NavLink>
+              {isLogged && !isPro && (
+                <>
+                  <NavLink
+                    href={routes.profesionales}
+                    active={pathname === routes.profesionales}
+                  >
+                    <Star className="w-5 h-5" />
+                    <span>Profesionales</span>
+                  </NavLink>
 
-{/* 👇 Mis Reservas → solo para usuarios logueados que NO son profesionales */}
-{isLogged && !isPro && (
-  <NavLink
-    href="/my-reservations"
-    active={pathname === "/my-reservations"}
-  >
-    <Calendar className="w-5 h-5" />
-    <span>Mis Reservas</span>
-  </NavLink>
-)}
+                  <NavLink
+                    href="/my-reservations"
+                    active={pathname === "/my-reservations"}
+                  >
+                    <Calendar className="w-5 h-5" />
+                    <span>Mis Reservas</span>
+                  </NavLink>
+                </>
+              )}
 
-{/* SOLO PROFESIONAL */}
-{isPro && (
-  <>
-    <NavLink
-      href={routes.services ?? "/services"}
-      active={pathname === (routes.services ?? "/services")}
-    >
-      <Wrench className="w-5 h-5" />
-      <span>Servicios</span>
-    </NavLink>
-    <NavLink
-      href={routes.availability ?? "/availability"}
-      active={pathname === (routes.availability ?? "/availability")}
-    >
-      <Calendar className="w-5 h-5" />
-      <span>Disponibilidad</span>
-    </NavLink>
-    <NavLink
-      href={routes.reservas ?? "/reservas"}
-      active={pathname === (routes.reservas ?? "/reservas")}
-    >
-      <CalendarCheck className="w-5 h-5" />
-      <span>Reservas</span>
-    </NavLink>
-  </>
-)}
+              {/* SOLO PROFESIONAL */}
+              {isPro && (
+                <>
+                  <NavLink
+                    href={routes.pro_dashboard ?? "/dashboard"}
+                    active={pathname === (routes.pro_dashboard ?? "/dashboard")}
+                  >
+                    <LayoutDashboard className="w-5 h-5" />
+                    <span>Dashboard</span>
+                  </NavLink>
 
+                  <NavLink
+                    href={routes.services ?? "/services"}
+                    active={pathname === (routes.services ?? "/services")}
+                  >
+                    <Wrench className="w-5 h-5" />
+                    <span>Servicios</span>
+                  </NavLink>
+
+                  <NavLink
+                    href={routes.availability ?? "/availability"}
+                    active={
+                      pathname === (routes.availability ?? "/availability")
+                    }
+                  >
+                    <Calendar className="w-5 h-5" />
+                    <span>Disponibilidad</span>
+                  </NavLink>
+
+                  <NavLink
+                    href={routes.reservas ?? "/reservas"}
+                    active={pathname === (routes.reservas ?? "/reservas")}
+                  >
+                    <CalendarCheck className="w-5 h-5" />
+                    <span>Reservas</span>
+                  </NavLink>
+                  <NavLink
+                    href={routes.plan ?? "#"}
+                    active={pathname === (routes.plan ?? "#")}
+                  >
+                    <CreditCard className="w-5 h-5" />
+                    <span>Plan</span>
+                  </NavLink>
+                </>
+              )}
 
               {/* Links generales (para cualquier no-admin) */}
               <NavLink
-                href={routes.chats ?? "#"}
-                active={pathname === (routes.chats ?? "#")}
+                href={routes.pro_chats ?? "#"}
+                active={pathname === (routes.pro_chats ?? "#")}
               >
                 <MessageCircle className="w-5 h-5" />
                 <span>Chats</span>
-              </NavLink>
-
-              <NavLink
-                href={routes.plan ?? "#"}
-                active={pathname === (routes.plan ?? "#")}
-              >
-                <CreditCard className="w-5 h-5" />
-                <span>Plan</span>
               </NavLink>
             </>
           )}
