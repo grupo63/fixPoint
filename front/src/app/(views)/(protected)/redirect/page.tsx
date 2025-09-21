@@ -14,7 +14,7 @@ export default function RedirectPage() {
       return;
     }
 
-    switch (user.role) {
+    switch (user.role.toLocaleLowerCase()) {
       case "user":
         router.replace("/professionals");
         break;
@@ -24,8 +24,8 @@ export default function RedirectPage() {
       case "professional":
         router.replace("/dashboard");
         break;
-      // default:
-      //   router.replace("/signin");
+      default:
+        router.replace("/signin");
     }
   }, [user, router]);
 

@@ -5,7 +5,9 @@ import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { getMyProfessionalClient } from "@/services/userService";
 
-const API = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
+const API = (
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001"
+).replace(/\/$/, "");
 
 const PLACEHOLDER = "/placeholder.png"; // ajustá si tu archivo se llama distinto
 
@@ -14,7 +16,7 @@ type UserLite = {
   firstName?: string | null;
   lastName?: string | null;
   email?: string | null;
-  profileImg?: string | null;   // legacy
+  profileImg?: string | null; // legacy
   profileImage?: string | null; // actual
 };
 
@@ -116,12 +118,15 @@ export default function ProfessionalReservationsPage() {
         setLoading(true);
         setErr(null);
 
-        const res = await fetch(`${API}/reservations/pending/${professionalId}`, {
-          method: "GET",
-          credentials: "include",
-          headers: buildAuthHeaders(),
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `${API}/reservations/pending/${professionalId}`,
+          {
+            method: "GET",
+            credentials: "include",
+            headers: buildAuthHeaders(),
+            cache: "no-store",
+          }
+        );
 
         if (!res.ok) throw new Error(await res.text());
         const data: Reservation[] = await res.json();
@@ -168,12 +173,15 @@ export default function ProfessionalReservationsPage() {
       setActioning(resId);
       setReservations((prev) => prev.filter((r) => r.reservationId !== resId));
 
-      const res = await fetch(`${API}/reservations/${resId}/cancel-by-professional`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: buildAuthHeaders(),
-        body: JSON.stringify({}),
-      });
+      const res = await fetch(
+        `${API}/reservations/${resId}/cancel-by-professional`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: buildAuthHeaders(),
+          body: JSON.stringify({}),
+        }
+      );
 
       if (!res.ok) {
         const text = await res.text();
@@ -234,14 +242,12 @@ export default function ProfessionalReservationsPage() {
             const emailLocal = (r.user?.email ?? "").split("@")[0];
 
             const customerName =
-              (first || last)
+              first || last
                 ? [first, last].filter(Boolean).join(" ")
                 : emailLocal || "Cliente";
 
             const avatarSrc =
-              r.user?.profileImage ||
-              r.user?.profileImg ||
-              PLACEHOLDER;
+              r.user?.profileImage || r.user?.profileImg || PLACEHOLDER;
 
             const isActing = actioning === r.reservationId;
 
@@ -275,17 +281,15 @@ export default function ProfessionalReservationsPage() {
 
                       {/* Botón Ver detalles del cliente */}
                       {r.user?.id && (
-  <div className="mt-1">
-   <Link
-  href={`/clientes/reserva/${r.reservationId}`}
-  className="inline-flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
->
-  Ver detalles del cliente
-</Link>
-  </div>
-)}
-
-
+                        <div className="mt-1">
+                          <Link
+                            href={`/clientes/reserva/${r.reservationId}`}
+                            className="inline-flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                          >
+                            Ver detalles del cliente
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   </div>
 
