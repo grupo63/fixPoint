@@ -9,16 +9,16 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
-import { JwtAuthGuard } from '../auth/guards/auth.guards';          
-import { RolesGuard } from '../auth/guards/roles.guards';            
-import { Roles } from './roles.decorator';                         
+import { JwtAuthGuard } from '../auth/guards/auth.guards';
+import { RolesGuard } from '../auth/guards/roles.guards';
+import { Roles } from './roles.decorator';
 import { AdminListQueryDto } from './dto/list-query.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)  
-@Roles('admin')                       
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 @Controller('admin')
 export class AdminController {
   constructor(private readonly svc: AdminService) {}
@@ -46,18 +46,34 @@ export class AdminController {
   }
 
   @Get('users/stats')
-  @ApiOperation({ summary: 'Users stats for simple charts' })
+  @ApiOperation({ summary: 'Users stats for simple charts + latest services & tops' })
   @ApiOkResponse({
-    description: 'Active vs inactive + new users per day (last 14 days)',
+    description:
+      'Active vs inactive + new users per day (last 14 days) + latestServices + topProfessionals + topUsersNonProfessionals',
     schema: {
       example: {
         distribution: { total: 120, active: 95, inactive: 25 },
         createdLast14d: [
           { day: '2025-09-01', count: 3 },
-          { day: '2025-09-02', count: 7 }
-        ]
-      }
-    }
+          { day: '2025-09-02', count: 7 },
+        ],
+        latestServices: [
+          {
+            reservationId: 'c6b6c0c8-6e2d-4b7f-9d75-6c2f7b3d0a11',
+            status: 'CONFIRMED',
+            lastReviewDate: '2025-09-14T16:40:00.000Z',
+            user: { id: 'u-uuid', email: 'ana@example.com' },
+            professional: { id: 'p-uuid', fullName: 'Juan Pérez', speciality: 'Plomería' },
+          },
+        ],
+        topProfessionals: [
+          { id: 'p-uuid', fullName: 'Juan Pérez', speciality: 'Electricista', avgRate: 4.92, reviews: 143 },
+        ],
+        topUsersNonProfessionals: [
+          { userId: 'u-uuid', fullName: 'Ana Gómez', confirmedRequests: 72 },
+        ],
+      },
+    },
   })
   async usersStats() {
     return this.svc.usersStats();
@@ -80,7 +96,7 @@ export class AdminController {
     },
   })
   async setUserRole(@Param('id') id: string, @Body() body: UpdateUserRoleDto) {
-    return this.svc.setUserRole(id, body.role);
+    return this.svc.setUserRole(id, body.role as any);
   }
 
   @Patch('users/:id/deactivate')
