@@ -9,11 +9,11 @@ export const routes = {
   profile_account_edit: "/profile/accountEdit",
   profesionalDetail: (id: string) => `/professionalDetail/${id}`,
   como_funciona: "/como-funciona",
+  faq: "/faq",
   ayuda: "/ayuda",
   contacto: "/contact",
   servicios: "/services",
   onboarding: "/onboarding",
-  
 
   admin: "/admin",
   admin_categories: "/admin/categories",
