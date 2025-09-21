@@ -20,6 +20,7 @@ import { AdminModule } from './admin/admin.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
+import { InboxModule } from './inbox/inbox.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { ChatbotModule } from './chatbot/chatbot.module';
     SubscriptionModule,
     PaymentsModule,
     ChatbotModule,
+    InboxModule,
   ],
   controllers: [AppController],
   providers: [AppService],
