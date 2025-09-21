@@ -1,53 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import ReservationList from "@/components/reservations/reservationList"; // ojo mayúsculas/minúsculas
+import ReservationList from "@/components/reservations/reservationList";
 import type { Reservation } from "@/types/reservation";
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL; // sin slash final
 
-// Normaliza el ID real para operar contra la API (UUID)
-const resApiId = (r: any) => r?.id ?? r?.reservationId ?? "";
+type AnyRes = Reservation & {
+  id?: string;                  // a veces llega como id
+  reservationId?: string;       // o como reservationId
+  userId?: string;              // FK plana
+  user?: { id?: string } | null; // relación poblada
+};
 
-async function fetchMyReservations(userId: string, token?: string) {
-  if (!API) throw new Error("API base inválida");
-
-  const candidates = [
-    // si tuvieras esta ruta, andaría; la dejamos primera pero si 404/400 sigue probando
-    `${API}/reservations/mine`,
-    // alternativas típicas:
-    `${API}/reservations?userId=${encodeURIComponent(userId)}`,
-    `${API}/users/${encodeURIComponent(userId)}/reservations`,
-    `${API}/reservations/user/${encodeURIComponent(userId)}`,
-  ];
-
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  let lastErr: any = null;
-
-  for (const url of candidates) {
-    try {
-      const res = await fetch(url, { method: "GET", credentials: "include", headers, cache: "no-store" });
-      if (!res.ok) { lastErr = new Error(await res.text()); continue; }
-      const data = await res.json();
-      if (Array.isArray(data)) return data as Reservation[];
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw lastErr ?? new Error("No se pudo obtener tus reservas.");
+function resApiId(r: AnyRes) {
+  return (r?.reservationId as string) || (r?.id as string) || "";
 }
 
 export default function MyReservationsPage() {
   const { user, token } = useAuth() as any;
-  const [items, setItems] = useState<Reservation[]>([]);
+  const [items, setItems] = useState<AnyRes[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user === undefined) return; // el contexto aún hidrata
+    if (user === undefined) return; // esperando hidratación del contexto
     if (!user?.id) {
       setLoading(false);
       setErr("Debes iniciar sesión para ver tus reservas.");
@@ -60,15 +38,51 @@ export default function MyReservationsPage() {
     }
 
     (async () => {
+      setLoading(true);
+      setErr(null);
       try {
-        setErr(null);
-        setLoading(true);
-        const arr = await fetchMyReservations(user.id, token);
-        arr.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        setItems(arr);
+        // 1) Intenta SIEMPRE la ruta que debería devolver sólo las del usuario
+        const url = `${API}/reservations?userId=${encodeURIComponent(user.id)}`;
+        const res = await fetch(url, {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          cache: "no-store",
+        });
+
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
+
+        const data = (await res.json()) as AnyRes[] | { items?: AnyRes[] };
+
+        // 2) Normaliza posibles formatos { items: [...] } o array directo
+        const raw = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+
+        // 3) Filtro defensivo por si el backend no filtró por userId
+        const mine = raw.filter((r) => {
+          const uid = r.userId || r.user?.id;
+          return uid === user.id;
+        });
+
+        // Si el filtro deja 0 pero raw tenía datos, puede que tu backend use otra FK (ej: clientId)
+        // Puedes agregar más claves acá si corresponde:
+        const safe = mine.length > 0 ? mine : raw;
+
+        // 4) Orden por fecha ascendente
+        safe.sort((a: AnyRes, b: AnyRes) => {
+          const da = new Date((a as any).date).getTime() || 0;
+          const db = new Date((b as any).date).getTime() || 0;
+          return da - db;
+        });
+
+        setItems(safe);
       } catch (e: any) {
-        setErr(e?.message || "No se pudo obtener tus reservas.");
         console.error("[MyReservations] fetch error:", e);
+        setErr(e?.message || "No se pudo obtener tus reservas.");
       } finally {
         setLoading(false);
       }
@@ -83,7 +97,7 @@ export default function MyReservationsPage() {
     if (!API) return alert("API base inválida");
     try {
       const res = await fetch(`${API}/reservations/${encodeURIComponent(id)}`, {
-        method: "DELETE", // ajustá a PATCH /reservations/:id/cancel si tu API lo usa así
+        method: "DELETE", // cambia a PATCH /reservations/:id/cancel si tu API lo requiere
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -91,7 +105,7 @@ export default function MyReservationsPage() {
         },
       });
       if (!res.ok) throw new Error(await res.text());
-      setItems(prev => prev.filter(r => resApiId(r) !== id));
+      setItems((prev) => prev.filter((r) => resApiId(r) !== id));
     } catch (e: any) {
       alert(e?.message || "No se pudo cancelar la reserva");
     }
@@ -100,7 +114,7 @@ export default function MyReservationsPage() {
   return (
     <section className="p-6 max-w-3xl">
       <h1 className="text-2xl font-semibold mb-4">Mis reservas</h1>
-      <ReservationList items={items} onCancel={onCancel} />
+      <ReservationList items={items as Reservation[]} onCancel={onCancel} />
     </section>
   );
 }

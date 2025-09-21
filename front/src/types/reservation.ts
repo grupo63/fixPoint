@@ -1,14 +1,22 @@
 export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | string;
 
-export interface Reservation {
-  reservationId: string;
-  status: ReservationStatus;
-  wasReviewed: boolean;
-  userId: string;
-  professionalId: string;
-  serviceId: string;      // <- está en el back
-  date: string;           // ISO
-}
+// src/types/reservations.ts
+export type Reservation = {
+  id: string;
+  date: string;
+  status: "PENDING" | "CONFIRMED" | "REJECTED";
+  clientId: string;
+  client?: {               // si el back lo manda, lo usamos directo
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    profileImg?: string | null;
+    profileImage?: string | null;
+    avatar?: string | null;
+  } | null;
+};
+
 
 export interface CreateReservationDTO {
   userId: string;         // <- requerido por el back

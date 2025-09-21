@@ -1,10 +1,23 @@
-// src/services/userService.ts
 "use client";
 
 import { apiUrl } from "@/lib/apiUrl";
 import type { MeResponse, UserProfile } from "@/types/types";
 import { mapMeToUserProfile } from "@/services/mapper/userMapper";
 
+/* =========================
+   Helpers
+   ========================= */
+function getToken(): string | null {
+  try {
+    return localStorage.getItem("token");
+  } catch {
+    return null;
+  }
+}
+
+/* =========================
+   /users
+   ========================= */
 export async function fetchUsers() {
   const token = getToken();
   const res = await fetch(apiUrl("/users"), {
@@ -51,17 +64,6 @@ export async function deactivateUser(id: string, status: boolean) {
 }
 
 /* =========================
-   Helpers
-   ========================= */
-function getToken(): string | null {
-  try {
-    return localStorage.getItem("token");
-  } catch {
-    return null;
-  }
-}
-
-/* =========================
    /auth & /users
    ========================= */
 
@@ -86,8 +88,10 @@ export type UserByIdDTO = {
   id: string;
   email: string;
   role?: string | null;
-  profileImg?: string | null;
+  profileImg?: string | null;      // por si algún back legacy lo usa
+  profileImage?: string | null;    // ✅ este es el que existe en tu entidad
 };
+
 
 export async function getUserByIdClient(userId: string): Promise<UserByIdDTO> {
   const token = getToken();
@@ -131,13 +135,13 @@ export type ProfessionalDTO = {
 };
 
 /**
- * Obtiene el Professional del usuario actual.
- * Tolera rutas en singular/plural y múltiples “shapes” ({data}, {result}, arrays, etc.),
- * pero **NO** consulta endpoints genéricos de listado para evitar “contaminar” usuarios sin rol.
+ * Obtiene el Professional vinculado al userId actual
  */
 export async function getMyProfessionalClient(
   userId?: string
 ): Promise<ProfessionalDTO | null> {
+  if (!userId) return null;
+
   const token = getToken();
   const headers: HeadersInit = token
     ? { Authorization: `Bearer ${token}` }
@@ -150,64 +154,28 @@ export async function getMyProfessionalClient(
     headers,
   };
 
-  async function tryJson(path: string): Promise<ProfessionalDTO | null> {
-    try {
-      const res = await fetch(apiUrl(path), common);
-      if (!res.ok) return null;
-      const data = await res.json();
+  try {
+    // 🔑 usamos el endpoint agregado en el backend
+    const res = await fetch(
+      apiUrl(`/professional/user/${encodeURIComponent(userId)}`),
+      common
+    );
 
-      const candidates: any[] = [
-        data,
-        (data && data.data) ?? null,
-        (data && data.result) ?? null,
-        (data && data.professional) ?? null,
-        Array.isArray(data) ? data[0] : null,
-        Array.isArray(data?.data) ? data.data[0] : null,
-        Array.isArray(data?.result) ? data.result[0] : null,
-      ].filter(Boolean);
+    if (!res.ok) return null;
 
-      for (const c of candidates) {
-        const id =
-          c?.id ?? c?.professional_uuid ?? c?.uuid ?? c?.professionalId ?? null;
-
-        if (id) {
-          return {
-            id,
-            profileImg: c.profileImg ?? null,
-            speciality: c.speciality ?? null,
-            location: c.location ?? null,
-          };
-        }
-      }
-      return null;
-    } catch {
-      return null;
+    const data = await res.json();
+    if (data?.id) {
+      return {
+        id: data.id,
+        profileImg: data.profileImg ?? null,
+        speciality: data.speciality ?? null,
+        location: data.location ?? null,
+      };
     }
+  } catch (err) {
+    console.error("Error fetching professional by userId:", err);
   }
 
-  // 1) “me” (singular/plural)
-  let out = await tryJson("/professional/me");
-  if (out) return out;
-
-  out = await tryJson("/professionals/me");
-  if (out) return out;
-
-  // 2) por userId (querystring y path) — sólo user-specific
-  if (userId) {
-    out = await tryJson(`/professional?userId=${encodeURIComponent(userId)}`);
-    if (out) return out;
-
-    out = await tryJson(`/professionals?userId=${encodeURIComponent(userId)}`);
-    if (out) return out;
-
-    out = await tryJson(`/professional/user/${encodeURIComponent(userId)}`);
-    if (out) return out;
-
-    out = await tryJson(`/professionals/user/${encodeURIComponent(userId)}`);
-    if (out) return out;
-  }
-
-  // ❌ No consultamos /professional o /professionals sin filtro.
   return null;
 }
 
