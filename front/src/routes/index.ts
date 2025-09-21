@@ -30,6 +30,7 @@ export const routes = {
   profesionales: "/professionals",
   profesionalDetail: (id: string) => `/professionalDetail/${id}`,
   como_funciona: "/como-funciona",
+  faq: "/faq",
   ayuda: "/ayuda",
   contacto: "/contact",
   plan: "/plan",
