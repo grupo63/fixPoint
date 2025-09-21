@@ -1,8 +1,19 @@
 "use client";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import type { Reservation } from "@/types/reservation";
 import { getUserByIdClient } from "@/services/userService";
+
+// src/types/reservation.ts
+export type Reservation = {
+  reservationId?: string;
+  id?: string;
+  userId: string;
+  professionalId: string;
+  serviceId?: string;
+  date: string;
+  status: string;
+  wasReviewed?: boolean;
+};
 
 // Cache simple en memoria por sesión
 const clientCache = new Map<string, any>();
@@ -99,7 +110,10 @@ export default function ReservationList({ items, onCancel }: Props) {
 
         // ⚠️ algunos backends mandan r.user, otros r.client; probamos ambos
         const embeddedClient = (r as any).user ?? (r as any).client ?? null;
-        const { clientName, img } = useClientInfo(embeddedClient, (r as any).userId);
+        const { clientName, img } = useClientInfo(
+          embeddedClient,
+          (r as any).userId
+        );
 
         return (
           <li
