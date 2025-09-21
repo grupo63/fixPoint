@@ -232,22 +232,6 @@ export default function ProfilePage() {
         onUploadFile={handleUploadFile}
         onUploaded={(url) => setAvatarUrl(url)}
       />
-
-      <div className="mt-6">
-        <Link
-          href={{
-            pathname: routes.profile_account_edit,
-            query: {
-              initialValues: JSON.stringify(
-                hasPro ? professionalInitialValues : formInitialValues
-              ),
-            },
-          }}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-        >
-          Editar perfil
-        </Link>
-      </div>
     </div>
   );
 }
