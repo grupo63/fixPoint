@@ -10,7 +10,6 @@ async function bootstrap() {
 
   // ✅ Middleware temporal para loguear Authorization
   app.use((req, res, next) => {
-    
     next();
   });
 
@@ -30,6 +29,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
+      'https://fix-point.vercel.app',
       process.env.FRONT_URL || 'http://localhost:3000',
     ],
     credentials: true,

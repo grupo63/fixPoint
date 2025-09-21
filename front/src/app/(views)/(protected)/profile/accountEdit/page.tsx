@@ -325,7 +325,7 @@ export default function AccountEditPage() {
           </Link>
           <button
             type="submit"
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
+            className=" rounded-md bg-[#ed7d31] text-white px-4 py-2 text-white hover:bg-[#e0671b]"
             disabled={loading}
           >
             {loading ? "Guardando..." : "Guardar"}
