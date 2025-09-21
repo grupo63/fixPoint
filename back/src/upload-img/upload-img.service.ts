@@ -24,8 +24,10 @@ export class UploadImgService {
   ) {}
 
   async uploadProfileImg(file: Express.Multer.File, professionalId: string) {
+    // 🔑 Cargamos también la relación user para sincronizar la foto del usuario
     const professional = await this.professionalRepo.findOne({
       where: { id: professionalId },
+      relations: ['user'],
     });
     if (!professional) throw new NotFoundException('Professional not found');
 
@@ -37,7 +39,7 @@ export class UploadImgService {
       throw new NotFoundException('Could not upload the image');
     }
 
-    // Reemplazamos professional.profileImg = ... + save() por queryBuilder
+    // Actualizamos la foto del professional
     await this.professionalRepo
       .createQueryBuilder()
       .update(Professional)
@@ -45,7 +47,14 @@ export class UploadImgService {
       .where('id = :id', { id: professional.id })
       .execute();
 
-    // Opcional: devolver el objeto actualizado
+    // 🔑 Sincronizamos la foto del usuario asociado
+    if (professional.user?.id) {
+      await this.userRepo.update(professional.user.id, {
+        profileImage: response.secure_url,
+      });
+    }
+
+    // Devolvemos el objeto actualizado (con la nueva URL)
     return { ...professional, profileImg: response.secure_url };
   }
 
@@ -62,9 +71,21 @@ export class UploadImgService {
     if (!response.secure_url)
       throw new NotFoundException('Could not upload the image');
 
+    // Actualizamos la foto del usuario
     user.profileImage = response.secure_url;
     await this.userRepo.save(user);
 
+    // 🔑 Sincronizamos la del professional asociado (si existe)
+    const prof = await this.professionalRepo.findOne({
+      where: { user: { id: userId } },
+    });
+    if (prof) {
+      await this.professionalRepo.update(prof.id, {
+        profileImg: response.secure_url,
+      });
+    }
+
+    // Devolvemos el user con la nueva imagen
     return user;
   }
 

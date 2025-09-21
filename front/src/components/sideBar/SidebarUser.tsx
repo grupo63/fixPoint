@@ -15,6 +15,16 @@ export default function SidebarUser({ user }: { user: any }) {
     router.push("/");
   };
 
+  // 👇 Función para elegir la mejor foto disponible
+  const getAvatar = () => {
+    return (
+      user?.profileImg ||
+      user?.profileImage ||
+      user?.avatar ||
+      "https://www.shutterstock.com/image-vector/user-icon-avatar-symbol-social-260nw-1556375198.jpg"
+    );
+  };
+
   return (
     <div className="relative px-4 pb-6">
       {/* CARD USER */}
@@ -24,10 +34,7 @@ export default function SidebarUser({ user }: { user: any }) {
       >
         <div className="flex items-center gap-3">
           <img
-            src={
-              user?.profileImg ||
-              "https://www.shutterstock.com/image-vector/user-icon-avatar-symbol-social-260nw-1556375198.jpg"
-            }
+            src={getAvatar()}
             alt="Usuario"
             className="w-10 h-10 rounded-full object-cover border-2 border-white"
           />
