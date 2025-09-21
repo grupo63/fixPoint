@@ -1,8 +1,8 @@
-export type LocalizedQA = { q: string; a: string; };
+export type LocalizedQA = { q: string; a: string };
 export type FAQEntry = {
   id: string;
-  tags: string[];              // palabras clave comunes
-  category?: string;           // opcional (e.g. "booking", "payments")
+  tags: string[]; // palabras clave comunes
+  category?: string; // opcional (e.g. "booking", "payments")
   i18n: {
     es: LocalizedQA;
     en: LocalizedQA;
@@ -13,7 +13,7 @@ export const FAQ_DATA: FAQEntry[] = [
   {
     id: 'about.fixpoint',
     category: 'about',
-    tags: ['fixpoint','what','que','app','servicios','services','info'],
+    tags: ['fixpoint', 'what', 'que', 'app', 'servicios', 'services', 'info'],
     i18n: {
       es: {
         q: '¿Qué es FixPoint?',
@@ -28,22 +28,39 @@ export const FAQ_DATA: FAQEntry[] = [
   {
     id: 'hire.plumber.nearby',
     category: 'booking',
-    tags: ['plomeria','plumbing','near','cerca','hire','contratar','quote','cotizacion'],
+    tags: [
+      'plomeria',
+      'plumbing',
+      'near',
+      'cerca',
+      'hire',
+      'contratar',
+      'quote',
+      'cotizacion',
+    ],
     i18n: {
       es: {
-        q: '¿Cómo contrato un plomero cerca de mí?',
-        a: 'En la app, busca “Plomería”, filtra por ubicación y disponibilidad, y solicita una cotización. El profesional te confirmará precio y horario. Sugerencia: describe el problema, sube fotos y elige 2–3 franjas horarias posibles para acelerar la confirmación.',
+        q: '¿Cómo contrato un profesional cerca de mí?',
+        a: 'En la app, busca por categoria, por ejemplo “Plomería” y solicita una cotización. El profesional te confirmará precio y horario. Sugerencia: describe el problema, sube fotos y elige 2–3 franjas horarias posibles para acelerar la confirmación.',
       },
       en: {
-        q: 'How do I hire a plumber near me?',
-        a: 'In the app, search for “Plumbing”, filter by location and availability, and request a quote. The pro will confirm price and time. Pro tip: describe your issue, add photos, and propose 2–3 time windows to speed up confirmation.',
+        q: 'How do I hire a professional near me?',
+        a: 'In the app, search the category you are looking for, like “Plumbing” and request a quote. The professional will confirm price and time. Pro tip: describe your issue, add photos, and propose 2–3 time windows to speed up confirmation.',
       },
     },
   },
   {
     id: 'categories.available',
     category: 'catalog',
-    tags: ['categorias','categories','services','servicios','available','disponibles','coverage'],
+    tags: [
+      'categorias',
+      'categories',
+      'services',
+      'servicios',
+      'available',
+      'disponibles',
+      'coverage',
+    ],
     i18n: {
       es: {
         q: '¿Qué categorías están disponibles?',
@@ -58,7 +75,7 @@ export const FAQ_DATA: FAQEntry[] = [
   {
     id: 'pro.signup',
     category: 'professionals',
-    tags: ['profesional','register','registro','verificacion','verification','profile'],
+    tags: ['register', 'registro', 'verificacion', 'verification', 'profile'],
     i18n: {
       es: {
         q: '¿Cómo registro mi perfil como profesional?',
@@ -73,7 +90,7 @@ export const FAQ_DATA: FAQEntry[] = [
   {
     id: 'payments.methods',
     category: 'payments',
-    tags: ['pago','pagos','payments','cards','tarjeta','metodos'],
+    tags: ['pago', 'pagos', 'payments', 'cards', 'tarjeta', 'metodos'],
     i18n: {
       es: {
         q: '¿Qué métodos de pago aceptan?',
@@ -88,7 +105,16 @@ export const FAQ_DATA: FAQEntry[] = [
   {
     id: 'booking.reschedule.cancel',
     category: 'booking',
-    tags: ['cancel','reschedule','cambiar','cancelar','reservation','reserva','policy','politica'],
+    tags: [
+      'cancel',
+      'reschedule',
+      'cambiar',
+      'cancelar',
+      'reservation',
+      'reserva',
+      'policy',
+      'politica',
+    ],
     i18n: {
       es: {
         q: '¿Puedo reprogramar o cancelar una reserva?',
@@ -103,7 +129,15 @@ export const FAQ_DATA: FAQEntry[] = [
   {
     id: 'safety.verification',
     category: 'safety',
-    tags: ['seguridad','safety','verificado','verified','background','identidad','identity'],
+    tags: [
+      'seguridad',
+      'safety',
+      'verificado',
+      'verified',
+      'background',
+      'identidad',
+      'identity',
+    ],
     i18n: {
       es: {
         q: '¿Cómo garantizan la seguridad y verificación?',
@@ -118,7 +152,14 @@ export const FAQ_DATA: FAQEntry[] = [
   {
     id: 'profiles.reviews.ratings',
     category: 'trust',
-    tags: ['reviews','reseñas','calificaciones','ratings','perfil','profile'],
+    tags: [
+      'reviews',
+      'reseñas',
+      'calificaciones',
+      'ratings',
+      'perfil',
+      'profile',
+    ],
     i18n: {
       es: {
         q: '¿Cómo funcionan las reseñas y calificaciones?',
@@ -133,7 +174,14 @@ export const FAQ_DATA: FAQEntry[] = [
   {
     id: 'coverage.locations',
     category: 'coverage',
-    tags: ['ciudades','cities','coverage','disponibilidad','donde','where'],
+    tags: [
+      'ciudades',
+      'cities',
+      'coverage',
+      'disponibilidad',
+      'donde',
+      'where',
+    ],
     i18n: {
       es: {
         q: '¿En qué ciudades opera FixPoint?',
@@ -148,7 +196,7 @@ export const FAQ_DATA: FAQEntry[] = [
   {
     id: 'support.contact',
     category: 'support',
-    tags: ['soporte','support','ayuda','contacto','help','report'],
+    tags: ['soporte', 'support', 'ayuda', 'contacto', 'help', 'report'],
     i18n: {
       es: {
         q: '¿Cómo contacto soporte?',
