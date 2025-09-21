@@ -1,9 +1,9 @@
-
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string | undefined;
 export function apiUrl(path: string) {
   const cleanPath = path.startsWith("/") ? path.slice(1) : path;
 
   if (process.env.NODE_ENV === "development") {
-    return `http://localhost:3001/${cleanPath}`;
+    return `${API_BASE}/${cleanPath}`;
   }
 
   const base = process.env.NEXT_PUBLIC_API_URL;
