@@ -7,6 +7,10 @@ import ReserveButton from "@/components/professional/ReserveButton";
 import ServiceAvailability from "@/components/professional/ServiceAvailability";
 import { ProfessionalResponse } from "@/types/profesionalTypes";
 import { useAuth } from "@/context/AuthContext";
+import {
+  getWorkImages,
+  uploadWorkImage,
+} from "@/services/professionalServiceImg";
 
 type ServiceItem = {
   id: string;
@@ -19,22 +23,32 @@ type ServiceItem = {
   professional?: { id: string } | null;
 };
 
+type WorkImage = {
+  id: string;
+  imgUrl: string;
+  description?: string | null;
+};
+
 const API = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
   const [showModal, setShowModal] = useState(false);
 
   // --- auth / visibilidad de botones ---
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const role = (user?.role as string | undefined)?.toLowerCase?.();
   const isProfessional = role === "professional" || role === "profesional";
   const isOwner = !!user?.id && user.id === pro.user.id; // dueño del perfil
-  const showReserve = !isProfessional && !isOwner; // sólo usuarios no-profesionales y no dueños
+  const showReserve = !isProfessional && !isOwner;
 
   // --- Servicios del profesional ---
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [svcLoading, setSvcLoading] = useState(true);
   const [svcErr, setSvcErr] = useState<string | null>(null);
+
+  // --- Galería de trabajos ---
+  const [workImages, setWorkImages] = useState<WorkImage[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   // Control de "ver disponibilidad" por servicio
   const [openById, setOpenById] = useState<Record<string, boolean>>({});
@@ -43,6 +57,7 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
     if (!pro?.id) return;
     let cancelled = false;
 
+    // Fetch servicios
     (async () => {
       try {
         setSvcErr(null);
@@ -71,7 +86,6 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
           }
         }
 
-        // Filtro defensivo por si el back ignora el query param
         const onlyMine = (raw || []).filter(
           (s) => s.professionalId === pro.id || s.professional?.id === pro.id
         );
@@ -88,6 +102,11 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
       }
     })();
 
+    // Fetch imágenes
+    getWorkImages(pro.id)
+      .then((imgs) => !cancelled && setWorkImages(imgs))
+      .catch((err) => console.error("Error cargando imágenes:", err));
+
     return () => {
       cancelled = true;
     };
@@ -100,6 +119,33 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
     () => `${pro.user.firstName} ${pro.user.lastName ?? ""}`.trim(),
     [pro.user.firstName, pro.user.lastName]
   );
+
+  async function handleUpload(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!token) return;
+    const form = e.currentTarget;
+    const fileInput = form.elements.namedItem("file") as HTMLInputElement;
+    const descInput = form.elements.namedItem(
+      "description"
+    ) as HTMLInputElement;
+
+    if (!fileInput.files?.length) return;
+
+    const file = fileInput.files[0];
+    const description = descInput.value;
+
+    try {
+      setUploading(true);
+      await uploadWorkImage(pro.id, file, description, token);
+      const updated = await getWorkImages(pro.id);
+      setWorkImages(updated);
+      form.reset();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <section className="bg-white rounded-3xl border border-gray-200 p-8 shadow-xl space-y-10">
@@ -126,7 +172,6 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Mostrar "Reservar" general sólo si showReserve === true */}
           {showReserve && (
             <ReserveButton
               professionalId={pro.id}
@@ -196,30 +241,21 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
                   </div>
 
                   {s.description && (
-                    <p className="text-sm text-gray-600 mt-1">{s.description}</p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {s.description}
+                    </p>
                   )}
 
                   <div className="mt-3 flex items-center justify-between">
-                    {/* <p className="text-[11px] text-gray-400">
-                      serviceId: <code>{s.id}</code>
-                    </p> */}
                     <div className="flex items-center gap-2">
-                      {/* Mostrar "Reservar" por servicio sólo si showReserve === true */}
-                      {/* {showReserve && (
-                        <ReserveButton
-                          professionalId={pro.id}
-                          serviceId={s.id}
-                          label="Reservar"
-                          className="text-sm px-3 py-1.5 rounded-lg bg-[#162748] text-white hover:opacity-90"
-                        />
-                      )} */}
-                      {/* Toggle disponibilidad (visible para todos) */}
                       <button
                         type="button"
                         onClick={() => toggleOpen(s.id)}
                         className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
                       >
-                        {isOpen ? "Ocultar disponibilidad" : "Ver disponibilidad"}
+                        {isOpen
+                          ? "Ocultar disponibilidad"
+                          : "Ver disponibilidad"}
                       </button>
                     </div>
                   </div>
@@ -229,11 +265,10 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
                       <ServiceAvailability
                         professionalId={pro.id}
                         serviceId={s.id}
-                        // durationMin={s.durationMin ?? 60}
                       />
                       <p className="text-[11px] text-gray-500 mt-2">
-                        Elegí un horario para continuar. Te llevaremos a la página de
-                        reserva con el horario preseleccionado.
+                        Elegí un horario para continuar. Te llevaremos a la
+                        página de reserva con el horario preseleccionado.
                       </p>
                     </div>
                   )}
@@ -244,27 +279,67 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
         )}
       </div>
 
-      {/* Galería futura */}
+      {/* Galería de trabajos */}
       <h2 className="text-lg font-regular text-gray-800 mb-2">
         Trabajos realizados
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {[
-          "Reparación de cañerías rotas o con fugas",
-          "Instalación de un calefón o termotanque nuevo",
-          "Destape de cloacas o cañerías obstruidas",
-        ].map((label) => (
-          <div
-            key={label}
-            className="bg-white rounded-2xl shadow border border-gray-100 p-5 flex flex-col items-center justify-center gap-2 text-center hover:shadow-md transition"
-          >
-            <div className="bg-gray-100 w-full h-28 rounded-lg flex items-center justify-center">
-              <span className="text-gray-400 text-sm">Contenido</span>
+        {workImages.length === 0 ? (
+          <p className="text-sm text-gray-500 col-span-3">
+            Este profesional todavía no cargó imágenes de trabajos.
+          </p>
+        ) : (
+          workImages.map((w) => (
+            <div
+              key={w.id}
+              className="bg-white rounded-2xl shadow border border-gray-100 p-5 flex flex-col items-center justify-center gap-2 text-center hover:shadow-md transition"
+            >
+              <img
+                src={w.imgUrl}
+                alt={w.description ?? "Trabajo realizado"}
+                className="w-full h-28 object-cover rounded-lg"
+              />
+              {w.description && (
+                <p className="font-medium text-sm text-gray-700 mt-2">
+                  {w.description}
+                </p>
+              )}
             </div>
-            <p className="font-medium text-sm text-gray-700 mt-2">{label}</p>
-          </div>
-        ))}
+          ))
+        )}
       </div>
+
+      {/* Formulario para subir imagen - solo dueño */}
+      {isOwner && (
+        <form
+          onSubmit={handleUpload}
+          className="mt-6 p-4 border rounded-lg flex flex-col gap-3"
+        >
+          <h3 className="text-sm font-semibold text-gray-700">
+            Subir nueva imagen de trabajo
+          </h3>
+          <input
+            type="file"
+            name="file"
+            accept="image/png,image/jpeg,image/webp"
+            required
+            className="text-sm"
+          />
+          <input
+            type="text"
+            name="description"
+            placeholder="Descripción (opcional)"
+            className="text-sm border rounded px-2 py-1"
+          />
+          <button
+            type="submit"
+            disabled={uploading}
+            className="self-start px-4 py-2 rounded bg-[#162748] text-white text-sm hover:opacity-90 disabled:opacity-50"
+          >
+            {uploading ? "Subiendo..." : "Subir imagen"}
+          </button>
+        </form>
+      )}
 
       {showModal && <ChatModal onClose={() => setShowModal(false)} />}
     </section>
