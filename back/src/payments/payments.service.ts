@@ -263,9 +263,7 @@ export class PaymentsService {
     if (typeof session.amount_total === 'number') payment.amount = session.amount_total;
     if (piId) payment.providerPaymentId = piId;
 
-    // ⬇️ Estado según el tipo de checkout
     if (session.mode === 'payment') {
-      // Stripe marca el Session con payment_status: 'paid' | 'unpaid' | 'no_payment_required'
       if (
         session.payment_status === 'paid' ||
         session.payment_status === 'no_payment_required'
@@ -275,7 +273,6 @@ export class PaymentsService {
         payment.status = PaymentStatus.PROCESSING;
       }
     } else if (session.mode === 'subscription') {
-      // La confirmación final la da invoice.payment_succeeded
       payment.status = PaymentStatus.PROCESSING;
       const subId = typeof session.subscription === 'string'
         ? session.subscription
