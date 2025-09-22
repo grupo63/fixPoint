@@ -20,6 +20,6 @@ export const routes = {
   admin_professionals: "/admin/professionals",
   admin_users: "/admin/users",
   admin_dashboard: "/admin/dashboard",
-
+  chats: "/chats",
   plan: "/plan",
 };

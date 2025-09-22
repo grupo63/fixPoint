@@ -1,5 +1,5 @@
 // app/(views)/(protected)/professionals/page.tsx
-import { ProfessionalCard } from "@/components/professional/ProfesionalCard";
+import ProfesionalCard from "@/components/professional/ProfesionalCard";
 import SearchBar from "@/components/searchBar/searchBar";
 import { fetchProfessionals, Professional } from "@/services/professionalService";
 
@@ -29,7 +29,7 @@ export default async function ProfessionalsPage({
       <section className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {Array.isArray(data) && data.length > 0 ? (
           data.map((p: Professional) => (
-            <ProfessionalCard key={p.id} pro={p} /> // key estable por profesional
+            <ProfesionalCard key={p.id} pro={p} /> // key estable por profesional
           ))
         ) : (
           <p className="col-span-full text-center text-gray-500 text-lg">
