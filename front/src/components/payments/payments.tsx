@@ -2,13 +2,19 @@
 
 import { useAuth } from "@/context/AuthContext";
 
-const toCents = (amount: number) => Math.round(amount * 100);
-
 type CreatePaymentPayload = {
   amount: number;
   currency: string;
   description: string;
   receiptEmail?: string;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, string>;
+};
+
+type CreateSubscriptionPayload = {
+  priceId: string;
+  quantity?: number;
   successUrl: string;
   cancelUrl: string;
   metadata?: Record<string, string>;
@@ -32,7 +38,7 @@ export default function Payments() {
   const createOneTimePayment = async () => {
     try {
       const body: CreatePaymentPayload = {
-        amount: toCents(5),
+        amount: 500,
         currency: "usd",
         description: "One-time payment - PRO Plan",
         receiptEmail: user?.email ?? undefined,
@@ -74,17 +80,15 @@ export default function Payments() {
         return;
       }
 
-      const body: CreatePaymentPayload = {
-        amount: toCents(5),
-        currency: "usd",
-        description: "One-time payment - PRO Plan",
-        receiptEmail: user?.email ?? undefined,
+      const body: CreateSubscriptionPayload = {
+        priceId,
+        quantity: 1,
         successUrl: `${APP_ORIGIN}/plan?status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${APP_ORIGIN}/plan?status=cancel`,
         metadata: { source: "web", orderId: "ORD-2025-000123" },
       };
 
-      const res = await fetch(`${API_BASE}/payments/checkout/session`, {
+      const res = await fetch(`${API_BASE}/payments/checkout/subscription`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -123,7 +127,6 @@ export default function Payments() {
         </button>
       </div>
 
-      {/* Card: Suscripción */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md transition hover:shadow-lg">
         <h3 className="text-lg font-semibold text-gray-900">
           Suscripción mensual{" "}
