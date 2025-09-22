@@ -1,4 +1,3 @@
-// src/payments/payments.controller.ts
 import {
   Body,
   Controller,
@@ -8,7 +7,7 @@ import {
   Post,
   Req,
   Res,
-  BadRequestException, // ← agregado para validar amount
+  BadRequestException,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import {

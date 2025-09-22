@@ -47,15 +47,7 @@ export const routes = {
   admin_categories: "/admin/categories",
   admin_professionals: "/admin/professionals",
   admin_users: "/admin/users",
-  admin_subscriptions: "/admin/subscriptions",
-
-  // Profesional
-  pro_dashboard: "/dashboard",
-  pro_profile: "/profile",
-  services: "/services",
-  availability: "/availability",
-  reservas: "/reservas",
-  pro_reviews: "/reviews",
-  pro_stats: "/stats",
-  pro_chats: "/chats",
+  admin_dashboard: "/admin/dashboard",
+  chats: "/chats",
+  plan: "/plan",
 };
