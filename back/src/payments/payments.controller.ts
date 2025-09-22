@@ -134,53 +134,52 @@ export class PaymentsController {
     schema: { example: { received: true } },
   })
   async webhook(@Req() req: express.Request, @Res() res: express.Response) {
-    const sigHeader = req.headers['stripe-signature'];
-    if (!sigHeader || Array.isArray(sigHeader)) {
-      return res.status(400).send('Missing or invalid stripe-signature header');
-    }
-
-    const secret = process.env.STRIPE_WEBHOOK_SECRET;
-    if (!secret) return res.status(500).send('Webhook secret not configured');
-
-    let event;
-    try {
-      const stripe = this.paymentsService.getStripe();
-      const buf = (req as any).rawBody as Buffer;
-      if (!buf || !(buf instanceof Buffer)) {
-        return res
-          .status(400)
-          .send('Missing rawBody for Stripe signature verification');
-      }
-      event = stripe.webhooks.constructEvent(buf, sigHeader, secret);
-    } catch (e: any) {
-      return res.status(400).send(`Webhook signature invalid: ${e.message}`);
-    }
-
-    switch (event.type) {
-      case 'payment_intent.succeeded':
-      case 'payment_intent.payment_failed':
-      case 'payment_intent.canceled':
-      case 'payment_intent.processing': {
-        const pi = event.data.object as any;
-        await this.paymentsService.syncFromStripe(pi.id);
-        break;
-      }
-      case 'checkout.session.completed': {
-        const session = event.data.object as any;
-        await this.paymentsService.applyCheckoutCompleted(session);
-        break;
-      }
-      case 'invoice.payment_succeeded':
-      case 'invoice.payment_failed': {
-        const invoice = event.data.object as any;
-        await this.paymentsService.upsertFromInvoice(invoice);
-        break;
-      }
-    }
-
-    return res.send({ received: true });
+  const sigHeader = req.headers['stripe-signature'];
+  if (!sigHeader || Array.isArray(sigHeader)) {
+    return res.status(400).send('Missing or invalid stripe-signature header');
   }
 
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) return res.status(500).send('Webhook secret not configured');
+
+  let event;
+  try {
+    const stripe = this.paymentsService.getStripe();
+    const buf = (req as any).rawBody as Buffer;
+    if (!buf || !(buf instanceof Buffer)) {
+      return res.status(400).send('Missing rawBody for Stripe signature verification');
+    }
+    event = stripe.webhooks.constructEvent(buf, sigHeader, secret);
+  } catch (e: any) {
+    return res.status(400).send(`Webhook signature invalid: ${e.message}`);
+  }
+
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+    case 'payment_intent.payment_failed':
+    case 'payment_intent.canceled':
+    case 'payment_intent.processing': {
+      const pi = event.data.object as any;
+      if (!pi.invoice) {
+        await this.paymentsService.syncFromStripe(pi.id);
+      }
+      break;
+    }
+    case 'checkout.session.completed': {
+      const session = event.data.object as any;
+      await this.paymentsService.applyCheckoutCompleted(session);
+      break;
+    }
+    case 'invoice.payment_succeeded':
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as any;
+      await this.paymentsService.upsertFromInvoice(invoice);
+      break;
+    }
+  }
+
+  return res.send({ received: true });
+}
   // reembolso de pago
   @Post('refund')
   @ApiOperation({ summary: 'Refund a PaymentIntent (full or partial)' })

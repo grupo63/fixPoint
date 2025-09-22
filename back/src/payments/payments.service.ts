@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import Stripe from 'stripe';
 import { PaymentRepository } from './payments.repository';
-import { PaymentStatus } from './entities/payment.entity';
+import { Payment, PaymentStatus } from './entities/payment.entity';
 import {
   CreateCheckoutPaymentDto,
   CreateCheckoutSubscriptionDto,
@@ -25,7 +25,9 @@ export class PaymentsService {
     private readonly paymentRepo: PaymentRepository,
     @InjectRepository(Subscription)
     private readonly subscriptionRepo: Repository<Subscription>,
-  ) {}
+    @InjectRepository(Payment)
+    private readonly paymentOrmRepo: Repository<Payment>,
+  ) { }
 
   async createCheckoutPaymentSession(dto: CreateCheckoutPaymentDto) {
     const currency =
@@ -109,25 +111,15 @@ export class PaymentsService {
 
     const payment = await this.paymentRepo.findByCheckoutSessionId(csId);
     if (!payment) {
-      this.logger.warn(
-        `[checkout.session.completed] No local payment for session ${csId}`,
-      );
+      this.logger.warn(`[checkout.session.completed] No local payment for session ${csId}`);
       return;
     }
 
     if (session.mode === 'subscription') {
-      const subId =
-        typeof session.subscription === 'string'
-          ? session.subscription
-          : session.subscription?.id;
-      if (subId) payment.subscriptionId = subId;
-
-      const invId =
-        typeof session.invoice === 'string'
-          ? session.invoice
-          : session.invoice?.id;
+      const invId = typeof session.invoice === 'string'
+        ? session.invoice
+        : session.invoice?.id;
       if (invId) payment.providerInvoiceId = invId;
-
     }
 
     if (session.mode === 'payment') {
@@ -147,19 +139,32 @@ export class PaymentsService {
     if (!piId) return;
 
     const subField = (invoice as any)['subscription'];
-    const subId =
-      typeof subField === 'string' ? subField : (subField?.id ?? undefined);
+    const subId = typeof subField === 'string' ? subField : (subField?.id ?? undefined);
 
     const amount = invoice.amount_paid ?? invoice.amount_due ?? 0;
 
-    const existing = await this.paymentRepo.findByProviderPaymentId(piId);
+    let existing = await this.paymentRepo.findByProviderPaymentId(piId);
+
+    if (!existing && invoice.id) {
+      existing = await this.paymentOrmRepo.findOne({
+        where: { providerInvoiceId: invoice.id },
+      });
+    }
+
+    if (!existing) {
+      existing = await this.paymentOrmRepo.findOne({
+        where: { checkoutMode: 'subscription', status: PaymentStatus.PROCESSING },
+        order: { createdAt: 'DESC' },
+      });
+    }
+
     if (existing) {
       existing.status = invoice.status === 'paid' ? PaymentStatus.SUCCEEDED : existing.status;
       existing.providerInvoiceId = invoice.id;
       existing.amount = amount || existing.amount;
       existing.currency = invoice.currency || existing.currency;
-      if (subId) existing.subscriptionId = subId;
-      await this.paymentRepo.save(existing);
+      if (!existing.providerPaymentId) existing.providerPaymentId = piId;
+      await this.paymentOrmRepo.save(existing);
       return existing;
     }
 
@@ -168,11 +173,7 @@ export class PaymentsService {
       providerInvoiceId: invoice.id,
       amount,
       currency: invoice.currency,
-      status:
-        invoice.status === 'paid'
-          ? PaymentStatus.SUCCEEDED
-          : PaymentStatus.PROCESSING,
-      subscriptionId: subId,
+      status: invoice.status === 'paid' ? PaymentStatus.SUCCEEDED : PaymentStatus.PROCESSING,
     });
     return this.paymentRepo.save(payment);
   }
@@ -234,17 +235,16 @@ export class PaymentsService {
   async applyCheckoutCompleted(session: Stripe.Checkout.Session) {
     let payment = await this.paymentRepo.findByCheckoutSessionId(session.id);
 
-    // Detectar payment_intent id (si viene expandido o como string)
     let piId: string | undefined;
     if (typeof session.payment_intent === 'string') piId = session.payment_intent;
-    else if (
-      session.payment_intent &&
-      typeof session.payment_intent === 'object'
-    )
-      piId = session.payment_intent.id;
+    else if (session.payment_intent && typeof session.payment_intent === 'object') piId = session.payment_intent.id;
 
     if (!payment && piId) {
       payment = await this.paymentRepo.findByProviderPaymentId(piId);
+    }
+
+    if (!payment && session.mode === 'subscription') {
+      return;
     }
 
     if (!payment) {
@@ -264,33 +264,38 @@ export class PaymentsService {
     if (piId) payment.providerPaymentId = piId;
 
     if (session.mode === 'payment') {
-      if (
+      payment.status =
         session.payment_status === 'paid' ||
-        session.payment_status === 'no_payment_required'
-      ) {
-        payment.status = PaymentStatus.SUCCEEDED;
-      } else {
-        payment.status = PaymentStatus.PROCESSING;
-      }
+          session.payment_status === 'no_payment_required'
+          ? PaymentStatus.SUCCEEDED
+          : PaymentStatus.PROCESSING;
     } else if (session.mode === 'subscription') {
       payment.status = PaymentStatus.PROCESSING;
-      const subId = typeof session.subscription === 'string'
-        ? session.subscription
-        : session.subscription?.id;
-      if (subId) payment.subscriptionId = subId;
 
       const invId = typeof session.invoice === 'string'
         ? session.invoice
         : session.invoice?.id;
-      if (invId) payment.providerInvoiceId = invId;
+      if (invId) {
+        payment.providerInvoiceId = invId;
+
+        try {
+          const inv = await this.stripe.invoices.retrieve(invId, { expand: ['payment_intent'] });
+          const invPi = (inv as any).payment_intent;
+          const invPiId = typeof invPi === 'string' ? invPi : invPi?.id;
+          if (invPiId) payment.providerPaymentId = invPiId;
+        } catch { }
+      }
     }
 
     await this.paymentRepo.save(payment);
   }
 
   async syncFromStripe(paymentIntentId: string) {
-
     const pi = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if ((pi as any).invoice) {
+      return null;
+    }
 
     let payment =
       await this.paymentRepo.findByProviderPaymentId(paymentIntentId);
