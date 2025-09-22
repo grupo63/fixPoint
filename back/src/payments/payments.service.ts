@@ -234,6 +234,7 @@ export class PaymentsService {
   async applyCheckoutCompleted(session: Stripe.Checkout.Session) {
     let payment = await this.paymentRepo.findByCheckoutSessionId(session.id);
 
+    // Detectar payment_intent id (si viene expandido o como string)
     let piId: string | undefined;
     if (typeof session.payment_intent === 'string') piId = session.payment_intent;
     else if (
@@ -255,14 +256,37 @@ export class PaymentsService {
         status: PaymentStatus.PROCESSING,
       });
     }
+
     payment.providerCheckoutSessionId = session.id;
     payment.checkoutMode = session.mode as any;
-    if (typeof session.currency === 'string')
-      payment.currency = session.currency;
-    if (typeof session.amount_total === 'number')
-      payment.amount = session.amount_total;
-
+    if (typeof session.currency === 'string') payment.currency = session.currency;
+    if (typeof session.amount_total === 'number') payment.amount = session.amount_total;
     if (piId) payment.providerPaymentId = piId;
+
+    // ⬇️ Estado según el tipo de checkout
+    if (session.mode === 'payment') {
+      // Stripe marca el Session con payment_status: 'paid' | 'unpaid' | 'no_payment_required'
+      if (
+        session.payment_status === 'paid' ||
+        session.payment_status === 'no_payment_required'
+      ) {
+        payment.status = PaymentStatus.SUCCEEDED;
+      } else {
+        payment.status = PaymentStatus.PROCESSING;
+      }
+    } else if (session.mode === 'subscription') {
+      // La confirmación final la da invoice.payment_succeeded
+      payment.status = PaymentStatus.PROCESSING;
+      const subId = typeof session.subscription === 'string'
+        ? session.subscription
+        : session.subscription?.id;
+      if (subId) payment.subscriptionId = subId;
+
+      const invId = typeof session.invoice === 'string'
+        ? session.invoice
+        : session.invoice?.id;
+      if (invId) payment.providerInvoiceId = invId;
+    }
 
     await this.paymentRepo.save(payment);
   }
