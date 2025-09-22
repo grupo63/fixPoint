@@ -70,14 +70,14 @@ export class PaymentsController {
   @ApiBadRequestResponse({ description: 'Validation error' })
   createCheckoutPayment(@Body() dto: CreateCheckoutPaymentDto) {
 
-    const cents = toMinorUnits(dto.amount);
+    const cents = Number.isFinite(dto.amount) ? Math.round(dto.amount) : NaN;
     if (!cents || cents < 1) {
-      throw new BadRequestException('Amount must be a positive number');
+      throw new BadRequestException('Amount (in cents) must be >= 1');
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
     return this.paymentsService.createCheckoutPaymentSession({
       ...dto,
-      amount: cents,
+      amount: cents, // sin reconvertir
     } as any);
   }
 
@@ -146,6 +146,11 @@ export class PaymentsController {
     try {
       const stripe = this.paymentsService.getStripe();
       const buf = (req as any).rawBody as Buffer;
+      if (!buf || !(buf instanceof Buffer)) {
+        return res
+          .status(400)
+          .send('Missing rawBody for Stripe signature verification');
+      }
       event = stripe.webhooks.constructEvent(buf, sigHeader, secret);
     } catch (e: any) {
       return res.status(400).send(`Webhook signature invalid: ${e.message}`);
