@@ -50,7 +50,7 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
   const [workImages, setWorkImages] = useState<WorkImage[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // Control de "ver disponibilidad" por servicio
+  // Control "ver disponibilidad" por servicio
   const [openById, setOpenById] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -222,51 +222,54 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
             Este profesional todavía no cargó servicios.
           </p>
         ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ul className="grid grid-cols-1 gap-8">
             {services.map((s) => {
               const title = s.title || s.name || "Servicio";
               const isOpen = !!openById[s.id];
               return (
                 <li
                   key={s.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition"
+                  className="border border-gray-200 rounded-2xl p-8 hover:shadow-lg transition bg-white relative overflow-hidden"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-gray-800">{title}</p>
+                  {/* Cabecera servicio */}
+                  <div className="flex items-start justify-between gap-4">
+                    <p className="font-semibold text-gray-800 text-xl leading-6">
+                      {title}
+                    </p>
                     {s.category?.name && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full border bg-gray-50 text-gray-600">
+                      <span className="text-[12px] px-3 py-1 rounded-full border bg-gray-50 text-gray-600 whitespace-nowrap">
                         {s.category.name}
                       </span>
                     )}
                   </div>
 
                   {s.description && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      {s.description}
-                    </p>
+                    <p className="text-sm text-gray-600 mt-2">{s.description}</p>
                   )}
 
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleOpen(s.id)}
-                        className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
-                      >
-                        {isOpen
-                          ? "Ocultar disponibilidad"
-                          : "Ver disponibilidad"}
-                      </button>
-                    </div>
+                  {/* Acciones */}
+                  <div className="mt-6 flex items-center justify-start">
+                    <button
+                      type="button"
+                      onClick={() => toggleOpen(s.id)}
+                      className="text-base px-6 py-3 rounded-xl border border-gray-300 bg-white shadow-sm hover:bg-gray-100 transition"
+                    >
+                      {isOpen ? "Ocultar disponibilidad" : "Ver disponibilidad"}
+                    </button>
                   </div>
 
+                  {/* Disponibilidad */}
                   {isOpen && (
-                    <div className="mt-4">
-                      <ServiceAvailability
-                        professionalId={pro.id}
-                        serviceId={s.id}
-                      />
-                      <p className="text-[11px] text-gray-500 mt-2">
+                    <div className="mt-8">
+                      {/* Wrapper ancho y centrado, sin bordes extra para evitar “doble tarjeta” */}
+                      <div className="max-w-3xl w-full">
+                        <ServiceAvailability
+                          professionalId={pro.id}
+                          serviceId={s.id}
+                        />
+                      </div>
+
+                      <p className="text-sm text-gray-500 mt-4 leading-relaxed">
                         Elegí un horario para continuar. Te llevaremos a la
                         página de reserva con el horario preseleccionado.
                       </p>
