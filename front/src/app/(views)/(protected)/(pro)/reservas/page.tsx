@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import { getMyProfessionalClient } from "@/services/userService";
 
-const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
+
+const PLACEHOLDER = "/placeholder.png"; // ajustá si tu archivo se llama distinto
 
 type UserLite = {
   id: string;
   firstName?: string | null;
   lastName?: string | null;
   email?: string | null;
-  profileImg?: string | null;
+  profileImg?: string | null;   // legacy
+  profileImage?: string | null; // actual
 };
 
 type ProfessionalLite = {
@@ -31,8 +35,8 @@ type Reservation = {
   date: string; // ISO
   endDate?: string | null;
   wasReviewed?: boolean;
-  user: UserLite; // cliente
-  professional: ProfessionalLite; // dueño
+  user?: UserLite | null; // puede venir null en reservas viejas
+  professional?: ProfessionalLite | null;
 };
 
 function fmtDateTime(iso?: string) {
@@ -45,10 +49,16 @@ function fmtDateTime(iso?: string) {
   }).format(d);
 }
 
+// Capitaliza soportando unicode (á, ñ, etc.)
+const toTitle = (s?: string | null) =>
+  (s ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\b\p{L}/gu, (c) => c.toUpperCase());
+
 export default function ProfessionalReservationsPage() {
   const { user, token: ctxToken } = useAuth() as any;
 
-  // obtener token del contexto o localStorage
   function getBearerToken() {
     if (ctxToken) return ctxToken as string;
     if (typeof window !== "undefined") {
@@ -68,7 +78,6 @@ export default function ProfessionalReservationsPage() {
       "Content-Type": "application/json",
     };
     if (t) headers.Authorization = `Bearer ${t}`;
-    console.log("[REQ] Headers que envío:", headers);
     return headers;
   }
 
@@ -76,17 +85,38 @@ export default function ProfessionalReservationsPage() {
   const [err, setErr] = useState<string | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [actioning, setActioning] = useState<string | null>(null);
+  const [professionalId, setProfessionalId] = useState<string | null>(null);
 
-  // Carga inicial
+  // 1) Obtener professionalId del usuario logueado
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!user?.id) return;
       try {
+        const pro = await getMyProfessionalClient(user.id);
+        if (!cancelled) setProfessionalId(pro?.id ?? null);
+      } catch {
+        if (!cancelled) setProfessionalId(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  // 2) Cargar reservas pendientes
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!professionalId) {
+        setLoading(false);
+        return;
+      }
+      try {
         setLoading(true);
         setErr(null);
 
-        const res = await fetch(`${API}/reservations`, {
+        const res = await fetch(`${API}/reservations/pending/${professionalId}`, {
           method: "GET",
           credentials: "include",
           headers: buildAuthHeaders(),
@@ -94,14 +124,8 @@ export default function ProfessionalReservationsPage() {
         });
 
         if (!res.ok) throw new Error(await res.text());
-
         const data: Reservation[] = await res.json();
-
-        const minePending = (Array.isArray(data) ? data : []).filter(
-          (r) => r.status === "PENDING" && r.professional?.user?.id === user.id
-        );
-
-        if (!cancelled) setReservations(minePending);
+        if (!cancelled) setReservations(Array.isArray(data) ? data : []);
       } catch (e: any) {
         if (!cancelled) {
           setErr(e?.message || "No se pudieron cargar las reservas");
@@ -114,7 +138,7 @@ export default function ProfessionalReservationsPage() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [professionalId]);
 
   const onConfirm = async (resId: string) => {
     try {
@@ -130,14 +154,6 @@ export default function ProfessionalReservationsPage() {
 
       if (!res.ok) {
         const text = await res.text();
-        if (res.status === 401) {
-          try {
-            const t = getBearerToken();
-            const [, payload] = t.split(".");
-            const json = JSON.parse(atob(payload));
-            console.warn("[JWT DEBUG confirm]", json);
-          } catch {}
-        }
         throw new Error(text || `No se pudo confirmar (HTTP ${res.status})`);
       }
     } catch (e: any) {
@@ -152,26 +168,15 @@ export default function ProfessionalReservationsPage() {
       setActioning(resId);
       setReservations((prev) => prev.filter((r) => r.reservationId !== resId));
 
-      const res = await fetch(
-        `${API}/reservations/${resId}/cancel-by-professional`,
-        {
-          method: "PATCH",
-          credentials: "include",
-          headers: buildAuthHeaders(),
-          body: JSON.stringify({}),
-        }
-      );
+      const res = await fetch(`${API}/reservations/${resId}/cancel-by-professional`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: buildAuthHeaders(),
+        body: JSON.stringify({}),
+      });
 
       if (!res.ok) {
         const text = await res.text();
-        if (res.status === 401) {
-          try {
-            const t = getBearerToken();
-            const [, payload] = t.split(".");
-            const json = JSON.parse(atob(payload));
-            console.warn("[JWT DEBUG reject]", json);
-          } catch {}
-        }
         throw new Error(text || `No se pudo cancelar (HTTP ${res.status})`);
       }
     } catch (e: any) {
@@ -180,6 +185,11 @@ export default function ProfessionalReservationsPage() {
       setActioning(null);
     }
   };
+
+  const noPro = useMemo(
+    () => user && professionalId === null,
+    [user, professionalId]
+  );
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-8">
@@ -195,6 +205,11 @@ export default function ProfessionalReservationsPage() {
       <div className="mb-4">
         {loading && <p className="text-sm text-gray-500">Cargando…</p>}
         {err && <p className="text-sm text-red-600">{err}</p>}
+        {noPro && !loading && (
+          <p className="text-sm text-amber-700">
+            Tu usuario no tiene perfil de profesional asociado.
+          </p>
+        )}
       </div>
 
       {!loading && reservations.length === 0 ? (
@@ -214,10 +229,20 @@ export default function ProfessionalReservationsPage() {
       ) : (
         <ul className="space-y-4">
           {reservations.map((r) => {
+            const first = toTitle(r.user?.firstName);
+            const last = toTitle(r.user?.lastName);
+            const emailLocal = (r.user?.email ?? "").split("@")[0];
+
             const customerName =
-              `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim() ||
-              r.user?.email ||
-              "Cliente";
+              (first || last)
+                ? [first, last].filter(Boolean).join(" ")
+                : emailLocal || "Cliente";
+
+            const avatarSrc =
+              r.user?.profileImage ||
+              r.user?.profileImg ||
+              PLACEHOLDER;
+
             const isActing = actioning === r.reservationId;
 
             return (
@@ -228,15 +253,39 @@ export default function ProfessionalReservationsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <img
-                      src={r.user?.profileImg ?? "/placeholder.png"}
+                      src={avatarSrc}
                       alt={customerName}
                       className="w-12 h-12 rounded-full object-cover border"
+                      onError={(e) => {
+                        // Evita loop: aplica placeholder una sola vez
+                        const el = e.currentTarget as HTMLImageElement;
+                        if (!el.dataset.fallbackApplied) {
+                          el.src = PLACEHOLDER;
+                          el.dataset.fallbackApplied = "1";
+                        }
+                      }}
                     />
-                    <div>
-                      <p className="font-medium text-gray-900">{customerName}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 truncate">
+                        {customerName}
+                      </p>
                       <p className="text-sm text-gray-500">
                         {fmtDateTime(r.date)}
                       </p>
+
+                      {/* Botón Ver detalles del cliente */}
+                      {r.user?.id && (
+  <div className="mt-1">
+   <Link
+  href={`/clientes/reserva/${r.reservationId}`}
+  className="inline-flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+>
+  Ver detalles del cliente
+</Link>
+  </div>
+)}
+
+
                     </div>
                   </div>
 

@@ -55,14 +55,12 @@ export default function RegisterForm() {
       try {
         sessionStorage.removeItem("notify_unregistered");
       } catch {}
-      ;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handle =
-    (k: keyof typeof state) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
+    (k: keyof typeof state) => (e: React.ChangeEvent<HTMLInputElement>) =>
       setState((s) => ({ ...s, [k]: e.target.value }));
 
   const submit = async (e: React.FormEvent) => {

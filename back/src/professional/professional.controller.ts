@@ -28,7 +28,7 @@ export class ProfessionalController {
 
   @Get()
   @ApiOperation({
-    summary: 'Retrieve all professinals with optional filers',
+    summary: 'Retrieve all professionals with optional filters',
     description:
       'Returns a paginated list of active professionals. By default, it returns 12 professionals per page, but you can customize this using query parameters.',
   })
@@ -47,7 +47,7 @@ export class ProfessionalController {
   @ApiQuery({
     name: 'speciality',
     required: false,
-    description: 'filter by speciality',
+    description: 'Filter by speciality',
   })
   @ApiResponse({
     status: 200,
@@ -74,7 +74,7 @@ export class ProfessionalController {
   @ApiOperation({
     summary: 'Get professional profile by ID',
     description:
-      'Retrieves the professional profile associated with the given professional ID. Returns details such as specialty, location, and other attributes.',
+      'Retrieves the professional profile associated with the given professional ID.',
   })
   @ApiParam({
     name: 'id',
@@ -94,16 +94,39 @@ export class ProfessionalController {
     return this.professionalService.getProfessionalById(id);
   }
 
+  @Get('user/:userId')
+  @ApiOperation({
+    summary: 'Get professional by userId',
+    description:
+      'Retrieves the professional profile associated with the given userId.',
+  })
+  @ApiParam({
+    name: 'userId',
+    description: 'UUID of the user linked to the professional profile',
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Professional profile retrieved successfully',
+    type: Professional,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Professional not found',
+  })
+  getProfessionalByUserId(@Param('userId', ParseUUIDPipe) userId: string) {
+    return this.professionalService.getProfessionalByUserId(userId);
+  }
+
   @Post(':userId')
   @ApiOperation({
     summary: 'Create a new professional',
     description:
-      'Creates a professional profile linked to an existing user. The professional details are provided in the request body.',
+      'Creates a professional profile linked to an existing user.',
   })
   @ApiParam({
     name: 'userId',
-    description:
-      'UUID of the user who will be associated with the professional profile',
+    description: 'UUID of the user who will be associated with the professional profile',
     type: String,
   })
   @ApiBody({
@@ -134,7 +157,7 @@ export class ProfessionalController {
   @ApiOperation({
     summary: 'Update a professional profile',
     description:
-      'Updates the details of an existing professional profile. Only the provided fields in the request body will be modified.',
+      'Updates the details of an existing professional profile. Only provided fields will be modified.',
   })
   @ApiParam({
     name: 'id',
@@ -166,11 +189,10 @@ export class ProfessionalController {
   }
 
   @Put(':id/deactivate')
-  @Put(':id/deactivate')
   @ApiOperation({
     summary: 'Deactivate a professional profile',
     description:
-      'Marks a professional profile as inactive by setting the isActive property to false. Inactive professionals will not appear in standard queries.',
+      'Marks a professional profile as inactive (isActive = false). Inactive professionals will not appear in standard queries.',
   })
   @ApiParam({
     name: 'id',
