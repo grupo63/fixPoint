@@ -38,11 +38,7 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
   const { user, token } = useAuth();
   const role = (user?.role as string | undefined)?.toLowerCase?.();
   const isProfessional = role === "professional" || role === "profesional";
-<<<<<<< Updated upstream
   const isOwner = !!user?.id && user.id === pro.user.id; // dueño del perfil
-=======
-  const isOwner = !!user?.id && user.id === pro.user.id;
->>>>>>> Stashed changes
   const showReserve = !isProfessional && !isOwner;
 
   // --- Servicios del profesional ---
@@ -50,15 +46,11 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
   const [svcLoading, setSvcLoading] = useState(true);
   const [svcErr, setSvcErr] = useState<string | null>(null);
 
-<<<<<<< Updated upstream
   // --- Galería de trabajos ---
   const [workImages, setWorkImages] = useState<WorkImage[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // Control de "ver disponibilidad" por servicio
-=======
   // Control "ver disponibilidad" por servicio
->>>>>>> Stashed changes
   const [openById, setOpenById] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -230,7 +222,6 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
             Este profesional todavía no cargó servicios.
           </p>
         ) : (
-          // 1 sola columna para que todo respire; podés volver a 2 en pantallas grandes si querés
           <ul className="grid grid-cols-1 gap-8">
             {services.map((s) => {
               const title = s.title || s.name || "Servicio";
@@ -253,29 +244,9 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
                   </div>
 
                   {s.description && (
-<<<<<<< Updated upstream
-                    <p className="text-sm text-gray-600 mt-1">
-=======
-                    <p className="text-base text-gray-600 mt-2">
->>>>>>> Stashed changes
-                      {s.description}
-                    </p>
+                    <p className="text-sm text-gray-600 mt-2">{s.description}</p>
                   )}
 
-<<<<<<< Updated upstream
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleOpen(s.id)}
-                        className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
-                      >
-                        {isOpen
-                          ? "Ocultar disponibilidad"
-                          : "Ver disponibilidad"}
-                      </button>
-                    </div>
-=======
                   {/* Acciones */}
                   <div className="mt-6 flex items-center justify-start">
                     <button
@@ -285,19 +256,10 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
                     >
                       {isOpen ? "Ocultar disponibilidad" : "Ver disponibilidad"}
                     </button>
->>>>>>> Stashed changes
                   </div>
 
                   {/* Disponibilidad */}
                   {isOpen && (
-<<<<<<< Updated upstream
-                    <div className="mt-4">
-                      <ServiceAvailability
-                        professionalId={pro.id}
-                        serviceId={s.id}
-                      />
-                      <p className="text-[11px] text-gray-500 mt-2">
-=======
                     <div className="mt-8">
                       {/* Wrapper ancho y centrado, sin bordes extra para evitar “doble tarjeta” */}
                       <div className="max-w-3xl w-full">
@@ -308,7 +270,6 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
                       </div>
 
                       <p className="text-sm text-gray-500 mt-4 leading-relaxed">
->>>>>>> Stashed changes
                         Elegí un horario para continuar. Te llevaremos a la
                         página de reserva con el horario preseleccionado.
                       </p>
