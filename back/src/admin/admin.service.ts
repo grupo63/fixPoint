@@ -185,9 +185,9 @@ export class AdminService {
       .createQueryBuilder('r')
       .leftJoin(Review, 'rev', 'rev.reservationId = r.reservationId')
       .select('r.reservationId', 'reservationId')
-      .addSelect('MAX(rev.date)', 'lastReviewDate')
+      .addSelect('MAX(rev."date")', 'lastReviewDate') // <— cita la columna y conserva alias CamelCase
       .groupBy('r.reservationId')
-      .orderBy('lastReviewDate', 'DESC', 'NULLS LAST')
+      .orderBy('"lastReviewDate"', 'DESC', 'NULLS LAST') // <— cita el alias CamelCase
       .addOrderBy('r.reservationId', 'DESC')
       .limit(limit)
       .getRawMany<{ reservationId: string; lastReviewDate: string | null }>();
@@ -271,12 +271,12 @@ export class AdminService {
       .select('u.id', 'userId')
       .addSelect('u.email', 'email')
       .addSelect(`COALESCE(u."firstName" || ' ' || u."lastName", u.email)`, 'fullName')
-      .addSelect('COUNT(r.reservationId)', 'confirmedCount')
+      .addSelect('COUNT(r."reservationId")', 'confirmedCount') // <— cita la columna
       .groupBy('u.id')
       .addGroupBy('u.email')
       .addGroupBy('u."firstName"')
       .addGroupBy('u."lastName"')
-      .orderBy('confirmedCount', 'DESC')
+      .orderBy('"confirmedCount"', 'DESC') // <— cita el alias CamelCase
       .limit(limit)
       .getRawMany<{ userId: string; email: string; fullName: string; confirmedCount: string }>();
 
