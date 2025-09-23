@@ -11,7 +11,8 @@ import { User } from 'src/users/entities/user.entity';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { UsersModule } from 'src/users/users.module';
 import { Professional } from 'src/professional/entity/professional.entity';
-import { JwtStrategy } from './strategies/jwt.strategy'; // ✅
+import { NotificationsModule } from 'src/notifications/notification.module';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { JwtStrategy } from './strategies/jwt.strategy'; // ✅
       }),
     }),
     UsersModule,
+    NotificationsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthRepository, GoogleStrategy, JwtStrategy], // ✅
