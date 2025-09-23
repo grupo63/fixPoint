@@ -69,10 +69,8 @@ export class Professional {
   @Column({
     type: 'varchar',
     length: 255,
-    default:
-      'https://tumayorferretero.net/22457-large_default/producto-generico.jpg',
   })
-  profileImg: string;
+  profileImg?: string;
 
   @CreateDateColumn()
   createdAt: Date;
