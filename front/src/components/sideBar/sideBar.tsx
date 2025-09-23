@@ -165,10 +165,9 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
               {/* Chats - solo si está logueado */}
               {isLogged && (
                 <NavLink href="/chats" active={pathname.startsWith("/chats")}>
-  <MessageCircle className="w-5 h-5" />
-  <span>Chats</span>
-</NavLink>
-
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Chats</span>
+                </NavLink>
               )}
 
               <NavLink

@@ -8,10 +8,10 @@ import { useAuth } from "@/context/AuthContext"; // 👈 agregado
 export default function SidebarUser({ user }: { user: any }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const { logout } = useAuth(); // 👈 agregado
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    logout(); // 👈 llamado al context para limpiar sesión
+    logout();
     router.push("/");
   };
 

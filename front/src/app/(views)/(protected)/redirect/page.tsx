@@ -14,15 +14,18 @@ export default function RedirectPage() {
       return;
     }
 
-    switch (user.role) {
+    switch (user.role.toLocaleLowerCase()) {
       case "user":
         router.replace("/professionals");
         break;
       case "admin":
         router.replace("/admin/dashboard");
         break;
+      case "professional":
+        router.replace("/dashboard");
+        break;
       default:
-        router.replace("/professionals");
+        router.replace("/signin");
     }
   }, [user, router]);
 
