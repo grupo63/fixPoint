@@ -18,36 +18,53 @@ export default function ProfessionalsPage() {
   const observer = useRef<IntersectionObserver | null>(null);
   const lastElementRef = useRef<HTMLDivElement | null>(null);
 
+  // Cargar cuando cambia la página
   useEffect(() => {
     loadProfessionals(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
+  // Observer para infinite scroll
   useEffect(() => {
-    if (loading) return;
     if (!lastElementRef.current) return;
 
-    const options = {
-      root: null,
-      rootMargin: "0px",
-      threshold: 1.0,
-    };
+    // Limpio cualquier observer previo
+    observer.current?.disconnect();
 
-    observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore) {
-        setPage((prev) => prev + 1);
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && hasMore && !loading) {
+          setPage((prev) => prev + 1);
+        }
+      },
+      {
+        root: null,
+        // Pre-carga 300px antes del final
+        rootMargin: "300px 0px",
+        threshold: 0,
       }
-    }, options);
+    );
 
     observer.current.observe(lastElementRef.current);
 
     return () => observer.current?.disconnect();
-  }, [loading, hasMore]);
+  }, [hasMore, loading]);
 
   async function loadProfessionals(pageNumber: number) {
+    if (loading || !hasMore) return;
     setLoading(true);
     try {
       const { data } = await fetchProfessionals(pageNumber, 12); // 12 por página
-      setProfessionals((prev) => [...prev, ...data]);
+
+      // 🔒 DEDUPE por id al mergear
+      setProfessionals((prev) => {
+        const map = new Map<string, Professional>();
+        for (const p of prev) map.set(p.id, p);
+        for (const p of data) map.set(p.id, p);
+        return Array.from(map.values());
+      });
+
       if (data.length < 12) setHasMore(false);
     } catch (error) {
       console.error("Error al cargar profesionales:", error);
@@ -75,9 +92,7 @@ export default function ProfessionalsPage() {
 
       <section className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {professionals.length > 0 ? (
-          professionals.map((p, index) => (
-            <ProfesionalCard key={`${p.id}-${index}`} pro={p} />
-          ))
+          professionals.map((p) => <ProfesionalCard key={p.id} pro={p} />)
         ) : (
           <p className="col-span-full text-center text-gray-500 text-lg">
             No hay profesionales disponibles por ahora.
@@ -91,11 +106,12 @@ export default function ProfessionalsPage() {
         </p>
       )}
 
-      {/* Elemento invisible para observar el scroll */}
+      {/* Sentinel para el scroll infinito */}
       <div ref={lastElementRef} className="h-1"></div>
     </main>
   );
 }
+
 
 // return (
 //   <main className="p-6 space-y-8">
