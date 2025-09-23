@@ -15,17 +15,19 @@ export class Payment {
   id!: string;
 
   // FK escalar
-  @Index()
-  @Column({ type: 'uuid', nullable: true })
-  subscriptionId?: string;
+  @Column({
+    name: 'stripeSubscriptionId', // Nombre de la columna en la BD
+    type: 'varchar',
+    nullable: true,
+  })
+  stripeSubscriptionId: string;
 
   // Relación real que espera tu Subscription
   @ManyToOne(() => Subscription, (s) => s.payments, {
     nullable: true,
     onDelete: 'SET NULL',
   })
-  @JoinColumn({ name: 'subscriptionId' }) // usa subscriptionId como FK
-  subscription?: Subscription;
+  subscription: Subscription;
 
   @Column({ type: 'int', default: 0 })
   amount!: number;

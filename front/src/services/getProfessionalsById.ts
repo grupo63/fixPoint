@@ -1,6 +1,6 @@
 import { Professional } from "@/types/profesionalTypes";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL! || "http://localhost:3001";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
 export async function getProfessionalById(id: string): Promise<Professional | null> {
 
   const res = await fetch(`${API_BASE}/professional/${id}`);

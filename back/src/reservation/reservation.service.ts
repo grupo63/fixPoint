@@ -57,7 +57,6 @@ export class ReservationService {
     const slot = await this.availableRepo.findOne({
       where: {
         professional: { id: createDto.professionalId },
-        dayOfWeek,
         startTime: LessThanOrEqual(time),
         endTime: MoreThanOrEqual(time),
         status: 'Available',

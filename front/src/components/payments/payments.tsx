@@ -3,112 +3,93 @@
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
-type CreatePaymentPayload = {
-  amount: number;
-  currency: string;
-  description: string;
-  receiptEmail?: string;
-  successUrl: string;
-  cancelUrl: string;
-  metadata?: Record<string, string>;
-};
+// Usamos variables de entorno para las URLs, con un valor por defecto para desarrollo local.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+const APP_BASE_URL = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
 
-type CreateSubscriptionPayload = {
-  priceId: string;
-  quantity?: number;
-  successUrl: string;
-  cancelUrl: string;
-  metadata?: Record<string, string>;
-};
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-
-const APP_ORIGIN =
-  typeof window !== "undefined"
-    ? window.location.origin
-    : process.env.NEXT_PUBLIC_APP_ORIGIN ?? "http://localhost:3000";
-
-const SUBS_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID as
-  | string
-  | undefined;
+const STRIPE_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
 
 export default function Payments() {
   const { user } = useAuth();
 
+  // --- FUNCIÓN DE PAGO ÚNICO AHORA IMPLEMENTADA ---
   const createOneTimePayment = async () => {
-    try {
-      const body: CreatePaymentPayload = {
-        amount: 500,
-        currency: "usd",
-        description: "One-time payment - PRO Plan",
-        receiptEmail: user?.email ?? undefined,
-        successUrl: `${APP_ORIGIN}/plan?status=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${APP_ORIGIN}/plan?status=cancel`,
-        metadata: { source: "web", orderId: "ORD-2025-000123" },
-      };
+    if (!user) {
+      toast.error("Debes iniciar sesión para poder realizar un pago.");
+      return;
+    }
 
-      const res = await fetch(`${API_BASE}/payments/checkout/session`, {
+    try {
+      const response = await fetch(`${API_BASE_URL}/payments/checkout/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          amount: 500, // Representa 5.00 USD (ya en centavos)
+          currency: "usd",
+          description: "Pago único - Plan PRO",
+          receiptEmail: user.email, // Enviamos el email del usuario para el recibo
+          successUrl: `${APP_BASE_URL}/plan?status=success`,
+          cancelUrl: `${APP_BASE_URL}/plan?status=cancel`,
+        }),
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        toast.error(`Error creando sesión (${res.status}): ${text}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        toast.error(`Error del servidor (${response.status}): ${errorText}`);
         return;
       }
 
-      const data = await res.json();
-      if (data?.url) {
-        window.location.replace(data.url);
+      const session = await response.json();
+      if (session.url) {
+        window.location.href = session.url;
       } else {
-        toast.error("No llegó la URL de Checkout desde el backend.");
+        toast.error("No se recibió una URL de pago válida del servidor.");
       }
-    } catch (e: any) {
-      toast.error(`Fallo creando la sesión: ${e?.message ?? e}`);
+    } catch (error) {
+      console.error("Fallo al crear el pago único:", error);
+      toast.error("No se pudo conectar con el servidor para crear el pago.");
     }
   };
 
-  const createSubscriptionDraft = async () => {
+  // --- FUNCIÓN DE SUSCRIPCIÓN (YA FUNCIONABA) ---
+  const createSubscription = async () => {
+    if (!STRIPE_PRICE_ID || !STRIPE_PRICE_ID.startsWith("price_")) {
+      toast.error("Error de configuración: El Price ID de Stripe no está definido.");
+      return;
+    }
+
+    if (!user) {
+      toast.error("Debes iniciar sesión para poder suscribirte.");
+      return;
+    }
+
     try {
-      const priceId = SUBS_PRICE_ID;
-      if (!priceId || !priceId.startsWith("price_")) {
-        toast.error(
-          "Configurar un price válido en NEXT_PUBLIC_STRIPE_PRICE_ID (debe empezar con price_...)."
-        );
-        return;
-      }
-
-      const body: CreateSubscriptionPayload = {
-        priceId,
-        quantity: 1,
-        successUrl: `${APP_ORIGIN}/plan?status=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${APP_ORIGIN}/plan?status=cancel`,
-        metadata: { source: "web", orderId: "ORD-2025-000123" },
-      };
-
-      const res = await fetch(`${API_BASE}/payments/checkout/subscription`, {
+      const response = await fetch(`${API_BASE_URL}/payments/checkout/subscription`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          priceId: STRIPE_PRICE_ID,
+          userId: user.id,
+          successUrl: `${APP_BASE_URL}/plan?status=success`,
+          cancelUrl: `${APP_BASE_URL}/plan?status=cancel`,
+        }),
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        toast.error(`Error creando suscripción (${res.status}): ${text}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        toast.error(`Error del servidor (${response.status}): ${errorText}`);
         return;
       }
 
-      const data = await res.json();
-      if (data?.url) {
-        window.location.replace(data.url);
+      const session = await response.json();
+      if (session.url) {
+        window.location.href = session.url;
       } else {
-        toast.error("No llegó la URL de Checkout (suscripción) desde el backend.");
+        toast.error("No se recibió una URL de pago válida del servidor.");
       }
-    } catch (e: any) {
-     toast.error(`Fallo creando la suscripción: ${e?.message ?? e}`);
+    } catch (error) {
+      console.error("Fallo al crear la suscripción:", error);
+      toast.error("No se pudo conectar con el servidor para crear la suscripción.");
     }
   };
 
@@ -137,10 +118,10 @@ export default function Payments() {
         </h3>
         <p className="mt-2 text-sm text-gray-600">
           Te redirigimos a <strong>Stripe</strong> para pagar de forma segura.
-          Al finalizar, volvés a la app y se renovará automáticamente cada mes.
+          Se renovará automáticamente cada mes.
         </p>
         <button
-          onClick={createSubscriptionDraft}
+          onClick={createSubscription}
           className="mt-4 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 text-gray-800 font-medium hover:bg-gray-100 transition"
         >
           Suscribirse (Stripe)
@@ -149,3 +130,4 @@ export default function Payments() {
     </>
   );
 }
+
