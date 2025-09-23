@@ -29,9 +29,9 @@ export default function LoginForm() {
         if (emailQ) localStorage.setItem("prefill_email_register", emailQ);
       } catch {}
 
-      // ✅ Toast en vez de alert
+      
       toast.error("Esta cuenta no está registrada. Por favor, regístrate.", {
-        duration: 4000,
+        duration: 1500,
       });
 
       const nextUrl = emailQ

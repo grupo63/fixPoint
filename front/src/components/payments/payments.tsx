@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 type CreatePaymentPayload = {
   amount: number;
@@ -55,7 +56,7 @@ export default function Payments() {
 
       if (!res.ok) {
         const text = await res.text();
-        alert(`Error creando sesión (${res.status}): ${text}`);
+        toast.error(`Error creando sesión (${res.status}): ${text}`);
         return;
       }
 
@@ -63,10 +64,10 @@ export default function Payments() {
       if (data?.url) {
         window.location.replace(data.url);
       } else {
-        alert("No llegó la URL de Checkout desde el backend.");
+        toast.error("No llegó la URL de Checkout desde el backend.");
       }
     } catch (e: any) {
-      alert(`Fallo creando la sesión: ${e?.message ?? e}`);
+      toast.error(`Fallo creando la sesión: ${e?.message ?? e}`);
     }
   };
 
@@ -74,7 +75,7 @@ export default function Payments() {
     try {
       const priceId = SUBS_PRICE_ID;
       if (!priceId || !priceId.startsWith("price_")) {
-        alert(
+        toast.error(
           "Configurar un price válido en NEXT_PUBLIC_STRIPE_PRICE_ID (debe empezar con price_...)."
         );
         return;
@@ -96,7 +97,7 @@ export default function Payments() {
 
       if (!res.ok) {
         const text = await res.text();
-        alert(`Error creando suscripción (${res.status}): ${text}`);
+        toast.error(`Error creando suscripción (${res.status}): ${text}`);
         return;
       }
 
@@ -104,10 +105,10 @@ export default function Payments() {
       if (data?.url) {
         window.location.replace(data.url);
       } else {
-        alert("No llegó la URL de Checkout (suscripción) desde el backend.");
+        toast.error("No llegó la URL de Checkout (suscripción) desde el backend.");
       }
     } catch (e: any) {
-      alert(`Fallo creando la suscripción: ${e?.message ?? e}`);
+     toast.error(`Fallo creando la suscripción: ${e?.message ?? e}`);
     }
   };
 

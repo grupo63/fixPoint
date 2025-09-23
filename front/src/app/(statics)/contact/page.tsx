@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
@@ -14,7 +15,7 @@ export default function ContactPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Formulario enviado:", form);
-    alert("Gracias por contactarte, pronto nos comunicaremos!");
+    toast.success("Gracias por contactarte, pronto nos comunicaremos!");
   };
 
   return (

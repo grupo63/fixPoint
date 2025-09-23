@@ -2,24 +2,24 @@
 
 import { useMemo, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
+import { toast } from "sonner"
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL
 
 type Props = {
   className?: string
   defaultFromDate?: string // "YYYY-MM-DD"
-  defaultToDate?: string // "YYYY-MM-DD"
+  defaultToDate?: string   // "YYYY-MM-DD"
   defaultFromTime?: string // "HH:mm"
-  defaultToTime?: string // "HH:mm"
+  defaultToTime?: string   // "HH:mm"
+  onDone?: () => void
 }
 
 const pad = (n: number) => String(n).padStart(2, "0")
 const toISODate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-
 const todayISO = toISODate(new Date())
 
 const LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const
-// Nuestro backend acepta 1..7 (Lun..Dom). Si el tuyo fuera 0..6, cambia `toApiDow`.
 const toApiDow = (jsDow: number) => (jsDow === 0 ? 7 : jsDow) // 0=Dom → 7
 
 export default function AvailabilityRangeForm({
@@ -28,26 +28,26 @@ export default function AvailabilityRangeForm({
   defaultToDate = todayISO,
   defaultFromTime = "09:00",
   defaultToTime = "17:00",
+  onDone,
 }: Props) {
   const { user } = useAuth()
   const professionalId = useMemo(() => (user as any)?.professional?.id ?? "", [user])
 
-  // Estado del formulario
   const [fromDate, setFromDate] = useState(defaultFromDate)
   const [toDate, setToDate] = useState(defaultToDate)
   const [fromTime, setFromTime] = useState(defaultFromTime)
   const [toTime, setToTime] = useState(defaultToTime)
 
-  // Días de la semana seleccionados (1..7, Lun..Dom)
-  const [selectedDows, setSelectedDows] = useState<Set<number>>(() => new Set<number>([1, 3, 4])) // ejemplo inicial (Lun, Mié, Jue)
+  const [selectedDows, setSelectedDows] = useState<Set<number>>(new Set())
 
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [okCount, setOkCount] = useState(0)
   const [failCount, setFailCount] = useState(0)
+  const [dupCount, setDupCount] = useState(0)
   const [msg, setMsg] = useState<string | null>(null)
 
-  const canSave = !!professionalId && fromDate <= toDate && fromTime < toTime && selectedDows.size > 0 && !loading
+  const canSave = !!professionalId && fromDate <= toDate && fromTime < toTime && !loading
 
   function toggleDow(dow1to7: number) {
     setSelectedDows((prev) => {
@@ -57,68 +57,125 @@ export default function AvailabilityRangeForm({
       return n
     })
   }
+  const setWeekdays = () => setSelectedDows(new Set([1, 2, 3, 4, 5]))
+  const setAll = () => setSelectedDows(new Set([1, 2, 3, 4, 5, 6, 7]))
+  const clearAll = () => setSelectedDows(new Set())
 
-  function setWeekdays() {
-    setSelectedDows(new Set([1, 2, 3, 4, 5]))
-  }
-  function setAll() {
-    setSelectedDows(new Set([1, 2, 3, 4, 5, 6, 7]))
-  }
-  function clearAll() {
-    setSelectedDows(new Set())
+  function dowsPresentInRange(): number[] {
+    const d1 = new Date(fromDate)
+    const d2 = new Date(toDate)
+    const present = new Set<number>()
+    for (let d = new Date(d1); d <= d2; d.setDate(d.getDate() + 1)) {
+      present.add(toApiDow(d.getDay()))
+    }
+    return [...present].sort((a, b) => a - b)
   }
 
-  // Guardar: como tu modelo es SEMANAL, creamos una disponibilidad por CADA día seleccionado (máximo 7).
+  // Util: iterar fechas (YYYY-MM-DD) del rango, filtrando por DOW si se eligieron
+  function expandDatesInRange(): string[] {
+    const d1 = new Date(fromDate)
+    const d2 = new Date(toDate)
+    const hasFilter = selectedDows.size > 0
+    const dates: string[] = []
+    for (let d = new Date(d1); d <= d2; d.setDate(d.getDate() + 1)) {
+      const dow1to7 = toApiDow(d.getDay())
+      if (!hasFilter || selectedDows.has(dow1to7)) {
+        dates.push(toISODate(d))
+      }
+    }
+    return dates
+  }
+
   async function onSave() {
     if (!canSave) return
     setLoading(true)
     setDone(false)
     setOkCount(0)
     setFailCount(0)
+    setDupCount(0)
     setMsg(null)
 
+    let ok = 0
+    let fail = 0
+    let dup = 0
+
     try {
-      // Para que tenga sentido el "rango de fechas" visual,
-      // validamos que entre fromDate..toDate exista al menos un día con cada dow elegido.
-      // Pero en el POST vamos a crear solo por DOW (semana), no por fecha puntual.
-      const d1 = new Date(fromDate)
-      const d2 = new Date(toDate)
-      const presentDows = new Set<number>()
-      for (let d = new Date(d1); d <= d2; d.setDate(d.getDate() + 1)) {
-        presentDows.add(toApiDow(d.getDay()))
-      }
-      const missing = [...selectedDows].filter((dow) => !presentDows.has(dow))
-      if (missing.length === 7) {
-        setMsg("El rango no contiene ninguno de los días seleccionados.")
+      // Expandimos el rango a fechas puntuales (YYYY-MM-DD)
+      const targetDates = expandDatesInRange()
+      if (targetDates.length === 0) {
+        const m = "El rango no contiene días válidos."
+        setMsg(m)
+        toast.error(m)
+        setLoading(false) // 🔧 evitar quedarse cargando si salimos temprano
         return
       }
 
-      // Crear una disponibilidad por cada DOW elegido
-      for (const dow of [...selectedDows]) {
+      for (const date of targetDates) {
         try {
           const res = await fetch(`${API}/available/${encodeURIComponent(professionalId)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              dayOfWeek: dow, // 1..7 (Lun..Dom)
-              startTime: fromTime, // "HH:mm"
-              endTime: toTime, // "HH:mm"
-              isRecurring: true,
+              // ✅ Nuevo body que espera el back:
+              date,                     // "YYYY-MM-DD"
+              startTime: fromTime,      // "HH:mm"
+              endTime: toTime,          // "HH:mm"
             }),
           })
-          if (!res.ok) {
-            // si ya existe, tu API podría devolver 409 o 400; lo contamos como fallo pero seguimos
-            setFailCount((c) => c + 1)
-            continue
-          }
-          setOkCount((c) => c + 1)
+
+          if (res.status === 409) { dup++; continue }
+          if (!res.ok) { fail++; continue }
+
+          ok++
         } catch {
-          setFailCount((c) => c + 1)
+          fail++
         }
       }
 
+      // Estados
+      setOkCount(ok)
+      setFailCount(fail)
+      setDupCount(dup)
+
+      let finalMsg = "Proceso finalizado."
+      if (dup > 0) finalMsg += ` ${dup} disponibilidad(es) ya existían y no se duplicaron.`
+      if (fail > 0) finalMsg += ` Hubo ${fail} error(es).`
+
+      if (ok === 0 && dup > 0 && fail === 0) {
+        finalMsg = "No se creó nada: ya tenías esas disponibilidades cargadas."
+        toast.error(finalMsg)
+      } else if (fail > 0) {
+        toast.error(finalMsg)
+      } else if (ok > 0) {
+        toast.success(finalMsg)
+      } else {
+        toast(finalMsg)
+      }
+
+      setMsg(finalMsg)
       setDone(true)
-      setMsg("Proceso finalizado.")
+
+      if (ok > 0) {
+        try {
+          const lastRange = { from: fromDate, to: toDate }
+          const listRaw = localStorage.getItem("availability:ranges")
+          const list = listRaw ? (JSON.parse(listRaw) as any[]) : []
+          const next = Array.isArray(list) ? [...list] : []
+          const exists = next.some(r => r?.from === lastRange.from && r?.to === lastRange.to)
+          if (!exists) next.push(lastRange)
+          next.sort((a, b) => new Date(a.from).getTime() - new Date(b.from).getTime())
+
+          localStorage.setItem("availability:ranges", JSON.stringify(next))
+          localStorage.setItem("availability:lastRange", JSON.stringify(lastRange))
+          window.dispatchEvent(new CustomEvent("availability:saved", { detail: lastRange }))
+        } catch {
+          window.dispatchEvent(new CustomEvent("availability:saved"))
+        }
+      } else {
+        window.dispatchEvent(new CustomEvent("availability:saved"))
+      }
+
+      try { onDone?.() } catch {}
     } finally {
       setLoading(false)
     }
@@ -130,7 +187,7 @@ export default function AvailabilityRangeForm({
       <p className="text-slate-600 mb-6 leading-relaxed">
         Cargá tu disponibilidad por rango de fechas. <br />
         <span className="text-sm text-slate-500">
-          (Se creará <b>una disponibilidad semanal</b> por cada día de la semana seleccionado).
+          (Si <b>no elegís días</b> abajo, se aplica a <b>todos los días</b> del rango. Si elegís algunos, se aplica solo a esos.)
         </span>
       </p>
 
@@ -194,8 +251,9 @@ export default function AvailabilityRangeForm({
               </div>
             </div>
 
+            {/* Días (opcionales) */}
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-slate-700 mb-3">Días de la semana</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-3">Días de la semana (opcional)</label>
               <div className="flex flex-wrap gap-3 mb-4">
                 {LABELS.map((lbl, i) => {
                   const dow = i + 1 // 1..7 (Lun..Dom)
@@ -241,64 +299,13 @@ export default function AvailabilityRangeForm({
                   Ninguno
                 </button>
               </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Si no seleccionás días, se aplicará a cada día del rango.
+              </p>
             </div>
           </div>
 
-          {msg && (
-            <div
-              className={[
-                "p-4 rounded-lg mb-4 border",
-                done ? "bg-green-50 border-green-200 text-green-800" : "bg-blue-50 border-blue-200 text-blue-800",
-              ].join(" ")}
-            >
-              <div className="flex items-start gap-2">
-                {done ? (
-                  <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                )}
-                <div>
-                  <p className="font-medium">{msg}</p>
-                  {done && (
-                    <div className="mt-2 flex gap-4 text-sm">
-                      <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        Éxitos: {okCount}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                        Fallos: {failCount}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Bloque de estado (comentado en tu versión original) */}
 
           <button
             type="button"
@@ -317,7 +324,7 @@ export default function AvailabilityRangeForm({
                     className="opacity-75"
                     fill="currentColor"
                     d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
+                  />
                 </svg>
                 Guardando…
               </>

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -24,11 +25,11 @@ export class AvailableController {
   constructor(private readonly availableService: AvailableService) {}
 
   @Post(':professionalId')
-  @ApiOperation({ summary: 'Create professionals availability' })
+  @ApiOperation({ summary: 'Create professional availability (by date)' })
   @ApiBody({ type: CreateAvailabilityDto })
   @ApiResponse({
     status: 201,
-    description: 'Availability created succesfully',
+    description: 'Availability created successfully',
     type: Available,
   })
   @ApiResponse({
@@ -44,12 +45,18 @@ export class AvailableController {
 
   // ⚠️ Importante: esta ruta va ANTES de ":id" para evitar conflictos
   @Get('professional/:professionalId')
-  @ApiOperation({ summary: 'List professional availability (weekly)' })
+  @ApiOperation({ summary: 'List professional availability (by date range)' })
   @ApiQuery({
-    name: 'dayOfWeek',
+    name: 'from',
     required: false,
-    type: Number,
-    description: 'Filtro opcional: día de la semana. 0=Dom..6=Sáb (o 1..7 si tu modelo lo usa)',
+    type: String,
+    description: 'Start date filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'to',
+    required: false,
+    type: String,
+    description: 'End date filter (YYYY-MM-DD)',
   })
   @ApiResponse({
     status: 200,
@@ -58,13 +65,10 @@ export class AvailableController {
   })
   listByProfessional(
     @Param('professionalId', new ParseUUIDPipe()) professionalId: string,
-    @Query('dayOfWeek') dayOfWeek?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
   ): Promise<Available[]> {
-    const dow =
-      dayOfWeek !== undefined && dayOfWeek !== null
-        ? Number(dayOfWeek)
-        : undefined;
-    return this.availableService.listByProfessional(professionalId, dow);
+    return this.availableService.listByProfessional(professionalId, from, to);
   }
 
   @Get(':id')
@@ -74,7 +78,35 @@ export class AvailableController {
     description: 'Availability found',
     type: Available,
   })
-  async findOne(@Param('id') id: string): Promise<Available> {
+  async findOne(@Param('id', new ParseUUIDPipe()) id: string): Promise<Available> {
     return this.availableService.findOne(id);
+  }
+
+  // Eliminar TODAS las disponibilidades de un profesional
+  @Delete('professional/:professionalId')
+  @ApiOperation({ summary: 'Delete all availability for a professional' })
+  @ApiResponse({
+    status: 200,
+    description: 'All availability deleted',
+  })
+  async removeAllForProfessional(
+    @Param('professionalId', new ParseUUIDPipe()) professionalId: string,
+  ): Promise<{ deleted: number }> {
+    const deleted = await this.availableService.deleteAllForProfessional(professionalId);
+    return { deleted };
+  }
+
+  // Eliminar UNA disponibilidad por ID
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete availability by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Availability deleted',
+  })
+  async removeOne(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ deleted: number }> {
+    await this.availableService.deleteOne(id);
+    return { deleted: 1 };
   }
 }

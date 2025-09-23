@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles, Lock } from "lucide-react"; // íconos para darle onda
+import { toast } from "sonner";
 
 type Props = {
   onClose: () => void;
@@ -26,7 +27,7 @@ export default function ChatModal({ onClose }: Props) {
         <button
           className="w-full bg-[#ed7d31] hover:bg-[#b45d27] text-white font-medium py-2 px-4 rounded-full transition duration-200"
           onClick={() => {
-            alert("Redirigir a Upgrade");
+            toast.error("Redirigir a Upgrade");
           }}
         >
           <Lock className="inline-block w-4 h-4 mr-2 -mt-1" />
