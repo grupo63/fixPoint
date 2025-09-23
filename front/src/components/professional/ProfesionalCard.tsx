@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext"
 import { routes } from "@/routes"
 import { startConversation } from "@/services/inboxService"
 import type { Professional } from "@/services/professionalService"
+import { toast } from "sonner"
 
 type Props = { pro: Professional }
 
@@ -48,7 +49,7 @@ export default function ProfessionalCard({ pro }: Props) {
       router.push(`/chats/${conversationId}`)
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e)
-      alert(msg || "No se pudo iniciar la conversación.")
+     toast.error(msg || "No se pudo iniciar la conversación.")
     } finally {
       setLoading(false)
     }

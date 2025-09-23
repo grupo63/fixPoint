@@ -56,7 +56,7 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
       <div>
         {/* Logo */}
         <div className="px-6 py-6 text-2xl font-bold tracking-wide">
-          <Link href="/">
+          <Link href="/professionals">
             <Image
               src="/logo-azul.png"
               alt="FixPoint logo"

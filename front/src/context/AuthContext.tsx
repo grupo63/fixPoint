@@ -15,7 +15,7 @@ type RoleAPI = "USER" | "PROFESSIONAL" | string;
 export type AuthUser = {
   id: string;
   email: string;
-  role: "USER" | "PROFESSIONAL" | string;
+  role: RoleAPI;
   firstName?: string | null;
   lastName?: string | null;
   profileImage?: string | null;
@@ -50,39 +50,59 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:3001";
 
+/** ---- Helpers ---- */
+type MeResult =
+  | { me: AuthUser; unauthorized: false }
+  | { me: null; unauthorized: boolean };
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
-  const fetchMe = useCallback(async (token?: string | null) => {
+  const fetchMe = useCallback(async (tok?: string | null): Promise<MeResult> => {
     try {
       const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
+      if (tok) headers.Authorization = `Bearer ${tok}`;
       const res = await fetch(`${API_BASE.replace(/\/+$/, "")}/auth/me`, {
         headers,
         credentials: "include",
       });
-      if (!res.ok) return null;
+
+      if (res.status === 401 || res.status === 403) {
+        return { me: null, unauthorized: true };
+      }
+      if (!res.ok) {
+        // Error transitorio (red, 5xx, CORS, etc.) -> no marcar como no autorizado
+        return { me: null, unauthorized: false };
+      }
       const me = (await res.json()) as AuthUser;
-      return me;
+      return { me, unauthorized: false };
     } catch {
-      return null;
+      return { me: null, unauthorized: false };
     }
   }, []);
 
   const hydrateFromStorage = useCallback(async () => {
-    const token =
+    const stored =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-    const me = await fetchMe(token);
-    if (me) {
-      setUser(me);
+    setToken(stored ?? null);
+
+    const result = await fetchMe(stored);
+    if (result.me) {
+      setUser(result.me);
       setIsAuthenticated(true);
-    } else {
+    } else if (result.unauthorized) {
+      // Solo limpiamos si realmente es 401/403
       localStorage.removeItem("token");
+      setToken(null);
       setUser(null);
       setIsAuthenticated(false);
+    } else {
+      // Error transitorio: mantenemos el token en memoria si existía
+      setIsAuthenticated(!!stored);
     }
     setIsReady(true);
   }, [fetchMe]);
@@ -92,16 +112,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [hydrateFromStorage]);
 
   const setAuthFromToken = useCallback(
-    async (token: string) => {
-      localStorage.setItem("token", token);
-      const me = await fetchMe(token);
-      if (me) {
-        setUser(me);
+    async (tok: string) => {
+      localStorage.setItem("token", tok);
+      setToken(tok);
+      const result = await fetchMe(tok);
+      if (result.me) {
+        setUser(result.me);
         setIsAuthenticated(true);
-      } else {
+      } else if (result.unauthorized) {
         localStorage.removeItem("token");
+        setToken(null);
         setUser(null);
         setIsAuthenticated(false);
+      } else {
+        // Error no-autorizado (transitorio): mantenemos el token y dejamos reintentar luego
+        setIsAuthenticated(true);
       }
     },
     [fetchMe]
@@ -131,16 +156,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let msg = "Error al iniciar sesión";
         try {
           const body = await res.json();
-          msg = body?.message || msg;
+          msg = (body?.message as string) || msg;
         } catch {}
         throw new Error(msg);
       }
 
       const data = await res.json();
-      const token: string = data?.access_token;
-      if (!token) throw new Error("Token no recibido");
+      const tok: string | undefined = data?.access_token;
+      if (!tok) throw new Error("Token no recibido");
 
-      await setAuthFromToken(token);
+      await setAuthFromToken(tok);
     },
     [setAuthFromToken]
   );
@@ -152,6 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem("token");
+    setToken(null);
     setUser(null);
     setIsAuthenticated(false);
   }, []);
@@ -169,9 +195,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isReady,
       isAuthenticated,
       user,
-      token:
-        typeof window !== "undefined" ? localStorage.getItem("token") : null,
-      setUser, // <--- muy importante para actualizar usuario desde AccountEditPage
+      token,
+      setUser,
       login,
       signin,
       logout,
@@ -183,6 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isReady,
       isAuthenticated,
       user,
+      token,
       login,
       signin,
       logout,
