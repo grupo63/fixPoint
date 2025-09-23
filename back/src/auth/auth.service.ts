@@ -9,12 +9,15 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from './dto/auth.dto';
 import { first } from 'rxjs';
+import { NotificationsService } from 'src/notifications/notification.service';
+import { UserStatus } from 'src/users/types/userStatus';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService, // usa JwtModule global
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async signUp(user: CreateUserDto) {
@@ -42,6 +45,13 @@ export class AuthService {
       password: passwordHash,
       role: internalRole,
     });
+
+    //Envio de email sobre la creacion de usuario:
+    await this.notificationsService.sendWelcomeEmail({
+      name: user.firstName || 'Usuario',
+      email,
+    });
+
     return created;
   }
 
