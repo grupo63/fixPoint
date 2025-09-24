@@ -7,9 +7,6 @@ import Link from "next/link"
 import { getMyProfessionalClient } from "@/services/userService"
 import { toast } from "sonner"
 
-const API = (
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001"
-).replace(/\/$/, "");
 const API = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001").replace(/\/$/, "")
 const PLACEHOLDER = "/placeholder.png"
 const MAX_HISTORY = 200
@@ -22,13 +19,6 @@ type UserLite = {
   profileImg?: string | null; // legacy
   profileImage?: string | null; // actual
 };
-  id: string
-  firstName?: string | null
-  lastName?: string | null
-  email?: string | null
-  profileImg?: string | null
-  profileImage?: string | null
-}
 
 type ProfessionalLite = {
   id: string
@@ -153,15 +143,6 @@ export default function ProfessionalReservationsPage() {
         setLoading(true)
         setErr(null)
 
-        const res = await fetch(
-          `${API}/reservations/pending/${professionalId}`,
-          {
-            method: "GET",
-            credentials: "include",
-            headers: buildAuthHeaders(),
-            cache: "no-store",
-          }
-        );
         const res = await fetch(`${API}/reservations/pending/${professionalId}`, {
           method: "GET",
           credentials: "include",
@@ -281,15 +262,6 @@ export default function ProfessionalReservationsPage() {
       setActioning(resId)
       setReservations((prev) => prev.filter((r) => r.reservationId !== resId))
 
-      const res = await fetch(
-        `${API}/reservations/${resId}/cancel-by-professional`,
-        {
-          method: "PATCH",
-          credentials: "include",
-          headers: buildAuthHeaders(),
-          body: JSON.stringify({}),
-        }
-      );
       const res = await fetch(`${API}/reservations/${resId}/cancel-by-professional`, {
         method: "PATCH",
         credentials: "include",
