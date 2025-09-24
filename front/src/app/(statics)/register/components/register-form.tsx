@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import GoogleOAuthButton from "@/components/auth/GoogleOAthButton";
 import RoleTabs from "./RolTabRegister";
+import { toast } from "sonner";
 
 type RoleAPI = "user" | "professional";
 
@@ -104,7 +105,7 @@ export default function RegisterForm() {
     }
 
     if (errors.length) {
-      alert(errors.join("\n"));
+     toast.error(errors.join("\n"));
       return;
     }
 
@@ -134,12 +135,14 @@ export default function RegisterForm() {
       } catch {}
 
       if (!res.ok) {
-        console.error("Signup error:", res.status, res.statusText, bodyText);
-        alert(
-          `Error ${res.status} ${res.statusText}\n${
-            bodyText || "(sin detalle)"
-          }`
-        );
+  console.error("Signup error:", res.status, res.statusText, bodyText);
+
+        // Mensaje custom para email duplicado
+        if (res.status === 409) {
+          toast.error("El mail ya se encuentra registrado, registrate con un mail válido.");
+        } else {
+          toast.error("Ocurrió un error al registrar. Inténtalo de nuevo.");
+        }
         return;
       }
 
@@ -151,11 +154,11 @@ export default function RegisterForm() {
           router.replace("/onboarding?newPro=1");
         } catch (e) {
           // Si fallara el auto-login, lo llevamos al login con un aviso
-          alert("Cuenta creada. Iniciá sesión para continuar el onboarding.");
+          toast.success("Cuenta creada. Iniciá sesión para continuar el onboarding.");
           router.replace("/signin?registered=1");
         }
       } else {
-        alert("✅ Cuenta creada con éxito. Ahora iniciá sesión.");
+        toast.success("✅ Cuenta creada con éxito. Ahora iniciá sesión.");
         // (opcional) prefill para el login
         try {
           localStorage.setItem("prefill_email_login", email);
@@ -164,7 +167,7 @@ export default function RegisterForm() {
       }
     } catch (err: any) {
       console.error(err);
-      alert(err?.message ?? "Error inesperado al registrar");
+      toast.error(err?.message ?? "Error inesperado al registrar");
     } finally {
       setLoading(false);
     }

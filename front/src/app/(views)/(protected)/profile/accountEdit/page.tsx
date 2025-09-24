@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { routes } from "@/routes";
 import parsePhoneNumberFromString, { CountryCode } from "libphonenumber-js";
+import { toast } from "sonner";
 
 function validatePhone(
   phone: string,
@@ -64,7 +65,7 @@ export default function AccountEditPage() {
     // --- Validar teléfono antes de enviar ---
     const phoneError = validatePhone(phone, "AR");
     if (phoneError) {
-      alert(phoneError); // o usar un state para mostrar error inline
+      toast.error(phoneError); // o usar un state para mostrar error inline
       return; // corta la ejecución del submit
     }
 
@@ -74,7 +75,7 @@ export default function AccountEditPage() {
       const role = user.role?.toLowerCase() || "";
 
       if (role !== "user" && role !== "professional") {
-        alert("Los administradores no pueden actualizar su perfil");
+        toast.error("Los administradores no pueden actualizar su perfil");
         setLoading(false);
         return;
       }
@@ -165,7 +166,7 @@ export default function AccountEditPage() {
       router.push(routes.profile);
     } catch (err: any) {
       console.error("Update error:", err.message);
-      alert("No se pudo actualizar el perfil");
+      toast.error("No se pudo actualizar el perfil");
     } finally {
       setLoading(false);
     }

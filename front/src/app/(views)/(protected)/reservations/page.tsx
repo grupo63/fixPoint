@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import ReservationForm from "@/components/reservations/reservationForm";
-import ReservationList from "@/components/reservations/reservationList";
 import { Calendar, Clock, User, CheckCircle, ArrowLeft } from "lucide-react";
 
 // src/types/reservation.ts
@@ -119,17 +118,20 @@ export default function ReservationsPage() {
 
       {/* Hero */}
       <div className="max-w-6xl mx-auto px-4 py-10">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-[#162748]">Reservas</h1>
-          <p className="text-gray-600 mt-2">
-            Creá una nueva reserva y gestioná tus citas en un solo lugar.
-          </p>
-        </div>
+        {/* título centrado */}
+        <div className="flex flex-col items-start text-left mb-12 ml-7">
+  <h1 className="text-4xl font-bold text-[#162748]">Reservas</h1>
+  <p className="text-gray-600 mt-2">
+    Creá una nueva reserva y gestioná tus citas en un solo lugar.
+  </p>
+</div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+
+        {/* contenedor de formulario + panel */}
+        <div className="flex justify-center gap-8">
           {/* Formulario */}
-          <div className="lg:col-span-2">
+          <div className="w-full max-w-2xl">
             <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
               <div className="bg-[#162748] px-6 py-4 text-white">
                 <h2 className="text-xl font-semibold">Nueva Reserva</h2>
@@ -148,7 +150,7 @@ export default function ReservationsPage() {
           </div>
 
           {/* Panel lateral */}
-          <div className="space-y-6">
+          <div className="space-y-6 max-w-sm">
             <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
               <div className="flex items-center gap-3 mb-4">
                 <CheckCircle className="w-6 h-6 text-[#B54C1F]" />

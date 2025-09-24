@@ -56,7 +56,7 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
       <div>
         {/* Logo */}
         <div className="px-6 py-6 text-2xl font-bold tracking-wide">
-          <Link href="/">
+          <Link href="/professionals">
             <Image
               src="/logo-azul.png"
               alt="FixPoint logo"
@@ -165,10 +165,9 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
               {/* Chats - solo si está logueado */}
               {isLogged && (
                 <NavLink href="/chats" active={pathname.startsWith("/chats")}>
-  <MessageCircle className="w-5 h-5" />
-  <span>Chats</span>
-</NavLink>
-
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Chats</span>
+                </NavLink>
               )}
 
               <NavLink

@@ -226,6 +226,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { routes } from "@/routes";
 import type { UserWithProfessional } from "@/types/types";
+import { toast } from "sonner";
 
 type Props = {
   user: UserWithProfessional;
@@ -308,7 +309,7 @@ export default function ProfileSummary({
       }
     } catch (err: any) {
       console.error("[ProfileSummary] upload FAIL:", err);
-      alert(err?.message || "No se pudo subir la imagen.");
+      toast.error(err?.message || "No se pudo subir la imagen.");
     } finally {
       setLoading(false);
     }

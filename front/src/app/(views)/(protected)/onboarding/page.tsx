@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ProfessionalUpdate } from "@/types/profesionalTypes";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -66,11 +67,11 @@ export default function OnboardingProfessionalForm() {
     if (user && user.professional) {
       try {
         await updateProfessional(user.professional.id, form);
-        alert("Perfil completado con exito");
+        toast.success("Perfil completado con exito");
         router.push("/redirect");
       } catch (err) {
         console.error("❌ Error actualizando el perfil:", err);
-        alert("Hubo un problema guardando tu perfil");
+        toast.error("Hubo un problema guardando tu perfil");
         router.push("/");
       }
     }

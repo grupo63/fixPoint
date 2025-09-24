@@ -1,22 +1,24 @@
+// app/(views)/(protected)/(pro)/reservas/page.tsx
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import Link from "next/link"
 import { getMyProfessionalClient } from "@/services/userService"
+import { toast } from "sonner"
 
 const API = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001").replace(/\/$/, "")
-
-const PLACEHOLDER = "/placeholder.png" // ajustá si tu archivo se llama distinto
+const PLACEHOLDER = "/placeholder.png"
+const MAX_HISTORY = 200
 
 type UserLite = {
-  id: string
-  firstName?: string | null
-  lastName?: string | null
-  email?: string | null
-  profileImg?: string | null // legacy
-  profileImage?: string | null // actual
-}
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  profileImg?: string | null; // legacy
+  profileImage?: string | null; // actual
+};
 
 type ProfessionalLite = {
   id: string
@@ -26,13 +28,22 @@ type ProfessionalLite = {
 type Reservation = {
   reservationId: string
   status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW" | "RESCHEDULED"
-  date: string // ISO
+  date: string
   endDate?: string | null
   wasReviewed?: boolean
-  user?: UserLite | null // puede venir null en reservas viejas
+  user?: UserLite | null
   professional?: ProfessionalLite | null
 }
 
+type HistoryItem = {
+  reservationId: string
+  action: "CONFIRMED" | "CANCELLED"
+  date: string
+  actionAt: string
+  user?: UserLite | null
+}
+
+// --------- helpers ---------
 function fmtDateTime(iso?: string) {
   if (!iso) return "—"
   const d = new Date(iso)
@@ -43,32 +54,56 @@ function fmtDateTime(iso?: string) {
   }).format(d)
 }
 
-// Capitaliza soportando unicode (á, ñ, etc.)
 const toTitle = (s?: string | null) =>
   (s ?? "")
     .trim()
     .toLowerCase()
     .replace(/\b\p{L}/gu, (c) => c.toUpperCase())
 
+function getBearerToken(ctxToken?: string) {
+  if (ctxToken) return ctxToken
+  if (typeof window !== "undefined") {
+    return (
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("jwt") ||
+      ""
+    )
+  }
+  return ""
+}
+
+function buildAuthHeaders(token?: string) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" }
+  if (token) headers.Authorization = `Bearer ${token}`
+  return headers
+}
+
+function historyKey(professionalId: string) {
+  return `reservations_history_${professionalId}`
+}
+
+function loadHistoryFromStorage(professionalId: string): HistoryItem[] {
+  try {
+    const raw = localStorage.getItem(historyKey(professionalId))
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function saveHistoryToStorage(professionalId: string, items: HistoryItem[]) {
+  try {
+    const trimmed = items.slice(0, MAX_HISTORY)
+    localStorage.setItem(historyKey(professionalId), JSON.stringify(trimmed))
+  } catch {}
+}
+
 export default function ProfessionalReservationsPage() {
   const { user, token: ctxToken } = useAuth() as any
-
-  function getBearerToken() {
-    if (ctxToken) return ctxToken as string
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("access_token") || localStorage.getItem("token") || localStorage.getItem("jwt") || ""
-    }
-    return ""
-  }
-
-  function buildAuthHeaders() {
-    const t = getBearerToken()
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    }
-    if (t) headers.Authorization = `Bearer ${t}`
-    return headers
-  }
+  const token = getBearerToken(ctxToken)
 
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
@@ -76,7 +111,10 @@ export default function ProfessionalReservationsPage() {
   const [actioning, setActioning] = useState<string | null>(null)
   const [professionalId, setProfessionalId] = useState<string | null>(null)
 
-  // 1) Obtener professionalId del usuario logueado
+  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  // Obtener professionalId
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -93,7 +131,7 @@ export default function ProfessionalReservationsPage() {
     }
   }, [user?.id])
 
-  // 2) Cargar reservas pendientes
+  // Cargar reservas pendientes
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -108,7 +146,7 @@ export default function ProfessionalReservationsPage() {
         const res = await fetch(`${API}/reservations/pending/${professionalId}`, {
           method: "GET",
           credentials: "include",
-          headers: buildAuthHeaders(),
+          headers: buildAuthHeaders(token),
           cache: "no-store",
         })
 
@@ -127,9 +165,75 @@ export default function ProfessionalReservationsPage() {
     return () => {
       cancelled = true
     }
+  }, [professionalId, token])
+
+  // Cargar historial
+  useEffect(() => {
+    if (!professionalId) return
+    setLoadingHistory(true)
+    const items = loadHistoryFromStorage(professionalId)
+    setHistory(items)
+    setLoadingHistory(false)
   }, [professionalId])
 
+  // Append al historial
+  const appendToHistory = (r: Reservation, action: "CONFIRMED" | "CANCELLED") => {
+    if (!professionalId) return
+    const next: HistoryItem = {
+      reservationId: r.reservationId,
+      action,
+      date: r.date,
+      actionAt: new Date().toISOString(),
+      user: r.user,
+    }
+    setHistory((prev) => {
+      const merged = [next, ...prev]
+      saveHistoryToStorage(professionalId, merged)
+      return merged
+    })
+  }
+
+  // Borrar historial con confirmación en toast
+  const clearHistory = () => {
+    if (!professionalId) return
+
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-3">
+          <p className="font-medium text-slate-800">
+            ¿Estás seguro de que querés borrar el historial?
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                localStorage.removeItem(historyKey(professionalId))
+                setHistory([])
+                toast.dismiss(t)
+                toast.success("Historial borrado con éxito ✅")
+              }}
+              className="px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 text-sm"
+            >
+              Sí, borrar
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(t)
+                toast.info("Acción cancelada")
+              }}
+              className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: 8000 }
+    )
+  }
+
+  // Confirmar
   const onConfirm = async (resId: string) => {
+    const target = reservations.find((r) => r.reservationId === resId)
     try {
       setActioning(resId)
       setReservations((prev) => prev.filter((r) => r.reservationId !== resId))
@@ -137,22 +241,23 @@ export default function ProfessionalReservationsPage() {
       const res = await fetch(`${API}/reservations/${resId}/confirm`, {
         method: "PATCH",
         credentials: "include",
-        headers: buildAuthHeaders(),
+        headers: buildAuthHeaders(token),
         body: JSON.stringify({}),
       })
 
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(text || `No se pudo confirmar (HTTP ${res.status})`)
-      }
+      if (!res.ok) throw new Error(await res.text())
+      if (target) appendToHistory(target, "CONFIRMED")
     } catch (e: any) {
       setErr(e?.message || "Error confirmando la reserva")
+      if (target) setReservations((prev) => [target, ...prev])
     } finally {
       setActioning(null)
     }
   }
 
+  // Rechazar
   const onReject = async (resId: string) => {
+    const target = reservations.find((r) => r.reservationId === resId)
     try {
       setActioning(resId)
       setReservations((prev) => prev.filter((r) => r.reservationId !== resId))
@@ -160,16 +265,15 @@ export default function ProfessionalReservationsPage() {
       const res = await fetch(`${API}/reservations/${resId}/cancel-by-professional`, {
         method: "PATCH",
         credentials: "include",
-        headers: buildAuthHeaders(),
+        headers: buildAuthHeaders(token),
         body: JSON.stringify({}),
       })
 
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(text || `No se pudo cancelar (HTTP ${res.status})`)
-      }
+      if (!res.ok) throw new Error(await res.text())
+      if (target) appendToHistory(target, "CANCELLED")
     } catch (e: any) {
       setErr(e?.message || "Error cancelando la reserva")
+      if (target) setReservations((prev) => [target, ...prev])
     } finally {
       setActioning(null)
     }
@@ -190,10 +294,9 @@ export default function ProfessionalReservationsPage() {
         <div className="mb-6">
           {loading && (
             <div className="text-slate-600 flex items-center gap-2">
-  <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
-  <span>Cargando reservas...</span>
-</div>
-
+              <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
+              <span>Cargando reservas...</span>
+            </div>
           )}
           {err && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 shadow-sm">
@@ -207,16 +310,12 @@ export default function ProfessionalReservationsPage() {
           )}
         </div>
 
+        {/* ---- PENDIENTES ---- */}
         {!loading && reservations.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm text-center">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <h3 className="text-xl font-semibold text-slate-800 mb-2">No hay reservas pendientes</h3>
@@ -224,7 +323,7 @@ export default function ProfessionalReservationsPage() {
               No tenés reservas pendientes por ahora. Las nuevas solicitudes aparecerán aquí.
             </p>
             <Link
-              href="/"
+              href="/professionals"
               className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800 text-white font-medium rounded-xl hover:bg-slate-700 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,129 +338,45 @@ export default function ProfessionalReservationsPage() {
               const first = toTitle(r.user?.firstName)
               const last = toTitle(r.user?.lastName)
               const emailLocal = (r.user?.email ?? "").split("@")[0]
-
               const customerName = first || last ? [first, last].filter(Boolean).join(" ") : emailLocal || "Cliente"
-
               const avatarSrc = r.user?.profileImage || r.user?.profileImg || PLACEHOLDER
-
               const isActing = actioning === r.reservationId
 
               return (
-                <div
-                  key={r.reservationId}
-                  className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow"
-                >
+                <div key={r.reservationId} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                     <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <img
-                          src={avatarSrc || "/placeholder.svg"}
-                          alt={customerName}
-                          className="w-14 h-14 rounded-full object-cover border-2 border-slate-200"
-                          onError={(e) => {
-                            const el = e.currentTarget as HTMLImageElement
-                            if (!el.dataset.fallbackApplied) {
-                              el.src = PLACEHOLDER
-                              el.dataset.fallbackApplied = "1"
-                            }
-                          }}
-                        />
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center">
-                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </div>
-                      </div>
+                      <img
+                        src={avatarSrc}
+                        alt={customerName}
+                        className="w-14 h-14 rounded-full object-cover border-2 border-slate-200"
+                        onError={(e) => {
+                          const el = e.currentTarget as HTMLImageElement
+                          if (!el.dataset.fallbackApplied) {
+                            el.src = PLACEHOLDER
+                            el.dataset.fallbackApplied = "1"
+                          }
+                        }}
+                      />
                       <div className="min-w-0 flex-1">
                         <h3 className="text-lg font-semibold text-slate-800 truncate">{customerName}</h3>
-                        <div className="flex items-center gap-2 text-slate-600 mt-1">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                          <span className="font-medium">{fmtDateTime(r.date)}</span>
-                        </div>
-
-                        {r.user?.id && (
-                          <div className="mt-3">
-                            <Link
-                              href={`/clientes/reserva/${r.reservationId}`}
-                              className="inline-flex items-center gap-2 text-sm px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                />
-                              </svg>
-                              Ver detalles del cliente
-                            </Link>
-                          </div>
-                        )}
+                        <p className="text-slate-600 text-sm">{fmtDateTime(r.date)}</p>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-3">
                       <button
                         disabled={isActing}
                         onClick={() => onConfirm(r.reservationId)}
-                        className={[
-                          "px-6 py-3 rounded-xl text-sm font-semibold transition-all",
-                          "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md",
-                          isActing ? "opacity-60 cursor-not-allowed" : "",
-                        ].join(" ")}
+                        className="px-6 py-3 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition"
                       >
-                        {isActing ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Procesando...
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Confirmar
-                          </div>
-                        )}
+                        {isActing ? "Procesando..." : "Confirmar"}
                       </button>
                       <button
                         disabled={isActing}
                         onClick={() => onReject(r.reservationId)}
-                        className={[
-                          "px-6 py-3 rounded-xl text-sm font-semibold transition-all",
-                          "bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md",
-                          isActing ? "opacity-60 cursor-not-allowed" : "",
-                        ].join(" ")}
+                        className="px-6 py-3 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition"
                       >
-                        {isActing ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Procesando...
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                            Rechazar
-                          </div>
-                        )}
+                        {isActing ? "Procesando..." : "Rechazar"}
                       </button>
                     </div>
                   </div>
@@ -370,6 +385,82 @@ export default function ProfessionalReservationsPage() {
             })}
           </div>
         )}
+
+        {/* ---- HISTORIAL ---- */}
+        <section className="mt-12">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-slate-800">Historial de reservas</h2>
+            <div className="flex items-center gap-3">
+              {loadingHistory && (
+                <div className="text-slate-600 flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
+                  <span>Cargando...</span>
+                </div>
+              )}
+              {history.length > 0 && (
+                <button
+                  onClick={clearHistory}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 transition"
+                >
+                  Borrar historial
+                </button>
+              )}
+            </div>
+          </div>
+
+          {history.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm text-slate-600">
+              Todavía no hay movimientos en el historial.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {history.map((h) => {
+                const first = toTitle(h.user?.firstName)
+                const last = toTitle(h.user?.lastName)
+                const emailLocal = (h.user?.email ?? "").split("@")[0]
+                const customerName = first || last ? [first, last].filter(Boolean).join(" ") : emailLocal || "Cliente"
+                const avatarSrc = h.user?.profileImage || h.user?.profileImg || PLACEHOLDER
+                const isAccepted = h.action === "CONFIRMED"
+
+                return (
+                  <li key={`${h.reservationId}-${h.actionAt}`} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img
+                          src={avatarSrc}
+                          alt={customerName}
+                          className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                          onError={(e) => {
+                            const el = e.currentTarget as HTMLImageElement
+                            if (!el.dataset.fallbackApplied) {
+                              el.src = PLACEHOLDER
+                              el.dataset.fallbackApplied = "1"
+                            }
+                          }}
+                        />
+                        <div>
+                          <p className="text-slate-800 font-semibold">{customerName}</p>
+                          <p className="text-sm text-slate-500">
+                            Reserva: {fmtDateTime(h.date)} • Acción: {fmtDateTime(h.actionAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium border ${
+                          isAccepted
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-red-50 text-red-700 border-red-200"
+                        }`}
+                      >
+                        {isAccepted ? "Aceptada" : "Rechazada"}
+                      </span>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
       </div>
     </main>
   )

@@ -10,7 +10,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import { JwtService } from '@nestjs/jwt';
 
@@ -153,6 +153,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   getProfile(@Req() req) {
     return this.userService.getUserById(req.user.id);
   }
@@ -189,5 +190,4 @@ export class AuthController {
     console.log('AUTH /me-raw → req.user =', req.user);
     return req.user;
   }
-
 }

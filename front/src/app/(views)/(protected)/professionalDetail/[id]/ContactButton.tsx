@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { startConversation } from "@/services/inboxService";
 import { routes } from "@/routes";
 import { MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 
 type Props = {
   professionalId: string;
@@ -37,7 +38,7 @@ export default function ContactButton({
       });
       router.push(`${chatsBase}/${conversationId}`);
     } catch (e: any) {
-      alert(e?.message ?? "No se pudo iniciar la conversación.");
+      toast.error(e?.message ?? "No se pudo iniciar la conversación.");
     } finally {
       setLoading(false);
     }
