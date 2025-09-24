@@ -1,7 +1,8 @@
 // app/(views)/(protected)/professionals/page.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import ProfesionalCard from "@/components/professional/ProfesionalCard";
 import SearchBar from "@/components/searchBar/searchBar";
 import {
@@ -9,7 +10,12 @@ import {
   Professional,
 } from "@/services/professionalService";
 
+const PAGE_SIZE = 48;
+
 export default function ProfessionalsPage() {
+  const searchParams = useSearchParams();
+  const q = (searchParams.get("q") ?? "").trim();
+
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -18,44 +24,84 @@ export default function ProfessionalsPage() {
   const observer = useRef<IntersectionObserver | null>(null);
   const lastElementRef = useRef<HTMLDivElement | null>(null);
 
+  // Refs para evitar condiciones de carrera
+  const reqRef = useRef(0); // id de request actual
+  const loadingRef = useRef(false);
+  const prosRef = useRef<Professional[]>([]);
+
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
+    prosRef.current = professionals;
+  }, [professionals]);
+
+  // Reset al cambiar búsqueda + invalidar requests en curso
+  useEffect(() => {
+    setProfessionals([]);
+    setPage(1);
+    setHasMore(true);
+    reqRef.current++; // invalida cualquier fetch en vuelo
+  }, [q]);
+
+  const loadProfessionals = useCallback(
+    async (pageNumber: number) => {
+      if (loadingRef.current || !hasMore) return;
+
+      const requestId = ++reqRef.current; // id para esta llamada
+      setLoading(true);
+      try {
+        const { data } = await fetchProfessionals(pageNumber, PAGE_SIZE, q);
+
+        // Si llegó una respuesta vieja, la ignoramos
+        if (requestId !== reqRef.current) return;
+
+        setProfessionals((prev) => {
+          const map = new Map<string, Professional>();
+          for (const p of prev) map.set(p.id, p);
+          for (const p of data) map.set(p.id, p);
+          return Array.from(map.values());
+        });
+
+        if (data.length < PAGE_SIZE) setHasMore(false);
+      } catch (e) {
+        // Si hubo error y es del request actual, cortamos hasMore
+        if (requestId === reqRef.current) setHasMore(false);
+        console.error("[Page] Error al cargar profesionales:", e);
+      } finally {
+        // Solo limpiamos loading si sigue siendo el request activo
+        if (requestId === reqRef.current) setLoading(false);
+      }
+    },
+    [hasMore, q]
+  );
+
+  // Cargar cuando cambia page o q
   useEffect(() => {
     loadProfessionals(page);
-  }, [page]);
+  }, [page, q, loadProfessionals]);
 
+  // Observer: no avanzar si aún no hay items (evita salto a page=2 antes de cargar page=1)
   useEffect(() => {
-    if (loading) return;
     if (!lastElementRef.current) return;
 
-    const options = {
-      root: null,
-      rootMargin: "0px",
-      threshold: 1.0,
-    };
-
-    observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore) {
+    observer.current?.disconnect();
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (!first.isIntersecting) return;
+        if (!hasMore) return;
+        if (loadingRef.current) return;
+        if (prosRef.current.length === 0) return; // clave: esperar a tener la primera tanda
         setPage((prev) => prev + 1);
-      }
-    }, options);
+      },
+      { root: null, rootMargin: "300px 0px", threshold: 0 }
+    );
 
     observer.current.observe(lastElementRef.current);
-
     return () => observer.current?.disconnect();
-  }, [loading, hasMore]);
-
-  async function loadProfessionals(pageNumber: number) {
-    setLoading(true);
-    try {
-      const { data } = await fetchProfessionals(pageNumber, 12); // 12 por página
-      setProfessionals((prev) => [...prev, ...data]);
-      if (data.length < 12) setHasMore(false);
-    } catch (error) {
-      console.error("Error al cargar profesionales:", error);
-      setHasMore(false);
-    } finally {
-      setLoading(false);
-    }
-  }
+  }, [hasMore, q]); // no dependas de `loading` para no recrearlo en cada fetch
 
   return (
     <main className="px-6 py-10 min-h-screen">
@@ -74,10 +120,12 @@ export default function ProfessionalsPage() {
       </div>
 
       <section className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {professionals.length > 0 ? (
-          professionals.map((p, index) => (
-            <ProfesionalCard key={`${p.id}-${index}`} pro={p} />
-          ))
+        {loading && professionals.length === 0 ? (
+          <p className="col-span-full text-center text-gray-500 text-lg">
+            Buscando profesionales...
+          </p>
+        ) : professionals.length > 0 ? (
+          professionals.map((p) => <ProfesionalCard key={p.id} pro={p} />)
         ) : (
           <p className="col-span-full text-center text-gray-500 text-lg">
             No hay profesionales disponibles por ahora.
@@ -85,43 +133,13 @@ export default function ProfessionalsPage() {
         )}
       </section>
 
-      {loading && (
+      {loading && professionals.length > 0 && (
         <p className="text-center text-gray-500 mt-6">
           Cargando más profesionales...
         </p>
       )}
 
-      {/* Elemento invisible para observar el scroll */}
-      <div ref={lastElementRef} className="h-1"></div>
+      <div ref={lastElementRef} className="h-1" />
     </main>
   );
 }
-
-// return (
-//   <main className="p-6 space-y-8">
-//     <div className="text-center max-w-2xl mx-auto">
-//       <h1 className="text-3xl md:text-4xl font-extrabold text-blue-900">
-//         Conectá con el profesional ideal
-//       </h1>
-//       <p className="text-blue-700 mt-2 text-base md:text-lg">
-//         Encontrá plomeros, electricistas, carpinteros y más — todos
-//         verificados y listos para ayudarte.
-//       </p>
-//     </div>
-
-//     <div className="flex justify-center">
-//       <SearchBar />
-//     </div>
-
-//     {/* GRID DE PROFESIONALES */}
-//     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-//       {Array.isArray(profesionals.data) && profesionals.data.length > 0 ? (
-//         profesionals.data.map((p: ProfessionalResponse) => (
-//           <ProfessionalCard key={p.id} pro={p} />
-//         ))
-//       ) : (
-//         <p>No hay profesionales disponibles</p>
-//       )}
-//     </div>
-//   </main>
-// );

@@ -27,6 +27,7 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { SubscriptionStatus } from 'src/subscription/entities/subscription.entity';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -141,5 +142,13 @@ export class PaymentsController {
   refund(@Body() dto: RefundPaymentDto) {
     return this.paymentsService.refund(dto);
   }
-}
 
+  // En tu payments.controller.ts
+
+  @Post('subscriptions/cancel')
+  @ApiOperation({ summary: 'Cancela la suscripción de un usuario' })
+  async cancelSubscription(@Body('userId') userId: string) {
+    // El controlador ahora solo delega el trabajo al servicio
+    return this.paymentsService.cancelSubscription(userId);
+  }
+}
