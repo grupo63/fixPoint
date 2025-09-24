@@ -135,12 +135,14 @@ export default function RegisterForm() {
       } catch {}
 
       if (!res.ok) {
-        console.error("Signup error:", res.status, res.statusText, bodyText);
-        toast.error(
-          `Error ${res.status} ${res.statusText}\n${
-            bodyText || "(sin detalle)"
-          }`
-        );
+  console.error("Signup error:", res.status, res.statusText, bodyText);
+
+        // Mensaje custom para email duplicado
+        if (res.status === 409) {
+          toast.error("El mail ya se encuentra registrado, registrate con un mail válido.");
+        } else {
+          toast.error("Ocurrió un error al registrar. Inténtalo de nuevo.");
+        }
         return;
       }
 
