@@ -137,10 +137,10 @@ export default function ChatsHomePage() {
                 <MessageCircle className="w-8 h-8 text-blue-600" />
               </div>
               <h3 className="text-xl font-semibold text-slate-800 mb-3">Aún no tenés conversaciones</h3>
-              <p className="text-slate-600 max-w-md mx-auto leading-relaxed">
+              {/* <p className="text-slate-600 max-w-md mx-auto leading-relaxed">
                 Buscá un profesional y tocá <span className="font-medium text-orange-600">"Contactar"</span> para
                 iniciar un chat y resolver tu problema.
-              </p>
+              </p> */}
             </div>
           </div>
         </div>

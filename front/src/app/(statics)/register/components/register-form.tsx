@@ -135,6 +135,7 @@ export default function RegisterForm() {
       } catch {}
 
       if (!res.ok) {
+
   console.error("Signup error:", res.status, res.statusText, bodyText);
 
         // Mensaje custom para email duplicado
@@ -146,6 +147,7 @@ export default function RegisterForm() {
         return;
       }
 
+ 
       // Éxito:
       if (role === "professional") {
         // 🔐 Como /onboarding es protegido, iniciamos sesión automáticamente
