@@ -7,6 +7,7 @@ import Stripe from 'stripe';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Payment } from './entities/payment.entity';
 import { Subscription } from '../subscription/entities/subscription.entity';
+import { User } from 'src/users/entities/user.entity';
 
 const stripeProvider = {
   provide: 'STRIPE',
@@ -17,7 +18,7 @@ const stripeProvider = {
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Payment, Subscription]), // 👈 agrega Subscription
+    TypeOrmModule.forFeature([Payment, Subscription, User]), // 👈 agrega Subscription
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService, PaymentRepository, stripeProvider],

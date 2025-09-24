@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,12 +10,17 @@ import { Repository } from 'typeorm';
 import { parsePhoneNumberFromString, CountryCode } from 'libphonenumber-js';
 import { UpdateUserDTO } from './dto/users.dto';
 import * as countryCodeLookup from 'country-code-lookup';
+import { Subscription } from 'src/subscription/entities/subscription.entity';
+import Stripe from 'stripe';
 
 @Injectable()
 export class UserRepository {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Subscription)
+    private subscriptionRepo: Repository<Subscription>,
+    @Inject('STRIPE') private readonly stripe: Stripe,
   ) {}
 
   private getCountryCode(input: string): CountryCode {
@@ -73,10 +79,33 @@ export class UserRepository {
       relations: ['professional'],
     });
 
-    if (!user) throw new NotFoundException(`User whit id ${id} not found`);
+    if (!user) throw new NotFoundException(`User with id ${id} not found`);
 
-    const { password, ...filteredData } = user;
-    return filteredData;
+    let subscription = await this.subscriptionRepo.findOne({
+      where: { userId: id },
+      order: { createdAt: 'DESC' },
+    });
+
+    // --- LÓGICA MEJORADA (EN EL LUGAR CORRECTO) ---
+    let finalStatus = subscription ? subscription.status : 'inactive';
+
+    // Si está activa en nuestra BD, hacemos una doble verificación en Stripe
+    if (subscription && subscription.status === 'active') {
+      // Usamos 'this.stripe' que fue inyectado en el constructor de este servicio
+      const stripeSub = await this.stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+      if (stripeSub.cancel_at_period_end) {
+        // Si está programada para cancelación, forzamos el estado a 'canceled'
+        finalStatus = 'canceled';
+      }
+    }
+    // --- FIN DE LA LÓGICA MEJORADA ---
+
+    const { password, ...userProfile } = user;
+    return {
+      ...userProfile,
+      subscriptionStatus: finalStatus,
+      subscriptionEndsAt: subscription ? subscription.currentPeriodEnd : null,
+    };
   }
 
   async createUser(user: Partial<User>) {

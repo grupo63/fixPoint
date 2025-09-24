@@ -5,7 +5,6 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToOne,
-  JoinColumn,
   OneToMany,
 } from 'typeorm';
 import { Professional } from 'src/professional/entity/professional.entity';

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { SubscriptionService } from './subscription.service';
-import { SubscriptionController } from './subscription.controller';
+// import { SubscriptionService } from './subscription.service';
+// import { SubscriptionController } from './subscription.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Subscription } from './entities/subscription.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { config as dotenvConfig } from 'dotenv';
-import { SubscriptionRepository } from './subscription.repository';
+// import { SubscriptionRepository } from './subscription.repository';
 import { UsersModule } from 'src/users/users.module';
 
 dotenvConfig({ path: '.env' });
@@ -19,7 +19,7 @@ dotenvConfig({ path: '.env' });
     }),
     UsersModule,
   ],
-  controllers: [SubscriptionController],
-  providers: [SubscriptionService, SubscriptionRepository],
+  // controllers: [SubscriptionController],
+  // providers: [SubscriptionService, SubscriptionRepository],
 })
 export class SubscriptionModule {}

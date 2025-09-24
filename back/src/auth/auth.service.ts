@@ -2,15 +2,16 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { AuthRepository } from './auth.repository';
 import { User } from 'src/users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from './dto/auth.dto';
-import { first } from 'rxjs';
 import { NotificationsService } from 'src/notifications/notification.service';
-import { UserStatus } from 'src/users/types/userStatus';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Subscription } from 'rxjs';
 
 @Injectable()
 export class AuthService {

@@ -39,11 +39,10 @@ const resolveProfileImage = (p: any): string | null => {
   return typeof src === "string" && src.trim().length > 0 ? src : null;
 };
 
-// ===== Listado paginado + búsqueda (opcional) =====
+// ===== Listado paginado =====
 export async function fetchProfessionals(
   page = 1,
-  limit = 10,
-  q?: string // ⬅️ nuevo parámetro opcional
+  limit = 10
 ): Promise<{
   data: Professional[];
   total: number;
@@ -51,29 +50,11 @@ export async function fetchProfessionals(
   limit: number;
   totalPages: number;
 }> {
-  const qs = new URLSearchParams({
-    page: String(page),
-    limit: String(limit),
-  });
-  if (q && q.trim().length > 0) {
-  qs.set("speciality", q.trim());
-}
-
-
-  // ⚠️ Si tu endpoint real es /professionals (plural), cambialo acá.
-  const url = apiUrl(`professional?${qs.toString()}`);
-
-  // LOG del request (lo vas a ver en la consola del navegador)
-  console.log("[Service] GET professionals →", { url, page, limit, q });
-
-  const res = await fetch(url, {
+  const res = await fetch(apiUrl(`professional?page=${page}&limit=${limit}`), {
     cache: "no-store",
     next: { revalidate: 0 },
   });
-  if (!res.ok) {
-    console.error("[Service] GET professionals ERROR →", res.status, res.statusText);
-    throw new Error("Error fetching professionals");
-  }
+  if (!res.ok) throw new Error("Error fetching professionals");
 
   const json = await res.json();
 
@@ -92,18 +73,12 @@ export async function fetchProfessionalById(
 ): Promise<Professional | null> {
   if (!id) return null;
 
-  const url = apiUrl(`professional/${id}`);
-  console.log("[Service] GET professional by id →", url);
-
-  const r = await fetch(url, {
+  const r = await fetch(apiUrl(`professional/${id}`), {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     cache: "no-store",
     next: { revalidate: 0 },
   });
-  if (!r.ok) {
-    console.error("[Service] GET professional by id ERROR →", r.status, r.statusText);
-    return null;
-  }
+  if (!r.ok) return null;
 
   const pro = (await r.json()) as Professional;
   return { ...pro, profileImgResolved: resolveProfileImage(pro) };
@@ -203,8 +178,7 @@ export async function updateProfessional(
   id: string,
   body: ProfessionalUpdate
 ): Promise<Professional | null> {
-  const url = apiUrl(`professional/${id}`);
-  const res = await fetch(url, {
+  const res = await fetch(apiUrl(`professional/${id}`), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
