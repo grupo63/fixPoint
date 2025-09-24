@@ -60,7 +60,6 @@ export class UserRepository {
       take: limit,
       skip: skip,
     });
-
     return users.map(({ password, ...userNoPassord }) => userNoPassord);
   }
 
@@ -81,24 +80,24 @@ export class UserRepository {
 
     if (!user) throw new NotFoundException(`User with id ${id} not found`);
 
-    let subscription = await this.subscriptionRepo.findOne({
+    const subscription = await this.subscriptionRepo.findOne({
       where: { userId: id },
       order: { createdAt: 'DESC' },
     });
 
-    // --- LÓGICA MEJORADA (EN EL LUGAR CORRECTO) ---
+    // --- LÓGICA CLAVE MEJORADA ---
     let finalStatus = subscription ? subscription.status : 'inactive';
 
-    // Si está activa en nuestra BD, hacemos una doble verificación en Stripe
+    // Si la suscripción está 'active' en nuestra base de datos...
     if (subscription && subscription.status === 'active') {
-      // Usamos 'this.stripe' que fue inyectado en el constructor de este servicio
+      // ...le preguntamos a Stripe si está programada para cancelación.
       const stripeSub = await this.stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
       if (stripeSub.cancel_at_period_end) {
-        // Si está programada para cancelación, forzamos el estado a 'canceled'
+        // Si lo está, le decimos al frontend que el estado es 'canceled'.
         finalStatus = 'canceled';
       }
     }
-    // --- FIN DE LA LÓGICA MEJORADA ---
+    // --- FIN DE LA LÓGICA ---
 
     const { password, ...userProfile } = user;
     return {
