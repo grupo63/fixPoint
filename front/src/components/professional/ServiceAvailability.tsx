@@ -25,8 +25,7 @@ const parseHHmm = (base: Date, hhmmLike: string) => {
   return new Date(base.getFullYear(), base.getMonth(), base.getDate(), hh || 0, mm || 0, 0, 0)
 }
 
-// Trae disponibilidades del mes visible (primer día al último)
-// Puedes ampliar el rango si querés prefetch de meses adyacentes
+// Trae disponibilidades del rango visible
 async function fetchAvailabilityByRange(
   professionalId: string,
   fromISO: string,
@@ -217,23 +216,21 @@ export default function ServiceAvailability({
   }
   const calendarDays = getCalendarDays()
 
-  // Rango del mes visible (para fetch)
-  const monthRange = useMemo(() => {
-    const y = calendarDate.getFullYear()
-    const m = calendarDate.getMonth()
-    const from = new Date(y, m, 1)
-    const to = new Date(y, m + 1, 0) // último día del mes
-    return { fromISO: toISO(from), toISO: toISO(to) }
-  }, [calendarDate])
+  // Rango del calendario visible COMPLETO (6 semanas)
+  const visibleRange = useMemo(() => {
+    const first = calendarDays[0]
+    const last = calendarDays[calendarDays.length - 1]
+    return { fromISO: toISO(first), toISO: toISO(last) }
+  }, [calendarDays])
 
-  // Carga disponibilidades del mes actual (fechas puntuales)
+  // Carga disponibilidades del rango visible
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
         setErr(null)
         setLoading(true)
-        const list = await fetchAvailabilityByRange(professionalId, monthRange.fromISO, monthRange.toISO)
+        const list = await fetchAvailabilityByRange(professionalId, visibleRange.fromISO, visibleRange.toISO)
         if (!cancelled) setMonthItems(list)
       } catch (e: any) {
         if (!cancelled) {
@@ -245,9 +242,9 @@ export default function ServiceAvailability({
       }
     })()
     return () => { cancelled = true }
-  }, [professionalId, monthRange.fromISO, monthRange.toISO])
+  }, [professionalId, visibleRange.fromISO, visibleRange.toISO])
 
-  // Recalcula slots cuando cambia la fecha seleccionada o los datos del mes
+  // Recalcula slots cuando cambia la fecha seleccionada o los datos
   useEffect(() => {
     const iso = toISO(dayDate)
     const ranges = byDate[iso] || []
@@ -306,7 +303,7 @@ export default function ServiceAvailability({
             onNextMonth={() => navigateMonth("next")}
           />
 
-          {/* Header de días (Lun..Dom) para que se vea igual que MyAvailabilityCalendar */}
+          {/* Header de días (Lun..Dom) */}
           <div className="grid grid-cols-7 gap-2 mb-4">
             {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => (
               <div key={day} className="p-3 text-center text-sm font-bold text-slate-600 bg-white rounded-lg">
@@ -328,19 +325,19 @@ export default function ServiceAvailability({
                 <button
                   key={idx}
                   onClick={() => {
-                    if (!isPast && inMonth && available) {
+                    if (!isPast && available) {
                       setDayStr(toISO(date))
                     }
                   }}
-                  disabled={isPast || !inMonth}
+                  // ya no deshabilitamos por !inMonth, sólo por pasado
+                  disabled={isPast}
                   className={`
-                    p-4 text-sm font-semibold rounded-lg transition-all duration-200 relative min-h-[48px] border-2
-                    ${!inMonth ? "text-slate-300 cursor-not-allowed bg-slate-100 border-slate-200" : ""}
+                    p-4 text-sm font-semibold rounded-lg transition-all duration-200 relative min-h[48px] border-2
                     ${isPast ? "text-slate-400 cursor-not-allowed bg-slate-100 border-slate-200" : ""}
                     ${isToday ? "ring-2 ring-orange-400 ring-offset-2" : ""}
                     ${isSelected ? "bg-orange-500 text-white shadow-lg border-orange-500 scale-105" : ""}
                     ${available && !isSelected ? "bg-green-100 text-green-800 hover:bg-green-500 hover:text-white border-green-300 hover:border-green-500 hover:scale-105 shadow-md" : ""}
-                    ${!available && !isPast && inMonth ? "bg-white border-slate-200 text-slate-400" : ""}
+                    ${!available && !isPast ? (inMonth ? "bg-white border-slate-200 text-slate-400" : "bg-slate-100 border-slate-200 text-slate-300") : ""}
                   `}
                   title={available ? "Hay disponibilidad" : "Sin disponibilidad"}
                 >
@@ -375,7 +372,7 @@ export default function ServiceAvailability({
           <div className="p-2 bg-gradient-to-r from-slate-700 to-slate-800 rounded-lg">
             <Clock className="w-6 h-6 text-white" />
           </div>
-        <h4 className="text-lg font-bold text-slate-800">Horarios disponibles</h4>
+          <h4 className="text-lg font-bold text-slate-800">Horarios disponibles</h4>
         </div>
 
         {loading ? (

@@ -69,6 +69,7 @@ export class Professional {
   @Column({
     type: 'varchar',
     length: 255,
+    nullable: true,
   })
   profileImg?: string;
 
