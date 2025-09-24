@@ -71,6 +71,7 @@ export class Professional {
     length: 255,
     default:
       'https://tumayorferretero.net/22457-large_default/producto-generico.jpg',
+    nullable: true,
   })
   profileImg: string;
 
