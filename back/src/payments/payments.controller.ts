@@ -8,11 +8,16 @@ import {
   Req,
   Res,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { CreateCheckoutSubscriptionDto } from './dto/create-payment.dto';
 import * as express from 'express';
-import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guards/auth.guards';
+import { RolesGuard } from 'src/auth/guards/roles.guards';
+import { TemporaryRole } from 'src/users/types/temporary-role';
+import { Roles } from 'src/admin/roles.decorator';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -70,5 +75,14 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Cancela la suscripción de un usuario' })
   async cancelSubscription(@Body('userId') userId: string) {
     return this.paymentsService.cancelSubscription(userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(TemporaryRole.ADMIN)
+  @Get('stats')
+  @ApiOperation({ summary: 'Global statistics for payments and subscriptions' })
+  getStats() {
+    return this.paymentsService.getGlobalStats();
   }
 }

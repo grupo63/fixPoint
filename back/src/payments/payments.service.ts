@@ -20,6 +20,8 @@ import {
   SubscriptionStatus,
 } from 'src/subscription/entities/subscription.entity';
 import { User } from 'src/users/entities/user.entity';
+import { NotificationsService } from 'src/notifications/notification.service';
+import { PaymentEmailPayload } from 'src/notifications/dto/paymentEmail.dto';
 
 @Injectable()
 export class PaymentsService {
@@ -34,11 +36,40 @@ export class PaymentsService {
     private readonly subscriptionRepo: Repository<Subscription>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
-  async createCheckoutSubscriptionSession(
-    dto: CreateCheckoutSubscriptionDto,
-  ) {
+  async createCheckoutPaymentSession(dto: CreateCheckoutPaymentDto) {
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: dto.currency,
+            product_data: { name: dto.description },
+            unit_amount: dto.amount,
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: dto.successUrl,
+      cancel_url: dto.cancelUrl,
+      customer_email: dto.receiptEmail,
+      metadata: dto.metadata,
+    });
+    const payment = this.paymentRepo.create({
+      amount: dto.amount,
+      currency: dto.currency,
+      status: PaymentStatus.PROCESSING,
+      providerCheckoutSessionId: session.id,
+      checkoutMode: 'payment',
+    });
+    await this.paymentRepo.save(payment);
+    return { url: session.url, sessionId: session.id, paymentId: payment.id };
+  }
+
+  async createCheckoutSubscriptionSession(dto: CreateCheckoutSubscriptionDto) {
     const session = await this.stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -82,7 +113,7 @@ export class PaymentsService {
 
       if (!subId || !userId) {
         this.logger.error(
-          `CRITICAL: Falta stripeSubscriptionId o userId en la metadata de la sesión ${session.id}`,
+          `CRITICAL: Falta stripeSubscriptionId o userId en la metadata de la sesión ${session.id}.`,
         );
         return;
       }
@@ -117,10 +148,12 @@ export class PaymentsService {
       payment.stripeSubscriptionId = localSub.stripeSubscriptionId;
     }
 
+    let isPaymentSucceeded = false;
     switch (session.payment_status) {
       case 'paid':
       case 'no_payment_required':
         payment.status = PaymentStatus.SUCCEEDED;
+        isPaymentSucceeded = true;
         break;
       case 'unpaid':
         payment.status = PaymentStatus.REQUIRES_PAYMENT_METHOD;
@@ -134,6 +167,42 @@ export class PaymentsService {
     this.logger.log(
       `Pago ${payment.id} actualizado correctamente al estado: ${payment.status}`,
     );
+    
+    // 3️⃣ LÓGICA PARA ENVIAR CORREO DESPUÉS DE UN PAGO EXITOSO
+    if (isPaymentSucceeded) {
+      try {
+        const userId = session.metadata?.userId;
+        if (!userId) {
+          this.logger.warn(`No se encontró userId en la metadata de la sesión ${session.id}.`);
+          return;
+        }
+
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+          this.logger.warn(
+            `No se pudo encontrar el usuario para el userId ${userId}.`,
+          );
+           return;
+        }
+
+        const payload: PaymentEmailPayload = {
+          email: user.email,
+          name: user.firstName || 'Usuario',
+          amount: payment.amount,
+          date: payment.createdAt.toISOString(),
+          transactionId: payment.providerPaymentId!,
+          method: 'Stripe',
+        };
+        await this.notificationsService.sendPaymentConfirmationEmail(payload);
+        this.logger.log(`Correo de confirmación de pago enviado a ${user.email}`);
+
+      } catch (error: any) {
+        this.logger.error(
+          'Fallo al enviar el correo de confirmación de pago',
+          error.message || error,
+        );
+      }
+    }
   }
 
   async createPaymentFromInvoice(invoice: Stripe.Invoice) {
@@ -170,13 +239,16 @@ export class PaymentsService {
     });
     
     await this.paymentRepo.save(newPayment);
-    this.logger.log(`Pago local creado (ID: ${newPayment.id}) para la factura de renovación ${invoiceId}`);
+    this.logger.log(`Pago local creado (ID: ${newPayment.id}) para la factura de renovación ${invoiceId}.`);
   }
   
   async getSubscriptionStatusForUser(userId: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException(`Usuario con ID ${userId} no encontrado.`);
-    const subscription = await this.subscriptionRepo.findOne({ where: { userId }, order: { createdAt: 'DESC' } });
+    const subscription = await this.subscriptionRepo.findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
     const { password, ...userProfile } = user;
     return {
       ...userProfile,
@@ -186,13 +258,50 @@ export class PaymentsService {
   }
   
   async cancelSubscription(userId: string) {
-    const subscription = await this.subscriptionRepo.findOne({ where: { userId, status: SubscriptionStatus.ACTIVE } });
-    if (!subscription || !subscription.stripeSubscriptionId) throw new BadRequestException('No se encontró una suscripción activa para este usuario.');
+    const subscription = await this.subscriptionRepo.findOne({
+      where: { userId, status: SubscriptionStatus.ACTIVE },
+    });
+    if (!subscription || !subscription.stripeSubscriptionId)
+      throw new BadRequestException(
+        'No se encontró una suscripción activa para este usuario.',
+      );
     await this.stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
     return { message: 'Tu suscripción ha sido programada para cancelación.' };
   }
 
-  // Métodos de Ayuda (los dejamos por si se usan en otro lado)
-  getStripe(): Stripe { return this.stripe; }
-  // ... puedes agregar otros métodos que tenías si son necesarios ...
+  getStripe(): Stripe {
+    return this.stripe;
+  }
+
+  async getGlobalStats() {
+    const totalPayments = await this.paymentOrmRepo.count();
+    const totalSucceeded = await this.paymentOrmRepo.count({
+      where: { status: PaymentStatus.SUCCEEDED },
+    });
+    const totalProcessing = await this.paymentOrmRepo.count({
+      where: { status: PaymentStatus.PROCESSING },
+    });
+
+    const sumResult = await this.paymentOrmRepo
+      .createQueryBuilder('p')
+      .select('SUM(p.amount)', 'totalAmount')
+      .addSelect('COUNT(DISTINCT p.stripeSubscriptionId)', 'totalSubscriptions')
+      .getRawOne<{ totalAmount: string; totalSubscriptions: string }>();
+
+    // Manejo de undefined
+    const totalAmount = sumResult?.totalAmount
+      ? Number(sumResult.totalAmount)
+      : 0;
+    const totalSubscriptions = sumResult?.totalSubscriptions
+      ? Number(sumResult.totalSubscriptions)
+      : 0;
+
+    return {
+      totalPayments,
+      totalSucceeded,
+      totalProcessing,
+      totalAmount,
+      totalSubscriptions,
+    };
+  }
 }

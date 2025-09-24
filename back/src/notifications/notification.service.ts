@@ -8,6 +8,7 @@ import * as nodemailer from 'nodemailer';
 import { ReservationNotificationDto } from './dto/reservation-notification.dto';
 // import { PaymentEmailPayload } from './dto/PaymentEmailPyaload.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { PaymentEmailPayload } from './dto/paymentEmail.dto';
 
 @Injectable()
 export class NotificationsService implements OnModuleInit {
@@ -142,4 +143,39 @@ export class NotificationsService implements OnModuleInit {
   //     );
   //   }
   // }
+
+  async sendPaymentConfirmationEmail(data: PaymentEmailPayload) {
+    try {
+      const mailOptions = {
+        from: `"${process.env.APP_NAME}" <${process.env.NOTIFICATIONS_EMAIL}>`,
+        to: data.email,
+        subject: `Confirmación de pago - ${process.env.APP_NAME}`,
+        html: `
+          <h2>Hola ${data.name || 'Usuario'},</h2>
+          <p>Hemos recibido tu pago de 5 USD.</p>
+          <p>Detalles de la transacción:</p>
+          <ul>
+            <li>Método de pago: ${data.method}</li>
+          </ul>
+          <p>Gracias por tu confianza. Si tienes dudas, contáctanos en ${process.env.SUPPORT_EMAIL}</p>
+          <br>
+          <strong>El equipo de ${process.env.APP_NAME}</strong>
+        `,
+        messageId: this.getMessageId(),
+      };
+
+      const info = await this.transporter.sendMail(mailOptions);
+      this.logger.debug(
+        `Correo de confirmación de pago enviado a ${data.email}, messageId: ${info.messageId}`,
+      );
+    } catch (error: any) {
+      this.logger.error(
+        'Error al enviar correo de pago',
+        error?.message || error,
+      );
+      throw new InternalServerErrorException(
+        'No se pudo enviar el correo de pago',
+      );
+    }
+  }
 }
