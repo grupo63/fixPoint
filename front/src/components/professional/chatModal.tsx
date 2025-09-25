@@ -3,12 +3,16 @@
 import { useState } from "react";
 import { Sparkles, Lock } from "lucide-react"; // íconos para darle onda
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { routes } from "@/routes";
 
 type Props = {
   onClose: () => void;
 };
 
 export default function ChatModal({ onClose }: Props) {
+  const router = useRouter();
+
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-99">
       <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
@@ -27,7 +31,7 @@ export default function ChatModal({ onClose }: Props) {
         <button
           className="w-full bg-[#ed7d31] hover:bg-[#b45d27] text-white font-medium py-2 px-4 rounded-full transition duration-200"
           onClick={() => {
-            toast.error("Redirigir a Upgrade");
+            router.push(routes.plan ?? "/signin");
           }}
         >
           <Lock className="inline-block w-4 h-4 mr-2 -mt-1" />
