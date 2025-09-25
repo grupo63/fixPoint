@@ -105,7 +105,7 @@ export default function RegisterForm() {
     }
 
     if (errors.length) {
-     toast.error(errors.join("\n"));
+      toast.error(errors.join("\n"));
       return;
     }
 
@@ -129,25 +129,38 @@ export default function RegisterForm() {
         body: JSON.stringify(payload),
       });
 
+      const emailPayload = {
+        to: "grupoft63@gmail.com",
+        subject: "Nuevo usuario",
+        message:
+          "Felicitaciones! ha ingresado un nuevo usuario a tu plataforma",
+      };
+
+      const resEmail = await fetch("http://localhost:3000/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(emailPayload),
+      });
+
       let bodyText = "";
       try {
         bodyText = await res.text();
       } catch {}
 
       if (!res.ok) {
-
-  console.error("Signup error:", res.status, res.statusText, bodyText);
+        console.error("Signup error:", res.status, res.statusText, bodyText);
 
         // Mensaje custom para email duplicado
         if (res.status === 409) {
-          toast.error("El mail ya se encuentra registrado, registrate con un mail válido.");
+          toast.error(
+            "El mail ya se encuentra registrado, registrate con un mail válido."
+          );
         } else {
           toast.error("Ocurrió un error al registrar. Inténtalo de nuevo.");
         }
         return;
       }
 
- 
       // Éxito:
       if (role === "professional") {
         // 🔐 Como /onboarding es protegido, iniciamos sesión automáticamente
@@ -156,7 +169,9 @@ export default function RegisterForm() {
           router.replace("/onboarding?newPro=1");
         } catch (e) {
           // Si fallara el auto-login, lo llevamos al login con un aviso
-          toast.success("Cuenta creada. Iniciá sesión para continuar el onboarding.");
+          toast.success(
+            "Cuenta creada. Iniciá sesión para continuar el onboarding."
+          );
           router.replace("/signin?registered=1");
         }
       } else {
