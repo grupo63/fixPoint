@@ -17,7 +17,7 @@ type Props = {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const toISODate = (d: Date) =>
-  `  ${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const todayISO = toISODate(new Date());
 
 const LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
@@ -241,7 +241,7 @@ export default function AvailabilityRangeForm({
       for (const date of targetDates) {
         try {
           const res = await fetch(
-            ` ${API}/available/${encodeURIComponent(professionalId)}`,
+            `${API}/available/${encodeURIComponent(professionalId)}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
