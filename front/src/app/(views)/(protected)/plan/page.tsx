@@ -19,46 +19,39 @@ function PageInner() {
   }, [status, router]);
 
   return (
-    <>
-      <div className="min-h-dvh flex bg-gray-50">
-        <main className="flex-1 p-6 flex items-center justify-center">
-          <section className="w-full max-w-4xl text-center">
-            <h1 className="mt-6 text-4xl font-bold text-gray-900">
-              Planes y Suscripciones
-            </h1>
-            <p className="mt-3 text-lg text-gray-600">
-              Elegí el plan que mejor se adapte a vos. Podés abonar de forma
-              única o suscribirte para mayor comodidad.
-            </p>
+    <div className="min-h-screen bg-gray-50 pt-20">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Planes y Suscripciones
+          </h1>
+        </div>
 
-            {status === "success" && (
-              <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 text-sm font-medium shadow-sm">
-                ✅ Tu pago ha sido registrado correctamente.
-              </div>
-            )}
-            {status === "cancel" && (
-              <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800 text-sm font-medium shadow-sm">
-                ⚠️ El pago fue cancelado. Podés intentarlo nuevamente.
-              </div>
-            )}
+        {status === "success" && (
+          <div className="max-w-md mx-auto mb-8 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 text-sm font-medium shadow-sm">
+            ✅ Tu pago ha sido registrado correctamente.
+          </div>
+        )}
+        {status === "cancel" && (
+          <div className="max-w-md mx-auto mb-8 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800 text-sm font-medium shadow-sm">
+            ⚠️ El pago fue cancelado. Podés intentarlo nuevamente.
+          </div>
+        )}
 
-            <p className="mt-8 text-base text-gray-700 leading-7">
-              Tenés dos opciones principales:
-              <br />
-              <span className="font-semibold">• Pago manual:</span> cargás el
-              pago cuando lo necesites.
-              <br />
-              <span className="font-semibold">• Suscripción:</span> se debita
-              automáticamente todos los meses (p. ej., el día 5).
-            </p>
+        <div className="max-w-2xl mx-auto mb-10">
+          <p className="text-base text-gray-700 leading-7 text-center">
+            <span className="font-semibold">• Suscripción:</span> se debita
+            automáticamente todos los meses (p. ej., el día 5).
+          </p>
+        </div>
 
-            <div className="mt-10 grid gap-8 sm:grid-cols-2">
-              <Payments />
-            </div>
-          </section>
-        </main>
+        <div className="flex justify-center">
+          <div className="w-full max-w-md">
+            <Payments />
+          </div>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 

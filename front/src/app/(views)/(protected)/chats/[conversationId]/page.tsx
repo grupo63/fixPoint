@@ -121,7 +121,7 @@ function normalizeMessages(resp: unknown): Msg[] {
 /* ==================== Fetch helpers ==================== */
 async function fetchUserBrief(userId: string, token: string) {
   const r = await fetchJSON(`${API}/users/${userId}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: ` Bearer ${token} ` },
     cache: "no-store",
     __tag: "[users/:id]",
   });
@@ -151,22 +151,23 @@ async function fetchProfessionalSmart(proIdOrUserId: string, token: string) {
       return {
         name:
           p?.name ||
-          pickNiceName(u, `Profesional (${String(proIdOrUserId).slice(-4)})`),
+          pickNiceName(u, ` Profesional (${String(proIdOrUserId).slice(-4)})`),
         avatar:
-          p?.profileImg ||
-          u?.profileImage ||
-          u?.imageUrl ||
-          u?.avatarUrl ||
-          "",
+          p?.profileImg || u?.profileImage || u?.imageUrl || u?.avatarUrl || "",
         _from: "professionals/:id" as const,
       };
     }
   }
   // 2) por userId
   const tryUrls = [
-    { url: `${API}/professionals/by-user/${proIdOrUserId}`, tag: "[by-user/:userId]" },
-    { url: `${API}/professionals?userId=${proIdOrUserId}`, tag: "[?userId=]" },
-    { url: `${API}/professionals?user=${proIdOrUserId}`, tag: "[?user=]" },
+    {
+      url: `${API}/professionals/by-user/${proIdOrUserId}`,
+      tag: "[by-user/:userId]",
+    },
+    {
+      url: ` ${API}/professionals?userId=${proIdOrUserId}, tag: "[?userId=]" `,
+    },
+    { url: `${API}/professionals?user=${proIdOrUserId}, tag: "[?user=]" ` },
   ];
   for (const { url, tag } of tryUrls) {
     const r = await fetchJSON(url, {
@@ -177,7 +178,7 @@ async function fetchProfessionalSmart(proIdOrUserId: string, token: string) {
     if (!r.ok) continue;
     const p = Array.isArray(r.data)
       ? r.data[0]
-      : (r.data?.items?.[0] ?? r.data?.data?.[0] ?? r.data);
+      : r.data?.items?.[0] ?? r.data?.data?.[0] ?? r.data;
     if (!p) continue;
     const u = coerceUser(p?.user ?? null);
     return {
@@ -185,32 +186,31 @@ async function fetchProfessionalSmart(proIdOrUserId: string, token: string) {
         p?.name ||
         pickNiceName(u, `Profesional (${String(proIdOrUserId).slice(-4)})`),
       avatar:
-        p?.profileImg ||
-        u?.profileImage ||
-        u?.imageUrl ||
-        u?.avatarUrl ||
-        "",
-      _from: tag as const,
+        p?.profileImg || u?.profileImage || u?.imageUrl || u?.avatarUrl || "",
+      _from: tag,
     };
   }
   // 3) listar y filtrar por user.id
   {
     const r = await fetchJSON(`${API}/professionals`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: ` Bearer ${token}` },
       cache: "no-store",
       __tag: "[professionals list]",
     });
     if (r.ok) {
       const arr: any[] = Array.isArray(r.data)
         ? r.data
-        : (r.data?.items ?? r.data?.data ?? r.data ?? []);
+        : r.data?.items ?? r.data?.data ?? r.data ?? [];
       const p = arr.find((x) => x?.user?.id === proIdOrUserId);
       if (p) {
         const u = coerceUser(p?.user ?? null);
         return {
           name:
             p?.name ||
-            pickNiceName(u, `Profesional (${String(proIdOrUserId).slice(-4)})`),
+            pickNiceName(
+              u,
+              ` Profesional (${String(proIdOrUserId).slice(-4)})`
+            ),
           avatar:
             p?.profileImg ||
             u?.profileImage ||
@@ -222,7 +222,10 @@ async function fetchProfessionalSmart(proIdOrUserId: string, token: string) {
       }
     }
   }
-  log("❌ No pude resolver professional con ningún endpoint para:", proIdOrUserId);
+  log(
+    "❌ No pude resolver professional con ningún endpoint para:",
+    proIdOrUserId
+  );
   return null;
 }
 
@@ -253,7 +256,9 @@ export default function ChatThreadPage() {
     const cu = coerceUser(c.clientUser ?? c.client);
     if (cu?.id && cu.id !== myId) return cu.id;
     const pu =
-      (typeof c.professional === "object" && c.professional && "user" in c.professional
+      (typeof c.professional === "object" &&
+      c.professional &&
+      "user" in c.professional
         ? (c.professional as any).user
         : c.professional) ?? null;
     const puU = coerceUser(c.professionalUser ?? pu);
@@ -265,7 +270,7 @@ export default function ChatThreadPage() {
     group("loadMessages()");
     try {
       const r = await fetchJSON(`${API}/inbox/messages/${conversationId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: ` Bearer ${token}` },
         cache: "no-store",
         __tag: "[messages/:convId]",
       });
@@ -296,7 +301,7 @@ export default function ChatThreadPage() {
       const raw = r.data;
       const list: ConversationLite[] = Array.isArray(raw)
         ? raw
-        : (raw.items ?? raw.data ?? raw.results ?? raw.conversations ?? []);
+        : raw.items ?? raw.data ?? raw.results ?? raw.conversations ?? [];
       const conv =
         list.find(
           (c) => c.conversationId === conversationId || c.id === conversationId
@@ -421,68 +426,164 @@ export default function ChatThreadPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-4 py-3 border-b bg-white flex items-center gap-3">
-        {peerAvatar ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={peerAvatar}
-            alt={peerName}
-            className="w-8 h-8 rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-blue-600 text-white grid place-items-center">
-            {peerName.slice(0, 1).toUpperCase()}
-          </div>
-        )}
-        <h1 className="text-lg font-semibold">{peerName}</h1>
-      </div>
-
-      {/* Mensajes */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
-        {messages.map((m) => {
-          const isMe = m.senderId === myId;
-          return (
-            <div
-              key={m.id}
-              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`px-3 py-2 rounded-lg max-w-xs break-words ${
-                  isMe
-                    ? "bg-blue-600 text-white rounded-br-none"
-                    : "bg-gray-200 text-gray-900 rounded-bl-none"
-                }`}
-              >
-                <p>{m.content}</p>
-                <span className="block text-[10px] opacity-70 mt-1">
-                  {m.createdAt
-                    ? new Date(m.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : ""}
-                </span>
-              </div>
+    <div className="flex flex-col h-full bg-gray-50">
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="bg-white px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+          {peerAvatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={peerAvatar}
+              alt={peerName}
+              className="w-10 h-10 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gray-300 text-gray-600 grid place-items-center font-medium">
+              {peerName.slice(0, 1).toUpperCase()}
             </div>
-          );
-        })}
-        <div ref={bottomRef} />
-      </div>
+          )}
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">{peerName}</h1>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm text-gray-500">Online</span>
+            </div>
+          </div>
+        </div>
 
-      {/* Input */}
-      <form onSubmit={sendMessage} className="p-3 border-t flex gap-2 bg-white">
-        <input
-          type="text"
-          name="content"
-          placeholder="Escribe un mensaje…"
-          className="flex-1 border rounded-lg px-3 py-2 text-sm"
-        />
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg">
-          Enviar
-        </button>
-      </form>
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {messages.map((m, index) => {
+            const isMe = m.senderId === myId;
+            const prevMessage = index > 0 ? messages[index - 1] : null;
+            const showAvatar =
+              !isMe && (!prevMessage || prevMessage.senderId !== m.senderId);
+            const showDate =
+              index === 0 ||
+              (prevMessage &&
+                new Date(m.createdAt || 0).toDateString() !==
+                  new Date(prevMessage.createdAt || 0).toDateString());
+
+            return (
+              <div key={m.id}>
+                {/* Date Separator */}
+                {showDate && (
+                  <div className="flex items-center my-4">
+                    <div className="flex-1 border-t border-gray-200"></div>
+                    <span className="px-3 text-sm text-gray-500 bg-gray-50 rounded-full">
+                      {m.createdAt
+                        ? new Date(m.createdAt).toLocaleDateString("en-US", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })
+                        : "Today"}
+                    </span>
+                    <div className="flex-1 border-t border-gray-200"></div>
+                  </div>
+                )}
+
+                {/* Message */}
+                <div
+                  className={`flex ${
+                    isMe ? "justify-end" : "justify-start"
+                  } mb-2`}
+                >
+                  <div
+                    className={`flex gap-3 max-w-md ${
+                      isMe ? "flex-row-reverse" : "flex-row"
+                    }`}
+                  >
+                    {/* Avatar */}
+                    {showAvatar && !isMe && (
+                      <div className="flex-shrink-0">
+                        {peerAvatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={peerAvatar}
+                            alt={peerName}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-600 grid place-items-center text-sm font-medium">
+                            {peerName.slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Message Content */}
+                    <div
+                      className={`flex flex-col ${
+                        isMe ? "items-end" : "items-start"
+                      }`}
+                    >
+                      <div
+                        className={`px-4 py-3 rounded-2xl ${
+                          isMe
+                            ? "bg-[#162748] text-white rounded-br-md"
+                            : "bg-gray-100 text-gray-900 rounded-bl-md"
+                        }`}
+                      >
+                        <p className="text-sm leading-relaxed">{m.content}</p>
+                      </div>
+                      <span className="text-xs text-gray-500 mt-1 px-1">
+                        {m.createdAt
+                          ? new Date(m.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })
+                          : ""}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input Area */}
+        <div className="bg-white px-6 py-4 border-t border-gray-200">
+          <form onSubmit={sendMessage} className="flex items-center gap-3">
+            <input
+              type="text"
+              name="content"
+              placeholder="Send a message"
+              className="flex-1 border border-gray-300 rounded-full px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button
+              type="button"
+              className="text-gray-400 hover:text-gray-600 p-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                />
+              </svg>
+            </button>
+            <button
+              type="submit"
+              className="bg-[#ed7d31] hover:bg-[#ed7d31] text-white px-6 py-3 rounded-md text-sm font-medium transition-colors"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

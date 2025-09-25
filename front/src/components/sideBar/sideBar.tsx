@@ -52,9 +52,7 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
 
   return (
     <aside className="sticky h-[95vh] top-5 w-64 bg-[#162748] text-white flex flex-col justify-between rounded-tr-[50px] rounded-bl-[50px] m-4 z-[99]">
-      {/* TOP */}
       <div>
-        {/* Logo */}
         <div className="px-6 py-6 text-2xl font-bold tracking-wide">
           <Link href="/professionals">
             <Image
@@ -69,7 +67,7 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
 
         {/* Menu */}
         <nav className="mt-4 space-y-2 px-4">
-          {isAdmin ? (
+          {isAdmin && (
             <>
               <NavLink
                 href={routes.admin_dashboard ?? "#"}
@@ -104,16 +102,16 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
               </div>
 
               <NavLink
-                href={routes.admin_subscriptions ?? "#"}
-                active={pathname === (routes.admin_subscriptions ?? "#")}
+                href="/admin/subscriptions"
+                active={pathname === "/admin/subscriptions"}
               >
                 <CreditCard className="w-5 h-5" />
                 <span>Suscripciones</span>
               </NavLink>
             </>
-          ) : (
+          )}
+          {!isPro && !isAdmin && (
             <>
-              {/* Visible para todos los no-admin */}
               <NavLink
                 href={routes.profesionales}
                 active={pathname === routes.profesionales}
@@ -122,53 +120,57 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
                 <span>Profesionales</span>
               </NavLink>
 
-              {/* 👇 Mis Reservas → solo para usuarios logueados que NO son profesionales */}
-              {isLogged && !isPro && (
-                <NavLink
-                  href="/my-reservations"
-                  active={pathname === "/my-reservations"}
-                >
-                  <Calendar className="w-5 h-5" />
-                  <span>Mis Reservas</span>
-                </NavLink>
-              )}
+              <NavLink
+                href="/my-reservations"
+                active={pathname === "/my-reservations"}
+              >
+                <Calendar className="w-5 h-5" />
+                <span>Mis Reservas</span>
+              </NavLink>
+            </>
+          )}
 
-              {/* SOLO PROFESIONAL */}
-              {isPro && (
-                <>
-                  <NavLink
-                    href={routes.services ?? "/services"}
-                    active={pathname.startsWith(routes.services ?? "/services")}
-                  >
-                    <Wrench className="w-5 h-5" />
-                    <span>Servicios</span>
-                  </NavLink>
-                  <NavLink
-                    href={routes.availability ?? "/availability"}
-                    active={pathname.startsWith(
-                      routes.availability ?? "/availability"
-                    )}
-                  >
-                    <Calendar className="w-5 h-5" />
-                    <span>Disponibilidad</span>
-                  </NavLink>
-                  <NavLink
-                    href={routes.reservas ?? "/reservas"}
-                    active={pathname.startsWith(routes.reservas ?? "/reservas")}
-                  >
-                    <CalendarCheck className="w-5 h-5" />
-                    <span>Reservas</span>
-                  </NavLink>
-                </>
-              )}
+          {/* SOLO PROFESIONAL */}
+          {isPro && (
+            <>
+              <NavLink
+                href={routes.dashboard ?? "#"}
+                active={pathname === (routes.dashboard ?? "#")}
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                <span>Dashboard</span>
+              </NavLink>
+              <NavLink
+                href="/services"
+                active={pathname.startsWith("/services")}
+              >
+                <Wrench className="w-5 h-5" />
+                <span>Servicios</span>
+              </NavLink>
+              <NavLink
+                href="/availability"
+                active={pathname.startsWith("/availability")}
+              >
+                <Calendar className="w-5 h-5" />
+                <span>Disponibilidad</span>
+              </NavLink>
+              <NavLink
+                href="/reservas"
+                active={pathname.startsWith("/reservas")}
+              >
+                <CalendarCheck className="w-5 h-5" />
+                <span>Reservas</span>
+              </NavLink>
+            </>
+          )}
 
-              {/* Chats - solo si está logueado */}
-              {isLogged && (
-                <NavLink href="/chats" active={pathname.startsWith("/chats")}>
-                  <MessageCircle className="w-5 h-5" />
-                  <span>Chats</span>
-                </NavLink>
-              )}
+          {/* Chats - solo si está logueado */}
+          {isLogged && !isAdmin && (
+            <>
+              <NavLink href="/chats" active={pathname.startsWith("/chats")}>
+                <MessageCircle className="w-5 h-5" />
+                <span>Chats</span>
+              </NavLink>
 
               <NavLink
                 href={routes.plan ?? "#"}

@@ -2,116 +2,158 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { apiUrl } from "@/lib/apiUrl";
 
-type ProReserva = {
+type Reservation = {
   reservationId: string;
+  id?: string; // Para compatibilidad
   status: string;
   date: string;
   professionalId: string;
+  user?: {
+    firstName: string;
+    lastName: string;
+    profileImage?: string;
+  };
 };
 
-type ProReview = {
-  reviewId: string;
-  rate: number;
-  professionalId: string;
-};
+// Review type removed - no longer needed
 
-type ProService = {
+type Service = {
   id: string;
   title: string;
-  professionalId: string;
+  description?: string;
+  professional: {
+    id: string;
+  };
+  category: {
+    id: string;
+    name: string;
+  };
 };
 
-type Stats = {
-  services: number;
-  reservasPendientes: number;
-  rating: number;
-  proximasReservas: { reservaId: string; fecha: string }[];
+type DashboardStats = {
+  totalServices: number;
+  pendingReservations: number;
+  confirmedReservations: number;
+  upcomingReservations: Array<{
+    id: string;
+    date: string;
+    clientName: string;
+    status: string;
+  }>;
 };
 
 export function useProDashboard() {
   const { user, token } = useAuth();
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !token) return;
+    if (!user || !token) {
+      setLoading(false);
+      return;
+    }
 
-    const professionalId = user.professional || user.id;
+    const professionalId = user.professional?.id || user.id;
 
-    async function fetchData() {
+    // Validate that we have a valid professionalId
+    if (!professionalId) {
+      setError("No se pudo obtener el ID del profesional");
+      setLoading(false);
+      return;
+    }
+
+    async function fetchDashboardData() {
       try {
-        // --- Services ---
-        const servicesRes = await fetch(`http://localhost:3001/api/services`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const allServices: ProService[] = await servicesRes.json();
-        const services = allServices.filter(
-          (s) => s.professionalId === professionalId
-        );
+        setLoading(true);
+        setError(null);
 
-        // --- Reservations ---
-        const reservationsRes = await fetch(
-          `http://localhost:3001/api/reservations`,
-          {
+        // Fetch data in parallel (removed reviews)
+        const [servicesRes, reservationsRes] = await Promise.all([
+          fetch(apiUrl(`/services?professionalId=${professionalId}`), {
             headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const allReservations: ProReserva[] = await reservationsRes.json();
-        const reservations = allReservations.filter(
-          (r) => r.professionalId === professionalId
+          }),
+          fetch(apiUrl(`/reservations`), {
+            headers: { Authorization: `Bearer ${token} ` },
+          }),
+        ]);
+
+        // Check if requests were successful
+        if (!servicesRes.ok || !reservationsRes.ok) {
+          throw new Error("Error al cargar los datos del dashboard");
+        }
+
+        const [services, allReservations] = await Promise.all([
+          servicesRes.json(),
+          reservationsRes.json(),
+        ]);
+
+        // Debug: mostrar datos recibidos
+        console.log("=== DEBUG DASHBOARD ===");
+        console.log("ProfessionalId:", professionalId);
+        console.log("All reservations:", allReservations);
+        console.log("Services:", services);
+
+        // Filter data for this professional
+        const professionalReservations = allReservations.filter(
+          (r: Reservation) => r.professionalId === professionalId
         );
 
-        // --- Reviews ---
-        const reviewsRes = await fetch(`http://localhost:3001/api/reviews`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const allReviews: ProReview[] = await reviewsRes.json();
-        const reviews = allReviews.filter(
-          (rev) => rev.professionalId === professionalId
-        );
+        console.log("Professional reservations:", professionalReservations);
+        console.log("=========================");
 
-        // ---- Procesamiento ----
-        const reservasPendientes = reservations.filter(
-          (r) => r.status === "pending"
+        // Calculate metrics
+        const totalServices = services.length;
+        const pendingReservations = professionalReservations.filter(
+          (r: Reservation) => r.status === "PENDING" || r.status === "pending"
+        ).length;
+        const confirmedReservations = professionalReservations.filter(
+          (r: Reservation) =>
+            r.status === "CONFIRMED" || r.status === "confirmed"
         ).length;
 
-        const proximasReservas = reservations
+        // Removed rating calculation - no longer needed
+
+        // Get upcoming reservations (confirmed and future dates)
+        const upcomingReservations = professionalReservations
           .filter(
-            (r) =>
-              r.status === "confirmed" &&
+            (r: Reservation) =>
+              (r.status === "CONFIRMED" || r.status === "confirmed") &&
               new Date(r.date).getTime() > Date.now()
           )
-          .slice(0, 3)
-          .map((r) => ({
-            reservaId: r.reservationId,
-            fecha: new Date(r.date).toLocaleString("es-AR", {
+          .slice(0, 5)
+          .map((r: Reservation) => ({
+            id: r.reservationId || r.id || "",
+            date: new Date(r.date).toLocaleString("es-AR", {
               dateStyle: "short",
               timeStyle: "short",
             }),
+            clientName: r.user
+              ? `${r.user.firstName} ${r.user.lastName}`
+              : "Cliente",
+            status: r.status,
           }));
 
-        const rating =
-          reviews.length > 0
-            ? reviews.reduce((acc, r) => acc + (r.rate || 0), 0) /
-              reviews.length
-            : 0;
+        // Removed recent reviews - no longer needed
 
         setStats({
-          services: services.length,
-          reservasPendientes,
-          rating,
-          proximasReservas,
+          totalServices,
+          pendingReservations,
+          confirmedReservations,
+          upcomingReservations,
         });
-      } catch (error) {
-        console.error("Error cargando dashboard:", error);
+      } catch (err) {
+        console.error("Error cargando dashboard:", err);
+        setError(err instanceof Error ? err.message : "Error desconocido");
       } finally {
         setLoading(false);
       }
     }
 
-    fetchData();
+    fetchDashboardData();
   }, [user, token]);
 
-  return { stats, loading };
+  return { stats, loading, error };
 }
