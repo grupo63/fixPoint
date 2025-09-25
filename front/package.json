@@ -20,6 +20,7 @@
     "react-hook-form": "^7.62.0",
     "react-hot-toast": "^2.6.0",
     "react-toastify": "^11.0.5",
+    "recharts": "^3.2.1",
     "sonner": "^2.0.7",
     "zod": "^4.1.5"
   },
