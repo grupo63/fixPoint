@@ -96,10 +96,6 @@ export default function Sidebar({ showUser = true }: { showUser?: boolean }) {
                 <Tag className="w-5 h-5" />
                 <span>Categorías</span>
               </NavLink>
-
-              <div className="mt-6 text-xs uppercase tracking-wide text-blue-200">
-                Configuración
-              </div>
             </>
           )}
           {!isPro && !isAdmin && (
