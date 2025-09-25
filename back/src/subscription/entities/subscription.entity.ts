@@ -4,16 +4,23 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 export enum SubscriptionStatus {
   ACTIVE = 'active',
+  TRIALING = 'trialing',
   INACTIVE = 'inactive',
-  CANCELLED = 'cancelled',
+  CANCELED = 'canceled',
+  PAST_DUE = 'past_due',
+  UNPAID = 'unpaid',
+  INCOMPLETE = 'incomplete',
+  INCOMPLETE_EXPIRED = 'incomplete_expired',
   EXPIRED = 'expired',
   PENDING = 'pending',
 }
@@ -23,14 +30,15 @@ export class Subscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: false })
-  name: string;
+  @Index({ unique: true })
+  @Column({ type: 'varchar' })
+  stripeSubscriptionId: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
-  price: number;
+  @Column({ type: 'varchar' })
+  stripePriceId: string;
 
-  @Column({ type: 'varchar', length: 5, default: 'AR' })
-  currency: string;
+  @Column({ type: 'integer', default: 1 })
+  quantity: number;
 
   @Column({
     type: 'enum',
@@ -39,10 +47,18 @@ export class Subscription {
   })
   status: SubscriptionStatus;
 
-  @CreateDateColumn({ type: 'time without time zone' })
+  @Column({ type: 'timestamp with time zone' })
+  currentPeriodEnd: Date; // <--- La propiedad que faltaba
+
+  @CreateDateColumn()
   createdAt: Date;
 
-  //Relacion con User
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @Column()
+  userId: string;
+
   @ManyToOne(() => User, (user) => user.subscriptions, {
     onDelete: 'CASCADE',
     nullable: false,

@@ -180,9 +180,10 @@ export async function getMyProfessionalClient(
 }
 
 //Users por rol
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string | undefined;
 export async function fetchUsersByRole(role: string) {
   try {
-    const res = await fetch(`http://localhost:3001/users/role?role=${role}`, {
+    const res = await fetch(`${API_BASE}/users/role?role=${role}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
 

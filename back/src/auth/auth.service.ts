@@ -2,19 +2,23 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { AuthRepository } from './auth.repository';
 import { User } from 'src/users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from './dto/auth.dto';
-import { first } from 'rxjs';
+import { NotificationsService } from 'src/notifications/notification.service';
+import { Subscription } from 'rxjs';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService, // usa JwtModule global
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async signUp(user: CreateUserDto) {
@@ -42,6 +46,26 @@ export class AuthService {
       password: passwordHash,
       role: internalRole,
     });
+
+    // try {
+    //   await this.notificationsService.sendWelcomeEmail({
+    //     name: user.firstName || 'Usuario',
+    //     email: user.email,
+    //   });
+    //   this.logger.log(`Correo de bienvenida enviado a ${user.email}`);
+    // } catch (error) {
+    //   this.logger.error(
+    //     `Error al enviar correo de bienvenida a ${user.email}`,
+    //     error,
+    //   );
+    //   // Si el envío del correo no es crítico, no lanzamos excepción
+    // }
+    //Envio de email sobre la creacion de usuario:
+    // await this.notificationsService.sendWelcomeEmail({
+    //   name: user.firstName || 'Usuario',
+    //   email,
+    // });
+
     return created;
   }
 

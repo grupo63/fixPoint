@@ -25,14 +25,22 @@ export class ReservationController {
   // Público: crear reserva
   @Post()
   @ApiOperation({ summary: 'Crear una reserva' })
-  @ApiResponse({ status: 201, description: 'Reserva creada', type: Reservation })
+  @ApiResponse({
+    status: 201,
+    description: 'Reserva creada',
+    type: Reservation,
+  })
   create(@Body() dto: CreateReservationDto) {
     return this.reservationService.create(dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Listar todas las reservas' })
-  @ApiResponse({ status: 200, description: 'Lista de reservas', type: [Reservation] })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de reservas',
+    type: [Reservation],
+  })
   findAll() {
     return this.reservationService.findAll();
   }
@@ -40,8 +48,16 @@ export class ReservationController {
   // Pendientes para un profesional (incluye user con profileImage)
   @Get('pending/:professionalId')
   @ApiOperation({ summary: 'Listar reservas pendientes para un profesional' })
-  @ApiParam({ name: 'professionalId', description: 'UUID del profesional', type: String })
-  @ApiResponse({ status: 200, description: 'Lista de reservas pendientes', type: [Reservation] })
+  @ApiParam({
+    name: 'professionalId',
+    description: 'UUID del profesional',
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de reservas pendientes',
+    type: [Reservation],
+  })
   getPending(@Param('professionalId', ParseUUIDPipe) professionalId: string) {
     return this.reservationService.getPendingForProfessional(professionalId);
   }
@@ -52,7 +68,10 @@ export class ReservationController {
   @ApiOperation({ summary: 'Obtener datos básicos del cliente de una reserva' })
   @ApiParam({ name: 'id', description: 'UUID de la reserva' })
   @ApiResponse({ status: 200, description: 'Datos del cliente (básicos)' })
-  getClientForReservation(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+  getClientForReservation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: any,
+  ) {
     if (!req?.user?.id) throw new UnauthorizedException('No autenticado');
     return this.reservationService.getClientForReservation(id, req.user.id);
   }
@@ -60,7 +79,11 @@ export class ReservationController {
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una reserva por ID' })
   @ApiParam({ name: 'id', description: 'UUID de la reserva' })
-  @ApiResponse({ status: 200, description: 'Reserva encontrada', type: Reservation })
+  @ApiResponse({
+    status: 200,
+    description: 'Reserva encontrada',
+    type: Reservation,
+  })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.reservationService.findOne(id);
   }
@@ -78,7 +101,11 @@ export class ReservationController {
   @Patch(':id/confirm')
   @ApiOperation({ summary: 'Confirmar una reserva (profesional acepta)' })
   @ApiParam({ name: 'id', description: 'UUID de la reserva' })
-  @ApiResponse({ status: 200, description: 'Reserva confirmada', type: Reservation })
+  @ApiResponse({
+    status: 200,
+    description: 'Reserva confirmada',
+    type: Reservation,
+  })
   confirm(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
     if (!req?.user?.id) throw new UnauthorizedException('No autenticado');
     return this.reservationService.confirmReservation(id, req.user.id);
@@ -93,8 +120,14 @@ export class ReservationController {
     description: 'Reserva cancelada por el profesional',
     type: Reservation,
   })
-  cancelByProfessional(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+  cancelByProfessional(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: any,
+  ) {
     if (!req?.user?.id) throw new UnauthorizedException('No autenticado');
-    return this.reservationService.cancelReservationByProfessional(id, req.user.id);
+    return this.reservationService.cancelReservationByProfessional(
+      id,
+      req.user.id,
+    );
   }
 }

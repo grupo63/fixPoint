@@ -6,48 +6,42 @@ import { Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react"
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL
 
-type WeeklyAvailability = {
+type Availability = {
   id: string
-  dayOfWeek: number // 0..6 (Dom..Sáb) o 1..7 (Lun..Dom)
-  startTime: string // "HH:mm"
-  endTime: string // "HH:mm"
+  date: string      // "YYYY-MM-DD"
+  startTime: string // "HH:mm" (o HH:mm:ss)
+  endTime: string   // "HH:mm" (o HH:mm:ss)
 }
 
-// ---- utils fecha local ----
+// ---- utils fecha/hora ----
 const pad = (n: number) => String(n).padStart(2, "0")
-const toLocalDateInputValue = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+const toISO = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+const toLocalDateInputValue = (d: Date) => toISO(d)
 const addMinutes = (d: Date, m: number) => new Date(d.getTime() + m * 60_000)
 const formatHHmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
-function parseHHmm(base: Date, hhmm: string) {
+const parseHHmm = (base: Date, hhmmLike: string) => {
+  const hhmm = String(hhmmLike).slice(0, 5) // corta ":ss" si viene
   const [hh, mm] = hhmm.split(":").map(Number)
   return new Date(base.getFullYear(), base.getMonth(), base.getDate(), hh || 0, mm || 0, 0, 0)
 }
 
-// 0..6 vs 1..7 → detecta según los datos
-function jsDowToApiDow(jsDow: number, weekly: WeeklyAvailability[]) {
-  const set = new Set(weekly.map((w) => w.dayOfWeek))
-  const looksOneToSeven = [...set].every((n) => n >= 1 && n <= 7)
-  return looksOneToSeven ? (jsDow === 0 ? 7 : jsDow) : jsDow
-}
-
-/** Intenta varias rutas de “listar disponibilidades de un profesional”.
- *  Ajustá aquí si sabés la ruta exacta de tu API.
- */
-async function listWeeklyAvailability(proId: string): Promise<WeeklyAvailability[]> {
+// Trae disponibilidades del rango visible
+async function fetchAvailabilityByRange(
+  professionalId: string,
+  fromISO: string,
+  toISO_: string,
+): Promise<Availability[]> {
   const candidates = [
-    `${API}/available/professional/${encodeURIComponent(proId)}`,
-    `${API}/available?professionalId=${encodeURIComponent(proId)}`,
-    `${API}/availability/professional/${encodeURIComponent(proId)}`,
-    `${API}/availability?professionalId=${encodeURIComponent(proId)}`,
+    `${API}/available/professional/${encodeURIComponent(professionalId)}?from=${fromISO}&to=${toISO_}`,
+    `${API}/available/professional/${encodeURIComponent(professionalId)}`, // fallback sin rango
   ]
 
   let lastErr: any = null
-
   for (const url of candidates) {
     try {
       const res = await fetch(url, { cache: "no-store" })
       if (!res.ok) {
-        lastErr = new Error(await res.text())
+        lastErr = new Error(await res.text().catch(() => res.statusText))
         continue
       }
       const raw = await res.json()
@@ -59,32 +53,44 @@ async function listWeeklyAvailability(proId: string): Promise<WeeklyAvailability
             ? raw.data
             : []
 
-      if (!Array.isArray(arr) || arr.length === 0) continue
-
-      const weekly = arr
+      // Normaliza a Availability por fecha puntual
+      const list: Availability[] = arr
         .map((r: any) => ({
           id: String(r?.id),
-          dayOfWeek: Number(r?.dayOfWeek),
-          startTime: String(r?.startTime ?? ""),
-          endTime: String(r?.endTime ?? ""),
+          date: String(r?.date),
+          startTime: String(r?.startTime ?? "").slice(0, 5),
+          endTime: String(r?.endTime ?? "").slice(0, 5),
         }))
-        .filter((r) => r.id && r.startTime && r.endTime && !Number.isNaN(r.dayOfWeek))
+        .filter((r) => r.id && r.date && r.startTime && r.endTime)
 
-      if (weekly.length) return weekly
+      if (list.length) return list
+      // si vino vacío pero sin error, devolvemos vacío y listo
+      return []
     } catch (e) {
       lastErr = e
     }
   }
-
-  throw lastErr || new Error("Tu API no expone un listado de disponibilidades por profesional.")
+  throw lastErr || new Error("No pude obtener disponibilidad por fecha.")
 }
 
-function buildDailySlots(weekly: WeeklyAvailability[], day: Date, stepMin: number, durationMin: number) {
-  const out: { start: Date; label: string }[] = []
-  const apiDow = jsDowToApiDow(day.getDay(), weekly)
-  const rows = weekly.filter((r) => Number(r.dayOfWeek) === apiDow)
+// Agrupa por YYYY-MM-DD
+function groupByDate(items: Availability[]): Record<string, Availability[]> {
+  return items.reduce((acc, a) => {
+    (acc[a.date] ||= []).push(a)
+    return acc
+  }, {} as Record<string, Availability[]>)
+}
 
-  for (const r of rows) {
+// Construye slots (botones) para un día, con step = duración del servicio
+function buildDailySlotsFromRanges(
+  day: Date,
+  dayRanges: Availability[],
+  durationMin: number,
+) {
+  const out: { start: Date; label: string }[] = []
+  const now = Date.now()
+
+  for (const r of dayRanges) {
     const from = parseHHmm(day, r.startTime)
     const to = parseHHmm(day, r.endTime)
 
@@ -92,12 +98,13 @@ function buildDailySlots(weekly: WeeklyAvailability[], day: Date, stepMin: numbe
     while (cursor <= to) {
       const finish = addMinutes(cursor, durationMin)
       const fits = finish.getTime() <= to.getTime() + 1
-      const notPast = cursor.getTime() >= Date.now()
+      const notPast = cursor.getTime() >= now
       if (fits && notPast) out.push({ start: new Date(cursor), label: formatHHmm(cursor) })
-      cursor = addMinutes(cursor, stepMin)
+      cursor = addMinutes(cursor, durationMin) // step = duración
     }
   }
 
+  // ordena y de-dup por timestamp
   out.sort((a, b) => a.start.getTime() - b.start.getTime())
   const dedup: typeof out = []
   let last = ""
@@ -129,40 +136,30 @@ function CalendarHeader({
   onNextMonth: () => void
 }) {
   const monthNames = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
+    "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
   ]
 
   return (
     <div className="flex items-center justify-between mb-6">
       <button
         onClick={onPrevMonth}
-        className="p-2 rounded-lg hover:bg-muted transition-colors duration-200"
+        className="p-3 rounded-lg hover:bg-slate-100 transition-colors duration-200 border border-slate-200"
         aria-label="Mes anterior"
       >
-        <ChevronLeft className="w-5 h-5 text-muted-foreground" />
+        <ChevronLeft className="w-5 h-5 text-slate-600" />
       </button>
 
-      <h2 className="text-xl font-semibold text-foreground">
+      <h2 className="text-xl font-bold text-slate-800">
         {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
       </h2>
 
       <button
         onClick={onNextMonth}
-        className="p-2 rounded-lg hover:bg-muted transition-colors duration-200"
+        className="p-3 rounded-lg hover:bg-slate-100 transition-colors duration-200 border border-slate-200"
         aria-label="Mes siguiente"
       >
-        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        <ChevronRight className="w-5 h-5 text-slate-600" />
       </button>
     </div>
   )
@@ -179,109 +176,119 @@ export default function ServiceAvailability({
   durationMin?: number
   className?: string
 }) {
+  // Fecha seleccionada (input y para slots)
   const [dayStr, setDayStr] = useState(() => toLocalDateInputValue(new Date()))
   const dayDate = useMemo(() => {
     const [y, m, d] = dayStr.split("-").map(Number)
     return new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0)
   }, [dayStr])
 
+  // Mes visible en el calendario (para hacer fetch por rango)
   const [calendarDate, setCalendarDate] = useState(new Date())
   const [showCalendar, setShowCalendar] = useState(false)
 
+  // Estado de datos
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [slots, setSlots] = useState<{ start: Date; label: string }[]>([])
-  const [weeklyAvailability, setWeeklyAvailability] = useState<WeeklyAvailability[]>([])
+  const [monthItems, setMonthItems] = useState<Availability[]>([])
+  const byDate = useMemo(() => groupByDate(monthItems), [monthItems])
+  const availableDates = useMemo(() => new Set(Object.keys(byDate)), [byDate])
 
+  // Slots renderizados para la fecha seleccionada
+  const [slots, setSlots] = useState<{ start: Date; label: string }[]>([])
+
+  // Helpers de calendario (Lunes a Domingo como en MyAvailabilityCalendar)
+  const getCalendarDays = () => {
+    const year = calendarDate.getFullYear()
+    const month = calendarDate.getMonth()
+    const first = new Date(year, month, 1)
+    const jsDow = first.getDay()           // 0=Dom..6=Sáb
+    const offsetToMonday = (jsDow + 6) % 7 // mueve a lunes
+    const start = new Date(year, month, 1 - offsetToMonday)
+
+    const days: Date[] = []
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
+      days.push(d)
+    }
+    return days
+  }
+  const calendarDays = getCalendarDays()
+
+  // Rango del calendario visible COMPLETO (6 semanas)
+  const visibleRange = useMemo(() => {
+    const first = calendarDays[0]
+    const last = calendarDays[calendarDays.length - 1]
+    return { fromISO: toISO(first), toISO: toISO(last) }
+  }, [calendarDays])
+
+  // Carga disponibilidades del rango visible
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
         setErr(null)
         setLoading(true)
-        const weekly = await listWeeklyAvailability(professionalId)
-        const built = buildDailySlots(weekly, dayDate, 60, durationMin)
-        if (!cancelled) {
-          setSlots(built)
-          setWeeklyAvailability(weekly)
-        }
+        const list = await fetchAvailabilityByRange(professionalId, visibleRange.fromISO, visibleRange.toISO)
+        if (!cancelled) setMonthItems(list)
       } catch (e: any) {
         if (!cancelled) {
-          setErr(
-            e?.message ||
-              "No se pudo obtener la disponibilidad. Asegurate de exponer un endpoint de listado por profesional.",
-          )
-          setSlots([])
+          setErr(e?.message || "No se pudo obtener la disponibilidad del profesional.")
+          setMonthItems([])
         }
       } finally {
         if (!cancelled) setLoading(false)
       }
     })()
-    return () => {
-      cancelled = true
-    }
-  }, [professionalId, dayDate, durationMin])
+    return () => { cancelled = true }
+  }, [professionalId, visibleRange.fromISO, visibleRange.toISO])
+
+  // Recalcula slots cuando cambia la fecha seleccionada o los datos
+  useEffect(() => {
+    const iso = toISO(dayDate)
+    const ranges = byDate[iso] || []
+    const built = buildDailySlotsFromRanges(dayDate, ranges, durationMin)
+    setSlots(built)
+  }, [dayDate, byDate, durationMin])
 
   const hasAvailability = (date: Date) => {
-    const apiDow = jsDowToApiDow(date.getDay(), weeklyAvailability)
-    return weeklyAvailability.some((w) => Number(w.dayOfWeek) === apiDow)
+    const iso = toISO(date)
+    return availableDates.has(iso)
   }
 
   const navigateMonth = (direction: "prev" | "next") => {
     setCalendarDate((prev) => {
-      const newDate = new Date(prev)
-      if (direction === "prev") {
-        newDate.setMonth(prev.getMonth() - 1)
-      } else {
-        newDate.setMonth(prev.getMonth() + 1)
-      }
-      return newDate
+      const next = new Date(prev)
+      next.setMonth(prev.getMonth() + (direction === "prev" ? -1 : 1))
+      return next
     })
   }
 
-  const getCalendarDays = () => {
-    const year = calendarDate.getFullYear()
-    const month = calendarDate.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const startDate = new Date(firstDay)
-    startDate.setDate(startDate.getDate() - firstDay.getDay())
-
-    const days = []
-    const currentDate = new Date(startDate)
-
-    for (let i = 0; i < 42; i++) {
-      days.push(new Date(currentDate))
-      currentDate.setDate(currentDate.getDate() + 1)
-    }
-
-    return days
-  }
-
-  const calendarDays = getCalendarDays()
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = new Date(); today.setHours(0, 0, 0, 0)
 
   return (
-    <div className={`bg-card rounded-xl shadow-sm border border-border p-6 ${className}`}>
-      <div className="flex items-center justify-between mb-6">
+    <div className={`bg-white rounded-xl shadow-lg border border-slate-200 p-8 ${className}`}>
+      <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <Calendar className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold text-card-foreground">Seleccionar fecha</h3>
+          <div className="p-2 bg-gradient-to-r from-slate-700 to-slate-800 rounded-lg">
+            <Calendar className="w-6 h-6 text-white" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800">Seleccionar fecha y horario</h3>
         </div>
         <button
           onClick={() => setShowCalendar(!showCalendar)}
-          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-accent transition-colors duration-200 text-sm font-medium"
+          className="px-6 py-3 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors duration-200 text-sm font-semibold shadow-md hover:shadow-lg"
         >
           {showCalendar ? "Ocultar calendario" : "Ver calendario"}
         </button>
       </div>
 
-      <div className="flex items-center gap-4 mb-6">
-        <label className="text-sm font-medium text-muted-foreground min-w-fit">Fecha seleccionada:</label>
+      <div className="flex items-center gap-4 mb-8">
+        <label className="text-sm font-semibold text-slate-700 min-w-fit">Fecha seleccionada:</label>
         <input
           type="date"
-          className="flex-1 border border-border rounded-lg px-4 py-3 text-sm bg-input text-foreground focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200"
+          className="flex-1 border-2 border-slate-200 rounded-lg px-4 py-3 text-sm bg-white text-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 font-medium"
           value={dayStr}
           min={toLocalDateInputValue(new Date())}
           onChange={(e) => setDayStr(e.target.value)}
@@ -289,83 +296,101 @@ export default function ServiceAvailability({
       </div>
 
       {showCalendar && (
-        <div className="mb-6 bg-muted/30 rounded-xl p-4 border border-border">
+        <div className="mb-8 bg-slate-50 rounded-xl p-6 border-2 border-slate-200">
           <CalendarHeader
             currentDate={calendarDate}
             onPrevMonth={() => navigateMonth("prev")}
             onNextMonth={() => navigateMonth("next")}
           />
 
-          {/* Days of week header */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((day) => (
-              <div key={day} className="p-2 text-center text-xs font-medium text-muted-foreground">
+          {/* Header de días (Lun..Dom) */}
+          <div className="grid grid-cols-7 gap-2 mb-4">
+            {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => (
+              <div key={day} className="p-3 text-center text-sm font-bold text-slate-600 bg-white rounded-lg">
                 {day}
               </div>
             ))}
           </div>
 
-          {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((date, index) => {
-              const isCurrentMonth = date.getMonth() === calendarDate.getMonth()
+          {/* Grid del calendario */}
+          <div className="grid grid-cols-7 gap-2">
+            {calendarDays.map((date, idx) => {
+              const inMonth = date.getMonth() === calendarDate.getMonth()
               const isToday = date.getTime() === today.getTime()
-              const isSelected = date.getTime() === dayDate.getTime()
+              const isSelected = toISO(date) === dayStr
               const isPast = date < today
               const available = hasAvailability(date) && !isPast
 
               return (
                 <button
-                  key={index}
+                  key={idx}
                   onClick={() => {
-                    if (!isPast && isCurrentMonth) {
-                      setDayStr(toLocalDateInputValue(date))
+                    if (!isPast && available) {
+                      setDayStr(toISO(date))
                     }
                   }}
-                  disabled={isPast || !isCurrentMonth}
+                  // ya no deshabilitamos por !inMonth, sólo por pasado
+                  disabled={isPast}
                   className={`
-                    p-3 text-sm rounded-lg transition-all duration-200 relative
-                    ${!isCurrentMonth ? "text-muted-foreground/40 cursor-not-allowed" : ""}
-                    ${isPast ? "text-muted-foreground/50 cursor-not-allowed" : ""}
-                    ${isToday ? "ring-2 ring-primary/50" : ""}
-                    ${isSelected ? "bg-primary text-primary-foreground shadow-md" : ""}
-                    ${available && !isSelected ? "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground" : ""}
-                    ${!available && !isPast && isCurrentMonth ? "hover:bg-muted" : ""}
-                    ${!isSelected && !isPast && isCurrentMonth ? "hover:shadow-sm" : ""}
+                    p-4 text-sm font-semibold rounded-lg transition-all duration-200 relative min-h[48px] border-2
+                    ${isPast ? "text-slate-400 cursor-not-allowed bg-slate-100 border-slate-200" : ""}
+                    ${isToday ? "ring-2 ring-orange-400 ring-offset-2" : ""}
+                    ${isSelected ? "bg-orange-500 text-white shadow-lg border-orange-500 scale-105" : ""}
+                    ${available && !isSelected ? "bg-green-100 text-green-800 hover:bg-green-500 hover:text-white border-green-300 hover:border-green-500 hover:scale-105 shadow-md" : ""}
+                    ${!available && !isPast ? (inMonth ? "bg-white border-slate-200 text-slate-400" : "bg-slate-100 border-slate-200 text-slate-300") : ""}
                   `}
+                  title={available ? "Hay disponibilidad" : "Sin disponibilidad"}
                 >
                   {date.getDate()}
                   {available && !isSelected && (
-                    <div className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></div>
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm" />
                   )}
                 </button>
               )
             })}
           </div>
+
+          <div className="flex items-center justify-center gap-6 mt-6 p-4 bg-white rounded-lg border border-slate-200">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded-full" />
+              <span className="text-sm font-medium text-slate-700">Disponible</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-slate-300 rounded-full" />
+              <span className="text-sm font-medium text-slate-700">No disponible</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-orange-500 rounded-full" />
+              <span className="text-sm font-medium text-slate-700">Seleccionado</span>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Clock className="w-5 h-5 text-primary" />
-          <h4 className="text-base font-semibold text-card-foreground">Horarios disponibles</h4>
+          <div className="p-2 bg-gradient-to-r from-slate-700 to-slate-800 rounded-lg">
+            <Clock className="w-6 h-6 text-white" />
+          </div>
+          <h4 className="text-lg font-bold text-slate-800">Horarios disponibles</h4>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="ml-3 text-sm text-muted-foreground">Cargando disponibilidad...</p>
+          <div className="flex items-center justify-center py-12 bg-slate-50 rounded-xl border-2 border-slate-200">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-orange-500"></div>
+            <p className="ml-4 text-base font-medium text-slate-600">Cargando disponibilidad...</p>
           </div>
         ) : err ? (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-            <p className="text-sm text-destructive">{err}</p>
+          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6">
+            <p className="text-sm font-medium text-red-700">{err}</p>
           </div>
         ) : slots.length === 0 ? (
-          <div className="bg-muted/50 border border-border rounded-lg p-6 text-center">
-            <p className="text-sm text-muted-foreground">Sin horarios disponibles para este día.</p>
+          <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-8 text-center">
+            <p className="text-base font-medium text-slate-600">Sin horarios disponibles para este día.</p>
+            <p className="text-sm text-slate-500 mt-2">Elegí un día marcado en verde del calendario.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {slots.map((s) => {
               const iso = s.start.toISOString()
               const href = buildReservationHref({
@@ -377,7 +402,7 @@ export default function ServiceAvailability({
                 <Link
                   key={iso}
                   href={href}
-                  className="group px-4 py-3 rounded-lg border border-border text-sm bg-card text-card-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200 text-center font-medium shadow-sm hover:shadow-md"
+                  className="group px-6 py-4 rounded-lg border-2 border-green-200 text-sm bg-green-50 text-green-800 hover:bg-green-500 hover:text-white hover:border-green-500 transition-all duration-200 text-center font-semibold shadow-md hover:shadow-lg hover:scale-105"
                   title="Reservar este horario"
                   prefetch
                 >

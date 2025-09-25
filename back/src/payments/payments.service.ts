@@ -2,19 +2,26 @@ import {
   Injectable,
   Inject,
   Logger,
+  NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import Stripe from 'stripe';
-import { PaymentRepository } from './payments.repository';
-import { PaymentStatus } from './entities/payment.entity';
+import { Repository } from 'typeorm';
 import {
   CreateCheckoutPaymentDto,
   CreateCheckoutSubscriptionDto,
 } from './dto/create-payment.dto';
-import { Repository } from 'typeorm';
-import { Subscription } from 'src/subscription/entities/subscription.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 import { RefundPaymentDto } from './dto/update-payment.dto';
+import { Payment, PaymentStatus } from './entities/payment.entity';
+import { PaymentRepository } from './payments.repository';
+import {
+  Subscription,
+  SubscriptionStatus,
+} from 'src/subscription/entities/subscription.entity';
+import { User } from 'src/users/entities/user.entity';
+import { NotificationsService } from 'src/notifications/notification.service';
+import { PaymentEmailPayload } from 'src/notifications/dto/paymentEmail.dto';
 
 @Injectable()
 export class PaymentsService {
@@ -23,23 +30,23 @@ export class PaymentsService {
   constructor(
     @Inject('STRIPE') private readonly stripe: Stripe,
     private readonly paymentRepo: PaymentRepository,
+    @InjectRepository(Payment)
+    private readonly paymentOrmRepo: Repository<Payment>,
     @InjectRepository(Subscription)
     private readonly subscriptionRepo: Repository<Subscription>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createCheckoutPaymentSession(dto: CreateCheckoutPaymentDto) {
-    const currency =
-      (dto.currency || '').toLowerCase() === 'ar'
-        ? 'ars'
-        : (dto.currency || '').toLowerCase();
-
     const session = await this.stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
-            currency,
+            currency: dto.currency,
             product_data: { name: dto.description },
             unit_amount: dto.amount,
           },
@@ -50,18 +57,15 @@ export class PaymentsService {
       cancel_url: dto.cancelUrl,
       customer_email: dto.receiptEmail,
       metadata: dto.metadata,
-      automatic_tax: { enabled: false },
     });
-
     const payment = this.paymentRepo.create({
       amount: dto.amount,
-      currency,
+      currency: dto.currency,
       status: PaymentStatus.PROCESSING,
       providerCheckoutSessionId: session.id,
       checkoutMode: 'payment',
     });
     await this.paymentRepo.save(payment);
-
     return { url: session.url, sessionId: session.id, paymentId: payment.id };
   }
 
@@ -69,251 +73,235 @@ export class PaymentsService {
     const session = await this.stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: dto.priceId,
-          quantity: dto.quantity ?? 1,
-        },
-      ],
+      line_items: [{ price: dto.priceId, quantity: dto.quantity ?? 1 }],
       success_url: dto.successUrl,
       cancel_url: dto.cancelUrl,
       metadata: { ...dto.metadata, userId: dto.userId ?? '' },
-      subscription_data: {
-        trial_period_days: dto.trialDays ?? undefined,
-        metadata: { userId: dto.userId ?? '' },
-      },
-      allow_promotion_codes: true,
+      subscription_data: { trial_period_days: dto.trialDays ?? undefined },
     });
-
     const payment = this.paymentRepo.create({
-      amount: 0,
-      currency: 'usd',
       status: PaymentStatus.PROCESSING,
       providerCheckoutSessionId: session.id,
       checkoutMode: 'subscription',
-      subscriptionId: undefined,
     });
     await this.paymentRepo.save(payment);
-
     return { url: session.url, sessionId: session.id, paymentId: payment.id };
   }
 
-  async getCheckoutSession(sessionId: string) {
-    return this.stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['payment_intent', 'subscription', 'customer'],
-    });
-  }
-
-  async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-    const csId = session.id;
-
-    const payment = await this.paymentRepo.findByCheckoutSessionId(csId);
+  async applyCheckoutCompleted(session: Stripe.Checkout.Session) {
+    this.logger.log(`Procesando checkout.session.completed para la sesión: ${session.id}`);
+    const payment = await this.paymentRepo.findByCheckoutSessionId(session.id);
     if (!payment) {
-      this.logger.warn(
-        `[checkout.session.completed] No local payment for session ${csId}`,
+      this.logger.error(
+        `CRITICAL: No se encontró el registro de pago para la sesión ${session.id}.`,
       );
       return;
     }
+
+    const piId =
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id;
+    if (piId) payment.providerPaymentId = piId;
 
     if (session.mode === 'subscription') {
       const subId =
         typeof session.subscription === 'string'
           ? session.subscription
           : session.subscription?.id;
-      if (subId) payment.subscriptionId = subId;
+      const userId = session.metadata?.userId;
 
-      const invId =
-        typeof session.invoice === 'string'
-          ? session.invoice
-          : session.invoice?.id;
-      if (invId) payment.providerInvoiceId = invId;
+      if (!subId || !userId) {
+        this.logger.error(
+          `CRITICAL: Falta stripeSubscriptionId o userId en la metadata de la sesión ${session.id}.`,
+        );
+        return;
+      }
+      
+      const stripeSub = await this.stripe.subscriptions.retrieve(subId, {
+        expand: ['latest_invoice'],
+      });
+      
+      let localSub = await this.subscriptionRepo.findOne({ where: { stripeSubscriptionId: stripeSub.id } });
 
+      if (!localSub) {
+        const invoice = stripeSub.latest_invoice as Stripe.Invoice;
+        const periodEndTimestamp = invoice.period_end;
+
+        if (!periodEndTimestamp) {
+            this.logger.error(`CRITICAL: La factura ${invoice.id} no tiene fecha de fin de período.`);
+            return;
+        }
+
+        localSub = this.subscriptionRepo.create({
+            userId: userId,
+            stripeSubscriptionId: stripeSub.id,
+            stripePriceId: stripeSub.items.data[0].price.id,
+            quantity: stripeSub.items.data[0].quantity,
+            status: stripeSub.status as SubscriptionStatus,
+            currentPeriodEnd: new Date(periodEndTimestamp * 1000),
+        });
+        await this.subscriptionRepo.save(localSub);
+        this.logger.log(`Nueva suscripción local creada con ID: ${localSub.id}`);
+      }
+      payment.subscription = localSub;
+      payment.stripeSubscriptionId = localSub.stripeSubscriptionId;
     }
 
-    if (session.mode === 'payment') {
-      const piId =
-        typeof session.payment_intent === 'string'
-          ? session.payment_intent
-          : session.payment_intent?.id;
-      if (piId) payment.providerPaymentId = piId;
+    let isPaymentSucceeded = false;
+    switch (session.payment_status) {
+      case 'paid':
+      case 'no_payment_required':
+        payment.status = PaymentStatus.SUCCEEDED;
+        isPaymentSucceeded = true;
+        break;
+      case 'unpaid':
+        payment.status = PaymentStatus.REQUIRES_PAYMENT_METHOD;
+        break;
+      default:
+        payment.status = PaymentStatus.PROCESSING;
+        break;
     }
 
     await this.paymentRepo.save(payment);
+    this.logger.log(
+      `Pago ${payment.id} actualizado correctamente al estado: ${payment.status}`,
+    );
+    
+    // 3️⃣ LÓGICA PARA ENVIAR CORREO DESPUÉS DE UN PAGO EXITOSO
+    if (isPaymentSucceeded) {
+      try {
+        const userId = session.metadata?.userId;
+        if (!userId) {
+          this.logger.warn(`No se encontró userId en la metadata de la sesión ${session.id}.`);
+          return;
+        }
+
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+          this.logger.warn(
+            `No se pudo encontrar el usuario para el userId ${userId}.`,
+          );
+           return;
+        }
+
+        const payload: PaymentEmailPayload = {
+          email: user.email,
+          name: user.firstName || 'Usuario',
+          amount: payment.amount,
+          date: payment.createdAt.toISOString(),
+          transactionId: payment.providerPaymentId!,
+          method: 'Stripe',
+        };
+        await this.notificationsService.sendPaymentConfirmationEmail(payload);
+        this.logger.log(`Correo de confirmación de pago enviado a ${user.email}`);
+
+      } catch (error: any) {
+        this.logger.error(
+          'Fallo al enviar el correo de confirmación de pago',
+          error.message || error,
+        );
+      }
+    }
   }
 
-  async upsertFromInvoice(invoice: Stripe.Invoice) {
-    const paymentIntent = (invoice as any)['payment_intent'];
-    const piId = typeof paymentIntent === 'string' ? paymentIntent : paymentIntent?.id;
-    if (!piId) return;
-
-    const subField = (invoice as any)['subscription'];
-    const subId =
-      typeof subField === 'string' ? subField : (subField?.id ?? undefined);
-
-    const amount = invoice.amount_paid ?? invoice.amount_due ?? 0;
-
-    const existing = await this.paymentRepo.findByProviderPaymentId(piId);
-    if (existing) {
-      existing.status = invoice.status === 'paid' ? PaymentStatus.SUCCEEDED : existing.status;
-      existing.providerInvoiceId = invoice.id;
-      existing.amount = amount || existing.amount;
-      existing.currency = invoice.currency || existing.currency;
-      if (subId) existing.subscriptionId = subId;
-      await this.paymentRepo.save(existing);
-      return existing;
+  async createPaymentFromInvoice(invoice: Stripe.Invoice) {
+    if (invoice.billing_reason !== 'subscription_cycle') {
+      this.logger.log(`Ignorando factura ${invoice.id} por razón: ${invoice.billing_reason}`);
+      return;
     }
 
-    const payment = this.paymentRepo.create({
-      providerPaymentId: piId,
-      providerInvoiceId: invoice.id,
-      amount,
+    const invoiceId = invoice.id;
+    const subscription = (invoice as any).subscription;
+    const paymentIntent = (invoice as any).payment_intent;
+    const subscriptionId = typeof subscription === 'string' ? subscription : subscription?.id;
+    const paymentIntentId = typeof paymentIntent === 'string' ? paymentIntent : paymentIntent?.id;
+    
+    if (!invoiceId || !subscriptionId) {
+      this.logger.warn(`Factura ${invoiceId} sin ID de suscripción. Ignorando.`);
+      return;
+    }
+    
+    const existingPayment = await this.paymentOrmRepo.findOne({ where: { providerInvoiceId: invoiceId } });
+    if (existingPayment) {
+      this.logger.log(`El pago para la factura ${invoiceId} ya existe.`);
+      return;
+    }
+
+    const newPayment = this.paymentRepo.create({
+      status: PaymentStatus.PROCESSING,
+      amount: invoice.amount_due,
       currency: invoice.currency,
-      status:
-        invoice.status === 'paid'
-          ? PaymentStatus.SUCCEEDED
-          : PaymentStatus.PROCESSING,
-      subscriptionId: subId,
+      providerInvoiceId: invoiceId,
+      stripeSubscriptionId: subscriptionId,
+      providerPaymentId: paymentIntentId,
+      checkoutMode: 'subscription',
     });
-    return this.paymentRepo.save(payment);
+    
+    await this.paymentRepo.save(newPayment);
+    this.logger.log(`Pago local creado (ID: ${newPayment.id}) para la factura de renovación ${invoiceId}.`);
+  }
+  
+  async getSubscriptionStatusForUser(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException(`Usuario con ID ${userId} no encontrado.`);
+    const subscription = await this.subscriptionRepo.findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+    const { password, ...userProfile } = user;
+    return {
+      ...userProfile,
+      subscriptionStatus: subscription ? subscription.status : 'inactive',
+      subscriptionEndsAt: subscription ? subscription.currentPeriodEnd : null,
+    };
+  }
+  
+  async cancelSubscription(userId: string) {
+    const subscription = await this.subscriptionRepo.findOne({
+      where: { userId, status: SubscriptionStatus.ACTIVE },
+    });
+    if (!subscription || !subscription.stripeSubscriptionId)
+      throw new BadRequestException(
+        'No se encontró una suscripción activa para este usuario.',
+      );
+    await this.stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+    return { message: 'Tu suscripción ha sido programada para cancelación.' };
   }
 
   getStripe(): Stripe {
     return this.stripe;
   }
 
-  async getSubscriptionStatusForUser(userId: string) {
-    const subscription = await this.subscriptionRepo.findOne({
-      where: { user: { id: userId } },
-      relations: ['user'],
+  async getGlobalStats() {
+    const totalPayments = await this.paymentOrmRepo.count();
+    const totalSucceeded = await this.paymentOrmRepo.count({
+      where: { status: PaymentStatus.SUCCEEDED },
+    });
+    const totalProcessing = await this.paymentOrmRepo.count({
+      where: { status: PaymentStatus.PROCESSING },
     });
 
-    if (!subscription) {
-      return { status: 'no_subscription' };
-    }
+    const sumResult = await this.paymentOrmRepo
+      .createQueryBuilder('p')
+      .select('SUM(p.amount)', 'totalAmount')
+      .addSelect('COUNT(DISTINCT p.stripeSubscriptionId)', 'totalSubscriptions')
+      .getRawOne<{ totalAmount: string; totalSubscriptions: string }>();
+
+    // Manejo de undefined
+    const totalAmount = sumResult?.totalAmount
+      ? Number(sumResult.totalAmount)
+      : 0;
+    const totalSubscriptions = sumResult?.totalSubscriptions
+      ? Number(sumResult.totalSubscriptions)
+      : 0;
 
     return {
-      status: subscription.status,
-      subscriptionId: subscription.id,
+      totalPayments,
+      totalSucceeded,
+      totalProcessing,
+      totalAmount,
+      totalSubscriptions,
     };
-  }
-
-  async refund(dto: RefundPaymentDto) {
-    const stripe = this.getStripe();
-
-    const refund = await stripe.refunds.create({
-      payment_intent: dto.paymentIntentId,
-      amount: dto.amount,
-    });
-
-    const charge = refund.charge
-      ? (typeof refund.charge === 'string'
-        ? await stripe.charges.retrieve(refund.charge)
-        : refund.charge)
-      : null;
-
-    const total = charge?.amount ?? 0;
-    const refundedSoFar = charge?.amount_refunded ?? refund.amount ?? 0;
-    const isFullRefund = charge?.refunded === true || refundedSoFar >= total;
-    const refundableRemaining = Math.max(total - refundedSoFar, 0);
-
-    return {
-      refundId: refund.id,
-      status: refund.status,
-      amount: refund.amount ?? null,
-      currency: refund.currency ?? null,
-      paymentIntentId: typeof refund.payment_intent === 'string'
-        ? refund.payment_intent
-        : refund.payment_intent?.id,
-      chargeId: typeof refund.charge === 'string' ? refund.charge : refund.charge?.id,
-      isFullRefund,
-      refundedSoFar,
-      refundableRemaining,
-    };
-  }
-
-  async applyCheckoutCompleted(session: Stripe.Checkout.Session) {
-    let payment = await this.paymentRepo.findByCheckoutSessionId(session.id);
-
-    let piId: string | undefined;
-    if (typeof session.payment_intent === 'string') piId = session.payment_intent;
-    else if (
-      session.payment_intent &&
-      typeof session.payment_intent === 'object'
-    )
-      piId = session.payment_intent.id;
-
-    if (!payment && piId) {
-      payment = await this.paymentRepo.findByProviderPaymentId(piId);
-    }
-
-    if (!payment) {
-      payment = this.paymentRepo.create({
-        providerCheckoutSessionId: session.id,
-        checkoutMode: session.mode as any,
-        currency: (session.currency as string) ?? 'usd',
-        amount: session.amount_total ?? 0,
-        status: PaymentStatus.PROCESSING,
-      });
-    }
-    payment.providerCheckoutSessionId = session.id;
-    payment.checkoutMode = session.mode as any;
-    if (typeof session.currency === 'string')
-      payment.currency = session.currency;
-    if (typeof session.amount_total === 'number')
-      payment.amount = session.amount_total;
-
-    if (piId) payment.providerPaymentId = piId;
-
-    await this.paymentRepo.save(payment);
-  }
-
-  async syncFromStripe(paymentIntentId: string) {
-
-    const pi = await this.stripe.paymentIntents.retrieve(paymentIntentId);
-
-    let payment =
-      await this.paymentRepo.findByProviderPaymentId(paymentIntentId);
-
-    if (!payment) {
-      payment = this.paymentRepo.create({
-        providerPaymentId: (pi as any).id,
-        amount: (pi as any).amount ?? 0,
-        currency: ((pi as any).currency as string) ?? 'usd',
-        status: PaymentStatus.PROCESSING,
-      });
-    }
-
-    payment.amount = (pi as any).amount ?? payment.amount;
-    payment.currency = ((pi as any).currency as string) ?? payment.currency;
-
-    const charges = await this.stripe.charges.list({
-      payment_intent: paymentIntentId,
-      limit: 100,
-    });
-    const refunded = (charges.data ?? []).reduce(
-      (acc, ch) => acc + (ch.amount_refunded ?? 0),
-      0,
-    );
-    payment.refundedAmount = refunded;
-
-    switch ((pi as any).status as string) {
-      case 'succeeded':
-        payment.status = PaymentStatus.SUCCEEDED;
-        break;
-      case 'processing':
-        payment.status = PaymentStatus.PROCESSING;
-        break;
-      case 'requires_payment_method':
-        payment.status = PaymentStatus.REQUIRES_PAYMENT_METHOD;
-        break;
-      case 'canceled':
-        payment.status = PaymentStatus.CANCELED;
-        break;
-      default:
-        break;
-    }
-
-    await this.paymentRepo.save(payment);
-    return payment;
   }
 }

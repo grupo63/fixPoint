@@ -73,7 +73,7 @@ export class Professional {
       'https://tumayorferretero.net/22457-large_default/producto-generico.jpg',
     nullable: true,
   })
-  profileImg: string;
+  profileImg?: string;
 
   @CreateDateColumn()
   createdAt: Date;

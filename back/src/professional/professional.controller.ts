@@ -121,12 +121,12 @@ export class ProfessionalController {
   @Post(':userId')
   @ApiOperation({
     summary: 'Create a new professional',
-    description:
-      'Creates a professional profile linked to an existing user.',
+    description: 'Creates a professional profile linked to an existing user.',
   })
   @ApiParam({
     name: 'userId',
-    description: 'UUID of the user who will be associated with the professional profile',
+    description:
+      'UUID of the user who will be associated with the professional profile',
     type: String,
   })
   @ApiBody({

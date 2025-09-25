@@ -29,4 +29,8 @@ export class PaymentRepository {
   create(partial: Partial<Payment>) {
     return this.repo.create(partial);
   }
+
+  getGlobalStats(): Repository<Payment> {
+    return this.repo;
+  }
 }
