@@ -179,12 +179,12 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
               className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-[#162748] text-white text-sm font-medium hover:opacity-90 transition"
             />
           )}
-          <button
+          {/* <button
             onClick={() => setShowModal(true)}
             className="bg-[#ed7d31] hover:bg-[#b45d27] text-white px-5 py-2.5 rounded-full shadow-md transition-all duration-200 flex items-center gap-2 text-sm font-medium"
           >
             <MessageCircle size={18} /> Iniciar conversación
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -244,7 +244,9 @@ export function ProfessionalDetail({ pro }: { pro: ProfessionalResponse }) {
                   </div>
 
                   {s.description && (
-                    <p className="text-sm text-gray-600 mt-2">{s.description}</p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      {s.description}
+                    </p>
                   )}
 
                   {/* Acciones */}

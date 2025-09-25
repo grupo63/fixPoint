@@ -6,8 +6,12 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
 // Usamos variables de entorno para las URLs
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-const APP_BASE_URL = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+const APP_BASE_URL =
+  typeof window !== "undefined"
+    ? window.location.origin
+    : "http://localhost:3000";
 const STRIPE_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
 
 export default function Payments() {
@@ -32,7 +36,9 @@ export default function Payments() {
   // --- El resto de tu componente (sin cambios) ---
   const createSubscription = async () => {
     if (!STRIPE_PRICE_ID || !STRIPE_PRICE_ID.startsWith("price_")) {
-      toast.error("Error de configuración: El Price ID de Stripe no está definido.");
+      toast.error(
+        "Error de configuración: El Price ID de Stripe no está definido."
+      );
       return;
     }
     if (!user) {
@@ -41,22 +47,27 @@ export default function Payments() {
     }
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/checkout/subscription`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          priceId: STRIPE_PRICE_ID,
-          userId: user.id,
-          successUrl: `${APP_BASE_URL}/plan?status=success`,
-          cancelUrl: `${APP_BASE_URL}/plan?status=cancel`,
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/checkout/subscription`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            priceId: STRIPE_PRICE_ID,
+            userId: user.id,
+            successUrl: `${APP_BASE_URL}/plan?status=success`,
+            cancelUrl: `${APP_BASE_URL}/plan?status=cancel`,
+          }),
+        }
+      );
       if (!response.ok) throw new Error(await response.text());
       const session = await response.json();
       if (session.url) window.location.href = session.url;
     } catch (error) {
       console.error("Fallo al crear la suscripción:", error);
-      toast.error("No se pudo conectar con el servidor para crear la suscripción.");
+      toast.error(
+        "No se pudo conectar con el servidor para crear la suscripción."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -66,17 +77,21 @@ export default function Payments() {
     if (!user) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/subscriptions/cancel`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/subscriptions/cancel`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id }),
+        }
+      );
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "Error del servidor.");
+      if (!response.ok)
+        throw new Error(result.message || "Error del servidor.");
       toast.success("Tu suscripción ha sido cancelada.");
       setUser((currentUser) => {
         if (!currentUser) return null;
-        return { ...currentUser, subscriptionStatus: 'canceled' };
+        return { ...currentUser, subscriptionStatus: "canceled" };
       });
     } catch (error: any) {
       toast.error(`No se pudo cancelar: ${error.message}`);
@@ -87,27 +102,41 @@ export default function Payments() {
 
   const handleCancelSubscription = () => {
     toast.warning("¿Estás seguro de que quieres cancelar?", {
-      description: "Tu acceso premium continuará hasta el final del período de facturación.",
-      action: { label: "Sí, cancelar", onClick: () => proceedWithCancellation() },
+      description:
+        "Tu acceso premium continuará hasta el final del período de facturación.",
+      action: {
+        label: "Sí, cancelar",
+        onClick: () => proceedWithCancellation(),
+      },
       cancel: { label: "No, mantener suscripción" },
       duration: 10000,
     });
   };
 
   if (!isReady) {
-    return <div className="text-center p-6">Cargando información del plan...</div>;
+    return (
+      <div className="text-center p-6">Cargando información del plan...</div>
+    );
   }
   if (!user) {
-    return <div className="text-center p-6 bg-gray-50 rounded-xl">Por favor, inicia sesión para ver los planes.</div>;
+    return (
+      <div className="text-center p-6 bg-gray-50 rounded-xl">
+        Por favor, inicia sesión para ver los planes.
+      </div>
+    );
   }
 
   const { subscriptionStatus } = user;
 
-  if (subscriptionStatus === 'active') {
+  if (subscriptionStatus === "active") {
     return (
       <div className="rounded-xl border border-green-300 bg-green-50 p-6 shadow-md text-center">
-        <h3 className="text-lg font-semibold text-green-900">Tu Suscripción está Activa</h3>
-        <p className="mt-2 text-sm text-green-700">Tu plan se renovará automáticamente.</p>
+        <h3 className="text-lg font-semibold text-green-900">
+          Tu Suscripción está Activa
+        </h3>
+        <p className="mt-2 text-sm text-green-700">
+          Tu plan se renovará automáticamente.
+        </p>
         <button
           onClick={handleCancelSubscription}
           disabled={isLoading}
@@ -119,11 +148,15 @@ export default function Payments() {
     );
   }
 
-  if (subscriptionStatus === 'canceled') {
+  if (subscriptionStatus === "canceled") {
     return (
       <div className="rounded-xl border border-yellow-300 bg-yellow-50 p-6 shadow-md text-center">
-        <h3 className="text-lg font-semibold text-yellow-900">Suscripción Cancelada</h3>
-        <p className="mt-2 text-sm text-yellow-700">Tu acceso continuará hasta el final del periodo.</p>
+        <h3 className="text-lg font-semibold text-yellow-900">
+          Suscripción Cancelada
+        </h3>
+        <p className="mt-2 text-sm text-yellow-700">
+          Tu acceso continuará hasta el final del periodo.
+        </p>
       </div>
     );
   }

@@ -111,6 +111,19 @@ export default function ProfessionalCard({ pro }: Props) {
               {pro.location}
             </span>
           )}
+
+          {isClient && !loggedIsThisProfessional && (
+            <button
+              onClick={onContact}
+              disabled={loading}
+              className="flex items-center gap-2 bg-[#ed7d31] text-white px-6 py-2 rounded-md font-semibold shadow-md hover:bg-[#b45d27] transition"
+              aria-label="Iniciar conversación"
+              title="Iniciar conversación"
+            >
+              <MessageCircle size={16} />
+              <span>{loading ? "Abriendo..." : "Contactar"}</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
