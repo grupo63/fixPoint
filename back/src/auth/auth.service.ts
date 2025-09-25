@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { AuthRepository } from './auth.repository';
 import { User } from 'src/users/entities/user.entity';
@@ -47,24 +48,21 @@ export class AuthService {
       role: internalRole,
     });
 
-    // try {
-    //   await this.notificationsService.sendWelcomeEmail({
-    //     name: user.firstName || 'Usuario',
-    //     email: user.email,
-    //   });
-    //   this.logger.log(`Correo de bienvenida enviado a ${user.email}`);
-    // } catch (error) {
-    //   this.logger.error(
-    //     `Error al enviar correo de bienvenida a ${user.email}`,
-    //     error,
-    //   );
-    //   // Si el envío del correo no es crítico, no lanzamos excepción
-    // }
-    //Envio de email sobre la creacion de usuario:
-    // await this.notificationsService.sendWelcomeEmail({
-    //   name: user.firstName || 'Usuario',
-    //   email,
-    // });
+    // 👇 Esta es la única línea que necesitas cambiar.
+    // Se llama al servicio de notificaciones sin 'await' para que no bloquee el registro.
+    this.notificationsService
+      .sendWelcomeEmail({
+        name: user.firstName || 'Usuario',
+        email: user.email,
+      })
+      .catch((error) => {
+        // Si el correo falla, lo registramos para depuración,
+        // pero el usuario no se verá afectado.
+        this.logger.error(
+          `Error al enviar correo de bienvenida a ${user.email}`,
+          error,
+        );
+      });
 
     return created;
   }
